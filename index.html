@@ -315,8 +315,8 @@ body {
 .vn { display:none; } /* 상단바 제거 */
 .vprog { position:fixed; top:0; left:0; right:0; height:3px; background:rgba(0,0,0,.1); z-index:510; }
 .vpfill { height:100%; background:var(--accent); transition:width .3s; }
-.vbody { flex:1; overflow:hidden; padding:0; width:100%; position:relative; display:flex; flex-direction:column; }
-.vpage { flex:1; overflow-y:auto; padding:48px 24px 48px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
+.vbody { flex:1; overflow-y:auto; padding:48px 24px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
+.vpage { width:100%; }
 .vch { font-size:17px; font-weight:800; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid var(--line); }
 .vtext { font-size:17px; line-height:1.9; color:#2A2A2A; word-break:keep-all; transition:font-size .15s; }
 .vtext p { margin-bottom:1.5em; }
@@ -1661,18 +1661,31 @@ window.expandSyn = function(el, encoded) {
 };
 window.closeDetail = function() { document.getElementById('detail').classList.remove('on'); };
 window.readFromDetail = function() { closeDetail(); openViewer(curId); };
-window.deleteNovel = function() {
-  const n = novels.find(x=>x.id===curId); if(!n) return;
+window.deleteNovel = async function() {
+  const n = novels.find(x=>x.id===curId);
+  if(!n) return;
+
   document.getElementById('confirmMsg').textContent = `"${n.title}"을(를) 삭제하면 되돌릴 수 없어요.`;
   document.getElementById('confirmOv').classList.add('on');
+
   document.getElementById('confirmOkBtn').onclick = async () => {
     closeConfirm();
     try {
-      if(n.filePath) await deleteObject(ref(storage,n.filePath));
-      await deleteDoc(doc(db,'users',currentUser.uid,'novels',curId));
-      novels=novels.filter(x=>x.id!==curId);
-      closeDetail(); render(); renderHome(); renderProfile(); showToast('삭제했습니다');
-    } catch(e) { showToast('삭제 실패: '+e.message,'error'); }
+      if (n.filePath) await deleteObject(ref(storage, n.filePath));
+
+      if (n._shared) {
+        await deleteDoc(doc(db, 'sharedNovels', curId.replace('shared_', '')));
+      } else {
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'novels', curId));
+      }
+
+      novels = novels.filter(x => x.id !== curId);
+      closeDetail();
+      render(); renderHome(); renderProfile();
+      showToast('삭제했습니다');
+    } catch(e) {
+      showToast('삭제 실패: ' + e.message, 'error');
+    }
   };
 };
 window.closeConfirm = function() { document.getElementById('confirmOv').classList.remove('on'); };
@@ -1693,22 +1706,37 @@ window.downloadTxt = async function() {
 // ── VIEWER ──
 function splitCh(txt) {
   const lines = txt.split('\n');
-  const chs = []; let title='', body=[];
+  const chs = [];
+  let title = '';
+  let body = [];
+
   const isChLine = l => {
-    const t=l.trim();
-    return t.length<80 && (
-      /^(제?\s*\d+\s*장|Chapter\s*\d+|챕터\s*\d+|CHAPTER\s*\d+|프롤로그|에필로그|서장|종장|후기|작가의\s*말)/i.test(t)
-      || /^[-=*]{3,}/.test(t)
+    const t = l.trim();
+    if (t.length > 80) return false;
+    return (
+      /^(제\s*\d+[장편화]|Chapter\s*\d+|챕터\s*\d+|프롤로그|에필로그|후기|작가의\s*말)/i.test(t) ||
+      /^[\s\-=━•]{5,}$/.test(t) ||
+      /^\d+\.\s/.test(t)
     );
   };
+
   for (const line of lines) {
     if (isChLine(line)) {
-      if (title||body.join('').trim()) chs.push({title:title||'본문', content:body.join('\n').trimStart()});
-      title=line.trim(); body=[];
-    } else body.push(line);
+      if (title || body.join('').trim()) {
+        chs.push({title: title || '본문', content: body.join('\n').trim()});
+      }
+      title = line.trim();
+      body = [];
+    } else {
+      body.push(line);
+    }
   }
-  if (title||body.join('').trim()) chs.push({title:title||'본문', content:body.join('\n').trimStart()});
-  return chs.length ? chs : [{title:'본문',content:txt}];
+
+  if (title || body.join('').trim()) {
+    chs.push({title: title || '본문', content: body.join('\n').trim()});
+  }
+
+  return chs.length ? chs : [{title:'본문', content: txt}];
 }
 
 window.openViewer = async function(id) {
@@ -1805,49 +1833,56 @@ window.jumpToCh = function(i) {
 };
 
 function renderCh() {
-  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
+  const n = novels.find(x=>x.id===curId);
+  if(!n?._chs) return;
+
   const ch = n._chs[curCh];
   document.getElementById('vChTitle').textContent = ch.title;
   document.getElementById('vPageInfo').textContent = `${curCh+1} / ${n._chs.length} 챕터`;
 
   const paras = ch.content.split(/\n{2,}/).filter(p=>p.trim());
-  document.getElementById('vText').innerHTML = paras.length
-    ? paras.map(p=>`<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')
+  const vText = document.getElementById('vText');
+  vText.innerHTML = paras.length
+    ? paras.map(p => `<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')
     : `<p style="color:var(--ink3);font-style:italic">(내용 없음)</p>`;
 
-  // ── SCROLL POSITION RESTORE ──
+  // 스크롤 복원
   const scrollKey = `ns_scroll_${curId}_${curCh}`;
   const savedScroll = parseInt(localStorage.getItem(scrollKey) || '0', 10);
   const vBody = document.getElementById('vBody');
-  // Use rAF so scrollTop is applied after the DOM has actually painted
-  requestAnimationFrame(() => { vBody.scrollTop = savedScroll; });
+  requestAnimationFrame(() => {
+    vBody.scrollTop = savedScroll;
+  });
 
-  const pct = Math.round(((curCh+1)/n._chs.length)*100);
-  document.getElementById('vpFill').style.width = pct+'%';
-  document.getElementById('prevBtn').disabled = curCh===0;
-  document.getElementById('nextBtn').textContent = curCh===n._chs.length-1?'완독 ✓':'다음 →';
+  const pct = Math.round(((curCh + 1) / n._chs.length) * 100);
+  document.getElementById('vpFill').style.width = pct + '%';
+
   n.progress = pct;
-  updateDoc(doc(db,'users',currentUser.uid,'novels',curId),{progress:pct}).catch(()=>{});
+  if (!n._shared) {
+    updateDoc(doc(db, 'users', currentUser.uid, 'novels', curId), {
+      progress: pct, lastReadAt: new Date().toISOString()
+    }).catch(()=>{});
+  }
 
-  // Reset auto-hide
   setViewerUI(true);
 }
 
 // Save scroll position on scroll (throttled)
 let scrollSaveTimer = null;
 window.onVScroll = function() {
-  const el = document.getElementById('vPage');
-  if (!el) return;
-  const s = el.scrollTop/(el.scrollHeight-el.clientHeight)||0;
-  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
-  document.getElementById('vpFill').style.width = Math.round(((curCh+s)/n._chs.length)*100)+'%';
-  // Save scroll position (throttled 500ms)
+  const vBody = document.getElementById('vBody');
+  if (!vBody) return;
+
+  const n = novels.find(x=>x.id===curId);
+  if(!n?._chs) return;
+
+  const progress = Math.round(((curCh + (vBody.scrollTop / (vBody.scrollHeight - vBody.clientHeight || 1))) / n._chs.length) * 100);
+  document.getElementById('vpFill').style.width = Math.min(100, progress) + '%';
+
   clearTimeout(scrollSaveTimer);
   scrollSaveTimer = setTimeout(() => {
-    localStorage.setItem(`ns_scroll_${curId}_${curCh}`, Math.round(el.scrollTop));
-  }, 500);
-  // Show UI briefly
-  if (!uiVisible) setViewerUI(true);
+    localStorage.setItem(`ns_scroll_${curId}_${curCh}`, Math.round(vBody.scrollTop));
+  }, 400);
 };
 
 window.nextCh = function() {
@@ -1860,7 +1895,7 @@ window.nextCh = function() {
     setTimeout(closeViewer,1800);
   }
 };
-window.prevCh = function() { if(curCh>0){curCh--;renderCh();const vp=document.getElementById('vPage');if(vp)vp.scrollTop=0;} };
+window.prevCh = function() { if(curCh>0){curCh--;renderCh();const vp=document.getElementById('vBody');if(vp)vp.scrollTop=0;} };
 window.closeViewer = function() {
   document.getElementById('viewer').style.display = 'none';
   document.querySelector('.nav').style.display = 'flex';
@@ -2085,7 +2120,7 @@ function startAutoScroll() {
   stopAutoScroll();
   const px = [0.3, 0.6, 1.0, 1.6, 2.4][scrollSpeed - 1]; // px per frame
   function step() {
-    const el = document.getElementById('vPage');
+    const el = document.getElementById('vBody');
     if (!el || !autoScroll) return;
     el.scrollTop += px;
     // Auto advance chapter when reaching bottom
@@ -2151,6 +2186,18 @@ function processFile(f) {
     document.getElementById('iTitle').value = f.name.replace(/\.txt$/i, '');
   showToast(`파일 선택됨: ${Math.round(f.size/1024)}KB`);
 }
+// ── 파일 압축 ──
+async function compressText(txt, originalFile) {
+  try {
+    const stream = new Blob([txt]).stream().pipeThrough(new CompressionStream('gzip'));
+    const compressed = await new Response(stream).arrayBuffer();
+    return new Blob([compressed], { type: 'application/gzip' });
+  } catch {
+    // CompressionStream 미지원 시 원본 파일 그대로
+    return originalFile;
+  }
+}
+
 window.saveNovel = async function() {
   const title = document.getElementById('iTitle').value.trim();
   if (!title) {
@@ -2179,19 +2226,10 @@ window.saveNovel = async function() {
 
       saveBtn.textContent = '압축 중...';
 
-      // TextEncoder로 압축 (CompressionStream - 브라우저 네이티브)
-      let uploadBlob;
-      try {
-        const stream = new Blob([txt]).stream()
-          .pipeThrough(new CompressionStream('gzip'));
-        const compressed = await new Response(stream).arrayBuffer();
-        uploadBlob = new Blob([compressed], { type: 'application/gzip' });
-        const ratio = Math.round((1 - uploadBlob.size / curFile.size) * 100);
-        showToast(`압축 완료 (${ratio}% 감소)`);
-      } catch {
-        // CompressionStream 미지원 시 원본 사용
-        uploadBlob = curFile;
-      }
+      // 압축 (CompressionStream 미지원 시 원본 사용)
+      const uploadBlob = await compressText(txt, curFile);
+      const ratio = Math.round((1 - uploadBlob.size / curFile.size) * 100);
+      if (ratio > 0) showToast(`압축 완료 (${ratio}% 감소)`);
 
       saveBtn.textContent = `업로드 중... (${Math.round(uploadBlob.size/1024)}KB)`;
 
