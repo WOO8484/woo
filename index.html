@@ -8,39 +8,46 @@
 /* ── DESIGN TOKENS ── */
 :root {
   --ink: #111111; --ink2: #555555; --ink3: #999999;
-  --bg: #FFFFFF; --bg2: #F7F7F7; --line: #E8E8E8;
-  --accent: #4F46E5; --accent2: #EEF2FF;
-  --danger: #EF4444; --danger2: #FEF2F2; --danger-line: #FECACA;
-  --success: #10B981;
-  --cover: #1C1C28; --r: 10px; --r2: 16px;
-  --sh: 0 2px 12px rgba(0,0,0,0.07); --sh2: 0 4px 24px rgba(0,0,0,0.1);
+  --bg: #FFFFFF; --bg2: #F5F5F5; --line: #EEEEEE;
+  --accent: #6C5CE7; --accent2: #F0EEFF;
+  --danger: #E55353; --danger2: #FEF2F2; --danger-line: #FECACA;
+  --success: #00B894;
+  --cover: #2D2B55; --r: 10px; --r2: 16px;
+  --sh: 0 2px 12px rgba(0,0,0,0.07); --sh2: 0 6px 24px rgba(0,0,0,0.12);
   --tr: 0.15s ease;
+  --lib-bg: #FFFFFF;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --ink:#F0F0F0; --ink2:#A0A0A0; --ink3:#666;
-    --bg:#111; --bg2:#1C1C1C; --line:#2A2A2A;
+    --bg:#111111; --bg2:#1C1C1C; --line:#2A2A2A;
     --accent2:#1e1b4b;
-    --sh:0 2px 12px rgba(0,0,0,.4); --sh2:0 4px 24px rgba(0,0,0,.5);
+    --lib-bg:#111111;
+    --sh:0 2px 12px rgba(0,0,0,.4); --sh2:0 6px 24px rgba(0,0,0,.5);
   }
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto Sans KR',sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+
+/* Library page — clean white */
+#library { background:var(--lib-bg); min-height:100vh; }
 
 /* ── SKELETON ── */
 @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
 .skeleton { background:linear-gradient(90deg,var(--bg2) 25%,var(--line) 50%,var(--bg2) 75%); background-size:800px 100%; animation:shimmer 1.4s infinite; border-radius:6px; }
 
 /* ── NAV ── */
-.nav { position:sticky; top:0; z-index:100; background:rgba(255,255,255,.96); backdrop-filter:blur(16px); border-bottom:1px solid var(--line); height:54px; padding:0 16px; display:flex; align-items:center; gap:10px; }
-@media(prefers-color-scheme:dark){.nav{background:rgba(17,17,17,.96);}}
-.nav-logo { font-size:17px; font-weight:800; letter-spacing:-.5px; margin-right:auto; }
+.nav { position:sticky; top:0; z-index:100; background:#fff; border-bottom:1px solid var(--line); height:54px; padding:0 16px; display:flex; align-items:center; gap:10px; }
+@media(prefers-color-scheme:dark){.nav{background:#111;}}
+.nav-logo { font-size:18px; font-weight:900; letter-spacing:-.5px; margin-right:auto; color:var(--ink); }
 .nav-logo em { color:var(--accent); font-style:normal; }
-.nav-add { height:32px; padding:0 14px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:opacity var(--tr),transform var(--tr); }
-.nav-add:hover { opacity:.85; transform:translateY(-1px); }
+.nav-logo span { color:var(--ink3); font-weight:400; font-size:12px; margin-left:4px; letter-spacing:0; }
+.nav-add { height:34px; padding:0 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:opacity var(--tr),transform var(--tr); }
+.nav-add:hover { opacity:.88; transform:translateY(-1px); }
 
 /* ── STATS TABS ── */
-.stats { display:flex; border-bottom:1px solid var(--line); }
+.stats { display:flex; border-bottom:1px solid var(--line); background:#fff; }
+@media(prefers-color-scheme:dark){.stats{background:#111;}}
 .stat { flex:1; padding:14px 0; text-align:center; border-right:1px solid var(--line); cursor:pointer; position:relative; transition:background var(--tr); }
 .stat:last-child { border-right:none; }
 .stat::after { content:''; position:absolute; bottom:0; left:50%; right:50%; height:2px; background:var(--accent); transition:left .2s,right .2s; }
@@ -51,28 +58,34 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 
 /* ── TOOLBAR ── */
 .toolbar { display:flex; gap:8px; padding:12px 16px 0; }
-.search-box { flex:1; height:38px; border:1px solid var(--line); border-radius:var(--r); padding:0 12px 0 34px; font-size:13px; outline:none; background:var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center; color:var(--ink); transition:border-color var(--tr); }
-.search-box:focus { border-color:var(--accent); background-color:var(--bg); }
-.view-toggle { height:38px; padding:0 10px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg2); font-size:16px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+.search-box { flex:1; height:40px; border:1px solid var(--line); border-radius:var(--r); padding:0 12px 0 36px; font-size:13px; outline:none; background:var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center; color:var(--ink); transition:border-color var(--tr); }
+.search-box:focus { border-color:var(--accent); background-color:#fff; }
+.view-toggle { height:40px; padding:0 11px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg2); font-size:15px; cursor:pointer; display:flex; align-items:center; color:var(--ink2); transition:border-color var(--tr); }
+.view-toggle:hover { border-color:var(--accent); color:var(--accent); }
 .sort-wrap { position:relative; }
-.sort-btn { height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg2); font-size:12px; font-weight:600; color:var(--ink2); cursor:pointer; white-space:nowrap; }
-.sort-menu { position:absolute; right:0; top:42px; background:var(--bg); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--sh2); min-width:140px; overflow:hidden; z-index:50; display:none; }
+.sort-btn { height:40px; padding:0 12px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg2); font-size:12px; font-weight:600; color:var(--ink2); cursor:pointer; white-space:nowrap; }
+.sort-btn:hover { border-color:var(--accent); }
+.sort-menu { position:absolute; right:0; top:44px; background:#fff; border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--sh2); min-width:150px; overflow:hidden; z-index:50; display:none; }
+@media(prefers-color-scheme:dark){.sort-menu{background:#1C1C1C;}}
 .sort-menu.open { display:block; }
-.sort-item { padding:10px 14px; font-size:13px; cursor:pointer; display:flex; justify-content:space-between; }
+.sort-item { padding:11px 16px; font-size:13px; cursor:pointer; display:flex; justify-content:space-between; }
 .sort-item:hover { background:var(--bg2); }
 .sort-item.on { color:var(--accent); font-weight:700; }
 
 /* ── GENRE FILTER ── */
-.filter { display:flex; gap:6px; padding:10px 16px; overflow-x:auto; scrollbar-width:none; }
+.filter { display:flex; gap:7px; padding:10px 16px; overflow-x:auto; scrollbar-width:none; }
 .filter::-webkit-scrollbar { display:none; }
-.chip { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; border:1px solid var(--line); background:var(--bg); color:var(--ink2); cursor:pointer; white-space:nowrap; transition:all var(--tr); }
+.chip { padding:5px 13px; border-radius:20px; font-size:12px; font-weight:600; border:1px solid var(--line); background:#fff; color:var(--ink2); cursor:pointer; white-space:nowrap; transition:all var(--tr); }
+@media(prefers-color-scheme:dark){.chip{background:#1C1C1C;}}
+.chip:hover { border-color:var(--accent); color:var(--accent); }
 .chip.on { background:var(--accent); color:#fff; border-color:var(--accent); }
 
 /* ── CONTINUE READING ── */
 .recent-scroll { display:flex; gap:10px; padding:0 16px 16px; overflow-x:auto; scrollbar-width:none; }
 .recent-scroll::-webkit-scrollbar { display:none; }
-.rc { flex-shrink:0; width:240px; border:1px solid var(--line); border-radius:var(--r2); padding:11px; display:flex; gap:10px; cursor:pointer; background:var(--bg); transition:box-shadow var(--tr),transform var(--tr); }
-.rc:hover { box-shadow:var(--sh); transform:translateY(-1px); }
+.rc { flex-shrink:0; width:240px; border:1px solid var(--line); border-radius:var(--r2); padding:11px; display:flex; gap:10px; cursor:pointer; background:#fff; transition:box-shadow var(--tr),transform var(--tr); }
+@media(prefers-color-scheme:dark){.rc{background:#1C1C1C;}}
+.rc:hover { box-shadow:var(--sh2); transform:translateY(-2px); }
 .rc-thumb { width:44px; height:58px; border-radius:7px; flex-shrink:0; overflow:hidden; position:relative; }
 .rc-thumb img { width:100%; height:100%; object-fit:cover; }
 .rc-info { flex:1; min-width:0; }
@@ -86,11 +99,11 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 
 /* ── SECTION ── */
 .sec { display:flex; align-items:center; justify-content:space-between; padding:4px 16px 10px; }
-.sec-t { font-size:14px; font-weight:700; }
+.sec-t { font-size:14px; font-weight:800; color:var(--ink); }
 .sec-c { font-size:11px; color:var(--ink3); }
 
 /* ── GRID / LIST ── */
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(138px,1fr)); gap:13px; padding:0 16px 80px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:14px; padding:0 16px 80px; }
 .grid.list-view { grid-template-columns:1fr; gap:0; padding:0 0 80px; }
 .card { cursor:pointer; }
 .card:active { opacity:.8; }
@@ -103,12 +116,12 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 .cover-stripe { position:absolute; left:0; top:0; bottom:0; width:3px; }
 .cover-grad { position:absolute; bottom:0; left:0; right:0; padding:20px 9px 9px; background:linear-gradient(to top,rgba(0,0,0,.72) 0%,transparent 100%); }
 .cover-title { color:#fff; font-size:11px; font-weight:700; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-.done-badge { position:absolute; top:7px; left:7px; background:rgba(16,185,129,.85); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
+.done-badge { position:absolute; top:7px; left:7px; background:rgba(0,184,148,.88); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
 .pct-badge { position:absolute; top:7px; right:7px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; }
 .prog { height:2px; background:var(--line); margin-top:7px; border-radius:2px; overflow:hidden; }
 .prog-fill { height:100%; background:var(--accent); transition:width .4s ease; }
 .card-meta { margin-top:5px; }
-.card-title { font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-title { font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink); }
 .card-sub { font-size:10px; color:var(--ink3); margin-top:2px; display:flex; justify-content:space-between; }
 
 /* List card */
@@ -164,9 +177,10 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 .stats-lbl { font-size:9px; color:var(--ink3); margin-top:3px; display:block; }
 .streak-row { display:flex; align-items:center; gap:8px; padding-top:10px; border-top:1px solid var(--line); }
 .streak-fire { font-size:20px; }
-.streak-text { font-size:12px; font-weight:700; }
-.streak-sub { font-size:10px; color:var(--ink3); }
-.stats-toggle { width:100%; margin:0 0 4px; padding:6px; background:none; border:none; color:var(--ink3); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; }
+.streak-text { font-size:12px; font-weight:700; color:var(--ink); }
+.streak-sub { font-size:10px; color:var(--ink3); margin-top:1px; }
+.stats-toggle { width:100%; margin:0 0 4px; padding:6px; background:none; border:none; color:var(--ink3); font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; font-weight:600; transition:color var(--tr); }
+.stats-toggle:hover { color:var(--accent); }
 
 /* ── VIEWER ── */
 #viewer { display:none; flex-direction:column; height:100vh; overflow:hidden; }
@@ -393,7 +407,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 <body>
 
 <nav class="nav">
-  <div class="nav-logo">Novel<em>S</em></div>
+  <div class="nav-logo">Novel<em>S</em><span>내 서재</span></div>
   <button class="nav-add" onclick="openAdd()">＋ 소설 추가</button>
 </nav>
 
