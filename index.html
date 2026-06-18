@@ -1197,7 +1197,7 @@ body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, getBlob, getBytes, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 import {
   getAuth, onAuthStateChanged,
@@ -1257,18 +1257,19 @@ async function loadNovels() {
   renderSkeletons();
   try {
     // 1. 내 소설
-    const myQ = query(collection(db,'users',currentUser.uid,'novels'), orderBy('addedAt','desc'));
-    const mySnap = await getDocs(myQ);
+    const mySnap = await getDocs(collection(db,'users',currentUser.uid,'novels'));
     const myNovels = mySnap.docs.map(d => ({ id:d.id, _mine:true, ...d.data() }));
 
-    // 2. 공유 소설 (관리자가 sharedNovels 컬렉션에 올린 것)
+    // 2. 공유 소설
     let sharedNovels = [];
     try {
-      const sharedSnap = await getDocs(query(collection(db,'sharedNovels'), orderBy('addedAt','desc')));
+      const sharedSnap = await getDocs(collection(db,'sharedNovels'));
       sharedNovels = sharedSnap.docs.map(d => ({ id:'shared_'+d.id, _shared:true, ...d.data() }));
     } catch(e2) { /* 권한 없거나 없으면 무시 */ }
 
-    novels = [...myNovels, ...sharedNovels];
+    // 클라이언트에서 최신순 정렬
+    novels = [...myNovels, ...sharedNovels]
+      .sort((a,b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
 
     // 관리자만 소설 추가 버튼 표시
     const addBtn = document.getElementById('navAddBtn');
@@ -1278,7 +1279,7 @@ async function loadNovels() {
 
     render(); renderHome(); renderProfile();
   } catch(e) {
-    showToast('데이터 불러오기 실패', 'error');
+    showToast('데이터 불러오기 실패: ' + e.message, 'error');
     document.getElementById('grid').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-t">불러오기 실패</div><div class="empty-s">${escapeHtml(e.message)}</div><button onclick="loadNovels()" style="margin-top:14px;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">다시 시도</button></div>`;
   }
 }
@@ -1774,8 +1775,6 @@ window.openViewerPopup = function() {
 window.closeViewerPopup = function() {
   document.getElementById('vpopupOv').classList.remove('on');
 };
-
-}
 
 // ── CHAPTER LIST ──
 window.openChList = function() {
