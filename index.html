@@ -1171,7 +1171,7 @@ body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 import {
   getAuth, onAuthStateChanged,
   signOut,
@@ -1674,20 +1674,30 @@ window.openViewer = async function(id) {
   curId = id;
   try {
     document.getElementById('vTitle').textContent = n.title;
-    
     document.querySelector('.nav').style.display='none';
     const vv = document.getElementById('viewer');
     vv.style.display='flex'; vv.style.flexDirection='column';
-    document.getElementById('vText').innerHTML='<div style="text-align:center;padding:48px;color:var(--ink3);font-size:13px">불러오는 중...</div>';
+    document.getElementById('vText').innerHTML='<div style="text-align:center;padding:48px;color:var(--ink3);font-size:13px">📖 불러오는 중...</div>';
 
     let txt = '';
     if (n.inlineText) {
+      // 구버전 호환
       txt = n.inlineText;
     } else if (n.filePath) {
       const url = await getDownloadURL(ref(storage, n.filePath));
       const res = await fetch(url);
       if (!res.ok) throw new Error(`파일 다운로드 실패 (HTTP ${res.status})`);
-      txt = await res.text();
+
+      // gzip 압축 파일 처리
+      if (n.filePath.endsWith('.gz')) {
+        const buf = await res.arrayBuffer();
+        const stream = new Response(
+          new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))
+        );
+        txt = await stream.text();
+      } else {
+        txt = await res.text();
+      }
     } else {
       throw new Error('저장된 파일이 없어요. 소설을 다시 추가해주세요.');
     }
@@ -1702,7 +1712,6 @@ window.openViewer = async function(id) {
     applyViewerSettings();
     setViewerUI(true);
 
-    // 읽은 시간 업데이트 (shared 소설은 개인 진행률 저장 안 함)
     if (!n._shared) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), {
         lastReadAt: new Date().toISOString()
@@ -2130,19 +2139,56 @@ window.saveNovel = async function() {
   }
 
   const saveBtn = document.getElementById('saveBtn');
-  saveBtn.textContent = '저장 중...';
   saveBtn.disabled = true;
 
   try {
     let filePath = null;
 
-    // ── 파일은 항상 Storage에 저장 (Firestore엔 경로만) ──
     if (curFile) {
-      saveBtn.textContent = '파일 업로드 중...';
+      saveBtn.textContent = '파일 읽는 중...';
+
+      // 텍스트 읽기
+      const txt = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = () => rej(new Error('파일 읽기 실패'));
+        r.readAsText(curFile, 'UTF-8');
+      });
+
+      saveBtn.textContent = '압축 중...';
+
+      // TextEncoder로 압축 (CompressionStream - 브라우저 네이티브)
+      let uploadBlob;
+      try {
+        const stream = new Blob([txt]).stream()
+          .pipeThrough(new CompressionStream('gzip'));
+        const compressed = await new Response(stream).arrayBuffer();
+        uploadBlob = new Blob([compressed], { type: 'application/gzip' });
+        const ratio = Math.round((1 - uploadBlob.size / curFile.size) * 100);
+        showToast(`압축 완료 (${ratio}% 감소)`);
+      } catch {
+        // CompressionStream 미지원 시 원본 사용
+        uploadBlob = curFile;
+      }
+
+      saveBtn.textContent = `업로드 중... (${Math.round(uploadBlob.size/1024)}KB)`;
+
       const safe = curFile.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
-      const uid  = currentUser.uid;
-      filePath   = `users/${uid}/novels/${Date.now()}_${safe}`;
-      await uploadBytes(ref(storage, filePath), curFile);
+      const ext  = uploadBlob.type === 'application/gzip' ? '.txt.gz' : '.txt';
+      filePath   = `users/${currentUser.uid}/novels/${Date.now()}_${safe}${ext}`;
+
+      // 진행률 표시하며 업로드
+      await new Promise((resolve, reject) => {
+        const uploadTask = uploadBytesResumable(ref(storage, filePath), uploadBlob);
+        uploadTask.on('state_changed',
+          snap => {
+            const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+            saveBtn.textContent = `업로드 중... ${pct}%`;
+          },
+          err => reject(err),
+          () => resolve()
+        );
+      });
     }
 
     saveBtn.textContent = '정보 저장 중...';
@@ -2150,7 +2196,6 @@ window.saveNovel = async function() {
     const tags = document.getElementById('iTags').value
       .split(',').map(t => t.trim()).filter(Boolean);
 
-    // ── Firestore엔 메타데이터만 (텍스트 없음) ──
     const data = {
       title,
       author:     document.getElementById('iAuthor').value.trim() || '작자 미상',
@@ -2160,24 +2205,18 @@ window.saveNovel = async function() {
       progress:   0,
       coverUrl:   coverUrl || null,
       filePath:   filePath || null,
-      totalChars: curFile ? curFile.size : 0,
+      totalChars: curFile ? Math.round(curFile.size / 2) : 0,
       addedAt:    new Date().toISOString(),
       lastReadAt: null,
       favorite:   false,
     };
 
-    const col = isAdmin
-      ? collection(db, 'sharedNovels')
-      : collection(db, 'users', currentUser.uid, 'novels');
-
-    const docRef  = await addDoc(col, isAdmin ? { ...data, uploadedBy: currentUser.uid } : data);
+    const col    = isAdmin ? collection(db, 'sharedNovels') : collection(db, 'users', currentUser.uid, 'novels');
+    const docRef = await addDoc(col, isAdmin ? { ...data, uploadedBy: currentUser.uid } : data);
     const novelId = isAdmin ? 'shared_' + docRef.id : docRef.id;
 
     novels.unshift({ id: novelId, _mine: !isAdmin, _shared: isAdmin, ...data });
-    closeAdd();
-    render();
-    renderHome();
-    renderProfile();
+    closeAdd(); render(); renderHome(); renderProfile();
     showToast('서재에 추가했습니다 📚');
 
   } catch (e) {
