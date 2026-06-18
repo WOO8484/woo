@@ -61,6 +61,7 @@ body {
 .nav-logo { font-size:18px; font-weight:900; letter-spacing:-.5px; margin-right:auto; color:var(--ink); }
 .nav-logo em { color:var(--accent); font-style:normal; }
 .nav-logo span { color:var(--ink3); font-weight:400; font-size:12px; margin-left:4px; letter-spacing:0; }
+.nav-version { font-size:10px; color:var(--ink3); font-weight:400; margin-left:6px; background:var(--bg2); padding:1px 6px; border-radius:6px; }
 .nav-add { height:34px; padding:0 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:opacity var(--tr),transform var(--tr); }
 .nav-add:hover { opacity:.88; transform:translateY(-1px); }
 
@@ -231,7 +232,7 @@ body {
 .card:active { opacity:.8; }
 
 /* Grid card */
-.cover-wrap { width:100%; aspect-ratio:3/4; border-radius:var(--r); overflow:hidden; position:relative; box-shadow:var(--sh); transition:transform .2s,box-shadow .2s; }
+.cover-wrap { width:100%; aspect-ratio:2/3; border-radius:var(--r); overflow:hidden; position:relative; box-shadow:var(--sh); transition:transform .2s,box-shadow .2s; }
 .card:hover .cover-wrap { transform:translateY(-3px); box-shadow:var(--sh2); }
 .cover-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
 .cover-pat { position:absolute; inset:0; opacity:.05; background-image:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%); background-size:8px 8px; }
@@ -306,27 +307,34 @@ body {
 
 /* ── VIEWER ── */
 #viewer { display:none; flex-direction:column; position:fixed; inset:0; z-index:500; background:var(--bg); overflow:hidden; }
-.vn { position:relative; z-index:50; background:rgba(255,255,255,.97); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); height:50px; padding:0 14px; display:flex; align-items:center; gap:10px; transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s; }
-.vn.hidden { transform:translateY(-100%); opacity:0; pointer-events:none; }
-.vback { width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--bg); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--ink); }
-.vtw { flex:1; overflow:hidden; }
-.vt { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.vi { font-size:10px; color:var(--ink3); }
-.vset { width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--bg); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--ink); }
-.vchl-btn { width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--bg); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--ink); }
-.vprog { height:2px; background:var(--line); flex-shrink:0; }
+.vn { display:none; } /* 상단바 제거 */
+.vprog { position:fixed; top:0; left:0; right:0; height:3px; background:rgba(0,0,0,.1); z-index:510; }
 .vpfill { height:100%; background:var(--accent); transition:width .3s; }
-.vbody { flex:1; overflow-y:auto; padding:28px 20px 90px; max-width:680px; margin:0 auto; width:100%; }
+.vbody { flex:1; overflow:hidden; padding:0; width:100%; position:relative; }
+.vpage { position:absolute; inset:0; overflow-y:auto; padding:48px 24px 48px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
 .vch { font-size:17px; font-weight:800; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid var(--line); }
 .vtext { font-size:17px; line-height:1.9; color:#2A2A2A; word-break:keep-all; transition:font-size .15s; }
 .vtext p { margin-bottom:1.5em; }
-.vfoot { position:relative; background:rgba(255,255,255,.97); backdrop-filter:blur(12px); border-top:1px solid var(--line); padding:9px 14px; display:flex; gap:8px; z-index:50; flex-shrink:0; transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s; }
-.vfoot.hidden { transform:translateY(100%); opacity:0; pointer-events:none; }
-.vbtn { flex:1; height:38px; border-radius:8px; border:1px solid var(--line); background:var(--bg); font-size:12px; font-weight:600; color:var(--ink2); cursor:pointer; transition:border-color var(--tr),color var(--tr); }
-.vbtn:hover { border-color:var(--accent); color:var(--accent); }
-.vbtn:disabled { opacity:.35; cursor:not-allowed; }
-.vbtn:disabled:hover { border-color:var(--line); color:var(--ink2); }
-.vbtn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.vfoot { display:none; } /* 하단 이전/다음 버튼 제거 */
+
+/* 터치 영역 표시 (디버그용 - 투명) */
+.vtap-left  { position:fixed; left:0; top:0; width:30%; height:100%; z-index:505; cursor:pointer; }
+.vtap-right { position:fixed; right:0; top:0; width:30%; height:100%; z-index:505; cursor:pointer; }
+.vtap-center{ position:fixed; left:30%; right:30%; top:0; height:100%; z-index:505; cursor:pointer; }
+
+/* 뷰어 팝업 (중앙) */
+.vpopup-ov { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:520; display:none; align-items:center; justify-content:center; }
+.vpopup-ov.on { display:flex; }
+.vpopup { background:#fff; border-radius:20px; padding:24px 20px; width:88%; max-width:360px; max-height:80vh; overflow-y:auto; }
+.vpopup-title { font-size:16px; font-weight:800; margin-bottom:4px; }
+.vpopup-info { font-size:12px; color:var(--ink3); margin-bottom:20px; }
+.vpopup-btns { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+.vpopup-btn { width:100%; height:48px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:12px; padding:0 16px; transition:background var(--tr); }
+.vpopup-btn:hover { background:var(--bg2); }
+.vpopup-btn.danger { color:var(--danger); border-color:var(--danger-line); }
+.vpopup-close { width:100%; height:44px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-size:14px; font-weight:700; cursor:pointer; }
+/* 챕터 표시 */
+.vpage-info { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.45); color:#fff; font-size:11px; padding:5px 14px; border-radius:20px; z-index:506; pointer-events:none; white-space:nowrap; }
 
 /* Tap hint */
 .tap-hint { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.6); color:#fff; font-size:12px; padding:8px 16px; border-radius:20px; pointer-events:none; opacity:0; transition:opacity .3s; z-index:60; white-space:nowrap; }
@@ -665,7 +673,7 @@ body {
 </div>
 
 <nav class="nav" style="display:none">
-  <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
+  <div class="nav-logo" id="navLogo">Novel<em>S</em><span class="nav-version">v1.0.3</span></div>
   <div class="nav-user">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
@@ -893,22 +901,39 @@ body {
 
 <!-- ── VIEWER ── -->
 <div id="viewer">
-  <div class="vn" id="vNav">
-    <button class="vback" onclick="closeViewer()">←</button>
-    <div class="vtw"><div class="vt" id="vTitle"></div><div class="vi" id="vInfo"></div></div>
-    <button class="vchl-btn" onclick="openChList()" title="챕터 목록">≡</button>
-    <button class="vset" onclick="togglePanel()">⚙</button>
-  </div>
   <div class="vprog" id="vprogBar"><div class="vpfill" id="vpFill" style="width:0%"></div></div>
-  <div class="vbody" id="vBody" onclick="onViewerTap(event)" onscroll="onVScroll()">
-    <div class="vch" id="vChTitle"></div>
-    <div class="vtext" id="vText"></div>
+  <div class="vbody" id="vBody" onscroll="onVScroll()">
+    <div class="vpage" id="vPage">
+      <div class="vch" id="vChTitle"></div>
+      <div class="vtext" id="vText"></div>
+    </div>
   </div>
-  <div class="vfoot" id="vFoot">
-    <button class="vbtn" id="prevBtn" onclick="prevCh()">← 이전</button>
-    <button class="vbtn primary" id="nextBtn" onclick="nextCh()">다음 →</button>
+  <!-- 터치 영역 -->
+  <div class="vtap-left"   onclick="prevCh()"></div>
+  <div class="vtap-right"  onclick="nextCh()"></div>
+  <div class="vtap-center" onclick="openViewerPopup()"></div>
+  <!-- 페이지 정보 -->
+  <div class="vpage-info" id="vPageInfo"></div>
+</div>
+
+<!-- 뷰어 팝업 (중앙 탭 시) -->
+<div class="vpopup-ov" id="vpopupOv" onclick="closeViewerPopup()">
+  <div class="vpopup" onclick="event.stopPropagation()">
+    <div class="vpopup-title" id="vpopupTitle"></div>
+    <div class="vpopup-info"  id="vpopupInfo"></div>
+    <div class="vpopup-btns">
+      <button class="vpopup-btn" onclick="closeViewerPopup();openChList()">
+        <span>📋</span> 챕터 목록
+      </button>
+      <button class="vpopup-btn" onclick="closeViewerPopup();togglePanel()">
+        <span>⚙️</span> 읽기 설정
+      </button>
+      <button class="vpopup-btn danger" onclick="closeViewerPopup();closeViewer()">
+        <span>✕</span> 서재로 나가기
+      </button>
+    </div>
+    <button class="vpopup-close" onclick="closeViewerPopup()">계속 읽기</button>
   </div>
-  <div class="tap-hint" id="tapHint">탭하면 UI가 나타나요</div>
 </div>
 
 <!-- ── CHAPTER LIST ── -->
@@ -1221,7 +1246,7 @@ let viewMode   = localStorage.getItem('ns_viewMode') || 'grid'; // 'grid' | 'lis
 let selG = '', coverUrl = '', curFile = null;
 let searchDebounce = null;
 // viewer UI state
-let uiVisible = true, tapHintShown = false, uiHideTimer = null;
+let uiHideTimer = null;
 
 // ── LOAD ──
 async function loadNovels() {
@@ -1289,9 +1314,11 @@ window.toggleFav = async function(id, e) {
   const newFav = !n.favorite;
   n.favorite = newFav;
   try {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), { favorite: newFav });
+    if (!n._shared) {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), { favorite: newFav });
+    }
     render(); renderHome(); renderProfile();
-    showToast(newFav ? '⭐ 즐겨찾기에 추가했어요' : '즐겨찾기에서 제거했어요');
+    showToast(newFav ? '❤️ 즐겨찾기 추가' : '🤍 즐겨찾기 해제');
   } catch(e) { showToast('저장 실패', 'error'); n.favorite = !newFav; }
 };
 
@@ -1502,7 +1529,7 @@ window.render = function() {
     const coverInner = n.coverUrl
       ? `<img src="${escapeHtml(n.coverUrl)}" alt="${escapeHtml(n.title)} 표지" loading="lazy">`
       : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`;
-    const favStar = n.favorite ? '⭐' : '☆';
+    const favStar = n.favorite ? '❤️' : '🤍';
     return `<div class="card" onclick="openDetail('${n.id}')">
       <div class="cover-wrap ${cc}" style="position:relative">
         ${coverInner}
@@ -1681,7 +1708,6 @@ window.openViewer = async function(id) {
   if(!n.filePath && !n.inlineText) { showToast('TXT 파일이 없어요'); return; }
   curId = id;
   try {
-    document.getElementById('vTitle').textContent = n.title;
     document.querySelector('.nav').style.display = 'none';
     document.getElementById('tabBar').style.display = 'none';
     document.getElementById('viewer').style.display = 'flex';
@@ -1717,7 +1743,6 @@ window.openViewer = async function(id) {
       : 0;
 
     applyViewerSettings();
-    setViewerUI(true);
 
     if (!n._shared) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), {
@@ -1734,39 +1759,19 @@ window.openViewer = async function(id) {
   }
 };
 
-// ── TAP TO HIDE/SHOW UI ──
-window.onViewerTap = function(e) {
-  // Don't trigger if tapping a button / link
-  if (e.target.closest('button,a')) return;
-  const body = document.getElementById('vBody');
-  const tapZone = body.clientWidth;
-  const x = e.clientX;
-  // Left 15% → prev chapter, right 15% → next chapter (mobile)
-  if (x < tapZone * 0.15) { prevCh(); return; }
-  if (x > tapZone * 0.85) { nextCh(); return; }
-  // Center tap → toggle UI
-  toggleViewerUI();
+
+// ── 뷰어 팝업 (중앙 탭) ──
+window.openViewerPopup = function() {
+  const n = novels.find(x=>x.id===curId); if(!n) return;
+  document.getElementById('vpopupTitle').textContent = n.title;
+  document.getElementById('vpopupInfo').textContent =
+    (curCh+1) + ' / ' + (n._chs ? n._chs.length : 1) + ' 챕터  ·  ' + (n.progress||0) + '% 진행';
+  document.getElementById('vpopupOv').classList.add('on');
+};
+window.closeViewerPopup = function() {
+  document.getElementById('vpopupOv').classList.remove('on');
 };
 
-function toggleViewerUI() {
-  uiVisible = !uiVisible;
-  setViewerUI(uiVisible);
-  if (!uiVisible && !tapHintShown) {
-    tapHintShown = true;
-    const hint = document.getElementById('tapHint');
-    hint.classList.add('show');
-    setTimeout(() => hint.classList.remove('show'), 2000);
-  }
-}
-
-function setViewerUI(visible) {
-  uiVisible = visible;
-  document.getElementById('vNav').classList.toggle('hidden', !visible);
-  document.getElementById('vFoot').classList.toggle('hidden', !visible);
-  clearTimeout(uiHideTimer);
-  if (visible && autoHide) {
-    uiHideTimer = setTimeout(() => setViewerUI(false), hideDelay * 1000);
-  }
 }
 
 // ── CHAPTER LIST ──
@@ -1796,7 +1801,7 @@ function renderCh() {
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
   const ch = n._chs[curCh];
   document.getElementById('vChTitle').textContent = ch.title;
-  document.getElementById('vInfo').textContent = `${curCh+1} / ${n._chs.length}챕터`;
+  document.getElementById('vPageInfo').textContent = `${curCh+1} / ${n._chs.length} 챕터`;
 
   const paras = ch.content.split(/\n{2,}/).filter(p=>p.trim());
   document.getElementById('vText').innerHTML = paras.length
@@ -1824,7 +1829,7 @@ function renderCh() {
 // Save scroll position on scroll (throttled)
 let scrollSaveTimer = null;
 window.onVScroll = function() {
-  const el = document.getElementById('vBody');
+  const el = document.getElementById('vPage');
   const s = el.scrollTop/(el.scrollHeight-el.clientHeight)||0;
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
   document.getElementById('vpFill').style.width = Math.round(((curCh+s)/n._chs.length)*100)+'%';
@@ -2072,7 +2077,7 @@ function startAutoScroll() {
   stopAutoScroll();
   const px = [0.3, 0.6, 1.0, 1.6, 2.4][scrollSpeed - 1]; // px per frame
   function step() {
-    const el = document.getElementById('vBody');
+    const el = document.getElementById('vPage');
     if (!el || !autoScroll) return;
     el.scrollTop += px;
     // Auto advance chapter when reaching bottom
@@ -2255,11 +2260,48 @@ window.doSearch = async function() {
 };
 window.pickBook = function(i) {
   const item=window._books[i]; if(!item) return;
-  const info=item.volumeInfo; const title=info.title||''; const author=(info.authors||[]).join(', '); const desc=(info.description||'').slice(0,300); const img=(info.imageLinks?.thumbnail||'').replace('http://','https://');
-  coverUrl=img; document.getElementById('iTitle').value=title; document.getElementById('iAuthor').value=author; document.getElementById('iSyn').value=desc;
+  const info=item.volumeInfo;
+  const title  = info.title||'';
+  const author = (info.authors||[]).join(', ');
+  const desc   = (info.description||'').slice(0,300);
+  const img    = (info.imageLinks?.thumbnail||'').replace('http://','https://');
+  const cats   = info.categories||[];
+
+  coverUrl = img;
+  document.getElementById('iTitle').value  = title;
+  document.getElementById('iAuthor').value = author;
+  document.getElementById('iSyn').value    = desc;
+
+  // 장르 자동 매핑
+  const catStr = cats.join(' ').toLowerCase() + ' ' + title.toLowerCase();
+  const genreMap = [
+    ['romance','로맨스','판타지로맨스','현대로맨스'],
+    ['fantasy','판타지','fantasy','무협','이세계'],
+    ['thriller','스릴러','thriller','공포','horror'],
+    ['sf','sf','과학','sci-fi'],
+    ['historical','역사','시대','사극'],
+    ['mystery','미스터리','mystery','추리','detective'],
+  ];
+  for (const [g, ...keywords] of genreMap) {
+    if (keywords.some(k => catStr.includes(k))) {
+      selG = g;
+      document.querySelectorAll('.gchip').forEach(b => {
+        b.classList.toggle('on', b.dataset.g === g);
+      });
+      break;
+    }
+  }
+
+  // 태그 자동 입력 (카테고리 → 태그)
+  if (cats.length) {
+    document.getElementById('iTags').value = cats.slice(0,5).join(', ');
+  }
+
   document.getElementById('sResults').style.display='none';
   const prev=document.getElementById('sPreview'); prev.style.display='flex';
-  document.getElementById('sPrevImg').src=img; document.getElementById('sPrevTitle').textContent=title; document.getElementById('sPrevAuthor').textContent=author;
+  document.getElementById('sPrevImg').src=img;
+  document.getElementById('sPrevTitle').textContent=title;
+  document.getElementById('sPrevAuthor').textContent=author;
   showToast('✓ 메타정보 자동 입력됐어요');
 };
 window.clearSearch = function() { coverUrl=''; document.getElementById('sPreview').style.display='none'; document.getElementById('sPrevImg').src=''; };
