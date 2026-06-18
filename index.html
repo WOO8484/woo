@@ -238,16 +238,23 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 /* ── DETAIL ── */
 .detail { position:fixed; inset:0; background:var(--bg); z-index:200; overflow-y:auto; transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,0,1); }
 .detail.on { transform:translateY(0); }
-.dhero { height:220px; background:var(--cover); position:relative; overflow:hidden; }
-.dhero img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-.dhero-pat { position:absolute; inset:0; opacity:.04; background-image:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%); background-size:8px 8px; }
-.dhero-stripe { position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--accent); }
-.dhero-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.1) 60%); }
-.dclose { position:absolute; top:13px; right:13px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.15); border:none; color:#fff; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2; }
-.dhero-info { position:absolute; bottom:0; left:0; right:0; padding:12px 16px; z-index:1; }
-.dh-title { font-size:20px; font-weight:800; color:#fff; margin-bottom:3px; }
-.dh-author { font-size:12px; color:rgba(255,255,255,.75); }
-.dbody { padding:16px 16px 36px; }
+
+/* Top bar with back button */
+.dbar { position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:0 14px; height:50px; background:rgba(255,255,255,.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
+@media(prefers-color-scheme:dark){ .dbar { background:rgba(17,17,17,.95); } }
+.dbar-back { width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:var(--bg); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--ink); }
+.dbar-title { font-size:14px; font-weight:700; flex:1; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 10px; }
+.dbar-space { width:32px; }
+
+/* Cover section */
+.dcover-wrap { width:100%; background:var(--cover); position:relative; overflow:hidden; }
+.dcover-wrap img { width:100%; display:block; object-fit:cover; }
+.dcover-placeholder { width:100%; aspect-ratio:3/2; display:flex; align-items:center; justify-content:center; font-size:56px; }
+.dcover-grad { position:absolute; bottom:0; left:0; right:0; padding:32px 16px 16px; background:linear-gradient(to top,rgba(0,0,0,.75) 0%,transparent 100%); }
+.dh-title  { font-size:20px; font-weight:800; color:#fff; margin-bottom:3px; line-height:1.3; }
+.dh-author { font-size:13px; color:rgba(255,255,255,.8); }
+
+.dbody { padding:16px 16px 40px; }
 .dstats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
 .dstat { border:1px solid var(--line); border-radius:var(--r); padding:11px; text-align:center; }
 .dstat-v { font-size:16px; font-weight:800; display:block; }
@@ -255,17 +262,17 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 .dstat-k { font-size:9px; color:var(--ink3); margin-top:2px; display:block; }
 .dsec { font-size:12px; font-weight:700; margin-bottom:7px; color:var(--ink2); }
 .dsyn { font-size:13px; line-height:1.7; color:var(--ink2); margin-bottom:16px; }
-.dtags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:18px; }
+.dtags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:20px; }
 .dtag { padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; background:var(--bg2); color:var(--ink2); border:1px solid var(--line); }
-.dread { width:100%; height:46px; background:var(--accent); color:#fff; border:none; border-radius:var(--r); font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; transition:opacity var(--tr),transform var(--tr); }
+.dread { width:100%; height:48px; background:var(--accent); color:#fff; border:none; border-radius:var(--r); font-size:15px; font-weight:700; cursor:pointer; margin-bottom:10px; transition:opacity var(--tr),transform var(--tr); }
 .dread:hover { opacity:.85; transform:translateY(-1px); }
-.ddl { width:100%; height:40px; background:var(--bg); color:var(--accent); border:1px solid var(--accent); border-radius:var(--r); font-size:13px; font-weight:700; cursor:pointer; margin-bottom:8px; transition:background var(--tr); }
+.ddl { width:100%; height:42px; background:var(--bg); color:var(--accent); border:1px solid var(--accent); border-radius:var(--r); font-size:13px; font-weight:700; cursor:pointer; margin-bottom:20px; transition:background var(--tr); }
 .ddl:hover { background:var(--accent2); }
-.danger-zone { margin-top:8px; border:1px solid var(--danger-line); border-radius:var(--r); overflow:hidden; }
-.danger-header { padding:10px 14px; font-size:11px; font-weight:700; color:var(--danger); background:var(--danger2); cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
-.ddel { width:100%; height:40px; background:var(--bg); color:var(--danger); border:none; border-top:1px solid var(--danger-line); font-size:12px; font-weight:600; cursor:pointer; display:none; padding:0 14px; text-align:left; transition:background var(--tr); }
-.ddel:hover { background:var(--danger2); }
-.ddel.visible { display:block; }
+
+/* Delete button — simple, no danger zone toggle */
+.ddel { width:100%; height:40px; background:var(--bg); color:var(--ink3); border:1px solid var(--line); border-radius:var(--r); font-size:12px; font-weight:600; cursor:pointer; transition:color var(--tr),border-color var(--tr),background var(--tr); }
+.ddel:hover { color:var(--danger); border-color:var(--danger-line); background:var(--danger2); }
+
 .progress-ring-wrap { display:flex; justify-content:center; margin-bottom:18px; }
 .ring-bg { fill:none; stroke:var(--line); }
 .ring-fill { fill:none; stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .6s ease; }
@@ -331,6 +338,52 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 .toast { position:fixed; bottom:68px; left:50%; transform:translateX(-50%) translateY(8px); background:rgba(17,17,17,.88); color:#fff; padding:8px 16px; border-radius:20px; font-size:12px; font-weight:600; z-index:500; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; white-space:nowrap; }
 .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.error { background:rgba(239,68,68,.92); }
+
+/* ── SETTINGS PANEL (redesigned) ── */
+.panel { max-height: 88vh; overflow-y: auto; padding-bottom: 40px; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.preset-btn { font-size:11px; color:var(--ink3); background:none; border:1px solid var(--line); border-radius:6px; padding:4px 10px; cursor:pointer; }
+.preset-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* Preview box */
+.preview-box { background:var(--bg2); border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:16px; text-align:center; transition:all .2s; }
+.preview-box span { font-size:17px; line-height:1.9; color:#2A2A2A; transition:all .2s; }
+
+/* Section labels */
+.set-section-label { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px; }
+.set-val-badge { display:inline-block; background:var(--accent2); color:var(--accent); font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; margin-left:6px; text-transform:none; letter-spacing:0; }
+
+/* Theme grid */
+.theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:4px; }
+.theme-card { border:2px solid var(--line); border-radius:10px; padding:6px; text-align:center; cursor:pointer; transition:border-color var(--tr),transform var(--tr); }
+.theme-card:hover { transform:translateY(-1px); }
+.theme-card.on { border-color:var(--accent); }
+.theme-preview { border-radius:6px; padding:6px 0; font-size:13px; font-weight:700; margin-bottom:4px; }
+.theme-card span { font-size:10px; color:var(--ink2); }
+
+/* Font grid */
+.font-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:4px; }
+.font-btn { padding:8px 4px; border:2px solid var(--line); border-radius:8px; background:var(--bg); font-size:13px; cursor:pointer; color:var(--ink); transition:border-color var(--tr); }
+.font-btn.on { border-color:var(--accent); color:var(--accent); }
+
+/* Slider rows */
+.slider-row { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.slider-min,.slider-max { font-size:10px; color:var(--ink3); white-space:nowrap; }
+.ns-slider { -webkit-appearance:none; appearance:none; flex:1; height:4px; border-radius:2px; background:var(--line); outline:none; cursor:pointer; }
+.ns-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 1px 4px rgba(79,70,229,.3); }
+
+/* Width buttons */
+.width-btns { display:flex; gap:6px; margin-bottom:4px; }
+.width-btn { flex:1; padding:7px 0; border:2px solid var(--line); border-radius:8px; background:var(--bg); font-size:11px; font-weight:600; color:var(--ink2); cursor:pointer; transition:border-color var(--tr); }
+.width-btn.on { border-color:var(--accent); color:var(--accent); }
+
+/* Toggle switch */
+.toggle-switch { position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-track { position:absolute; inset:0; background:var(--line); border-radius:12px; transition:background .2s; cursor:pointer; }
+.toggle-switch input:checked + .toggle-track { background:var(--accent); }
+.toggle-thumb { position:absolute; top:3px; left:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.toggle-switch input:checked + .toggle-track .toggle-thumb { transform:translateX(18px); }
 
 /* Swipe hint */
 @keyframes swipeLeft { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-8px)} }
@@ -437,14 +490,25 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 
 <!-- ── DETAIL ── -->
 <div class="detail" id="detail">
-  <div class="dhero" id="dHero">
-    <div class="dhero-pat"></div><div class="dhero-stripe"></div><div class="dhero-grad"></div>
-    <button class="dclose" onclick="closeDetail()">✕</button>
-    <div class="dhero-info"><div class="dh-title" id="dTitle"></div><div class="dh-author" id="dAuthor"></div></div>
+  <!-- 상단 고정 바 -->
+  <div class="dbar">
+    <button class="dbar-back" onclick="closeDetail()">←</button>
+    <div class="dbar-title" id="dBarTitle"></div>
+    <div class="dbar-space"></div>
   </div>
+
+  <!-- 표지 -->
+  <div class="dcover-wrap" id="dHero">
+    <div class="dcover-placeholder" id="dCoverPlaceholder">📖</div>
+    <div class="dcover-grad">
+      <div class="dh-title" id="dTitle"></div>
+      <div class="dh-author" id="dAuthor"></div>
+    </div>
+  </div>
+
   <div class="dbody">
     <div class="progress-ring-wrap">
-      <svg width="100" height="100" viewBox="0 0 100 100">
+      <svg width="90" height="90" viewBox="0 0 100 100">
         <circle class="ring-bg" cx="50" cy="50" r="42" stroke-width="7"/>
         <circle class="ring-fill" id="ringFill" cx="50" cy="50" r="42" stroke-width="7"
           stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90 50 50)"/>
@@ -457,10 +521,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
     <div class="dsec">태그</div><div class="dtags" id="dTags"></div>
     <button class="dread" id="dReadBtn" onclick="readFromDetail()">읽기</button>
     <button class="ddl" id="dDlBtn" onclick="downloadTxt()" style="display:none">↓ TXT 다운로드</button>
-    <div class="danger-zone">
-      <div class="danger-header" onclick="toggleDangerZone(this)"><span>⚠️ 위험 구역</span><span id="dangerArrow">▾</span></div>
-      <button class="ddel" id="dDelBtn" onclick="deleteNovel()">🗑 이 소설 삭제</button>
-    </div>
+    <button class="ddel" onclick="deleteNovel()">🗑 소설 삭제</button>
   </div>
 </div>
 
@@ -468,26 +529,113 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 <div class="overlay" id="setOv" onclick="closePanel()"></div>
 <div class="panel" id="setPanel">
   <div class="phandle"></div>
-  <div class="ptitle">읽기 설정</div>
-  <div class="prow">
-    <span class="plabel">글자 크기</span>
+  <div class="panel-header">
+    <span class="ptitle">읽기 설정</span>
+    <button class="preset-btn" onclick="resetSettings()">기본값 초기화</button>
+  </div>
+
+  <!-- 미리보기 -->
+  <div class="preview-box" id="settingsPreview">
+    <span id="previewText">가나다라 AaBbCc 소설 미리보기</span>
+  </div>
+
+  <!-- 섹션: 배경 -->
+  <div class="set-section-label">배경 테마</div>
+  <div class="theme-grid">
+    <div class="theme-card on" id="theme-light"   onclick="setTheme('light')"   data-theme="light">
+      <div class="theme-preview" style="background:#fff;color:#2A2A2A">가나다</div>
+      <span>라이트</span>
+    </div>
+    <div class="theme-card" id="theme-sepia"   onclick="setTheme('sepia')"   data-theme="sepia">
+      <div class="theme-preview" style="background:#F4ECD8;color:#3D2B1A">가나다</div>
+      <span>세피아</span>
+    </div>
+    <div class="theme-card" id="theme-dark"    onclick="setTheme('dark')"    data-theme="dark">
+      <div class="theme-preview" style="background:#1C1C28;color:#C8C8D8">가나다</div>
+      <span>다크</span>
+    </div>
+    <div class="theme-card" id="theme-amoled"  onclick="setTheme('amoled')"  data-theme="amoled">
+      <div class="theme-preview" style="background:#000;color:#E0E0E0">가나다</div>
+      <span>AMOLED</span>
+    </div>
+  </div>
+
+  <!-- 섹션: 글꼴 -->
+  <div class="set-section-label">글꼴</div>
+  <div class="font-grid" id="fontGrid">
+    <button class="font-btn on" data-font="system"   onclick="setFont('system',this)"  style="font-family:-apple-system,sans-serif">기본</button>
+    <button class="font-btn"    data-font="gothic"   onclick="setFont('gothic',this)"  style="font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif">고딕</button>
+    <button class="font-btn"    data-font="serif"    onclick="setFont('serif',this)"   style="font-family:'Nanum Myeongjo','Georgia',serif">명조</button>
+    <button class="font-btn"    data-font="mono"     onclick="setFont('mono',this)"    style="font-family:'Courier New',monospace">모노</button>
+  </div>
+
+  <!-- 섹션: 글자 크기 -->
+  <div class="set-section-label">글자 크기 <span class="set-val-badge" id="fValBadge">17px</span></div>
+  <div class="slider-row">
+    <span class="slider-min">작게</span>
+    <input type="range" class="ns-slider" id="fontSlider" min="13" max="26" value="17" oninput="chFontSlider(this.value)">
+    <span class="slider-max">크게</span>
+  </div>
+  <div class="prow" style="padding:6px 0">
+    <span class="plabel">빠른 조절</span>
     <div class="fctrl">
       <button class="fbtn" onclick="chFont(-1)">−</button>
       <span class="fval" id="fVal">17</span>
       <button class="fbtn" onclick="chFont(1)">＋</button>
     </div>
   </div>
-  <div class="prow">
-    <span class="plabel">줄 간격</span>
-    <input type="range" class="lh-slider" id="lhSlider" min="150" max="240" value="190" oninput="chLineHeight(this.value)">
+
+  <!-- 섹션: 줄 간격 -->
+  <div class="set-section-label">줄 간격 <span class="set-val-badge" id="lhValBadge">1.9</span></div>
+  <div class="slider-row">
+    <span class="slider-min">좁게</span>
+    <input type="range" class="ns-slider" id="lhSlider" min="140" max="260" step="10" value="190" oninput="chLineHeight(this.value)">
+    <span class="slider-max">넓게</span>
   </div>
-  <div class="prow">
-    <span class="plabel">배경</span>
-    <div class="tbtns">
-      <div class="tdot on" style="background:#fff" onclick="setTheme('light',this)"></div>
-      <div class="tdot" style="background:#F4ECD8" onclick="setTheme('sepia',this)"></div>
-      <div class="tdot" style="background:#1C1C28" onclick="setTheme('dark',this)"></div>
-    </div>
+
+  <!-- 섹션: 문단 간격 -->
+  <div class="set-section-label">문단 간격 <span class="set-val-badge" id="pgValBadge">1.5em</span></div>
+  <div class="slider-row">
+    <span class="slider-min">좁게</span>
+    <input type="range" class="ns-slider" id="pgSlider" min="50" max="300" step="25" value="150" oninput="chParaGap(this.value)">
+    <span class="slider-max">넓게</span>
+  </div>
+
+  <!-- 섹션: 본문 너비 -->
+  <div class="set-section-label">본문 최대 너비 <span class="set-val-badge" id="widthValBadge">680px</span></div>
+  <div class="width-btns">
+    <button class="width-btn" data-w="480"  onclick="setWidth(480,this)">좁음</button>
+    <button class="width-btn on" data-w="680" onclick="setWidth(680,this)">기본</button>
+    <button class="width-btn" data-w="860"  onclick="setWidth(860,this)">넓음</button>
+    <button class="width-btn" data-w="9999" onclick="setWidth(9999,this)">전체</button>
+  </div>
+
+  <!-- 섹션: 자동 숨김 -->
+  <div class="set-section-label">UI 자동 숨김</div>
+  <div class="prow" style="padding:8px 0">
+    <span class="plabel" style="font-size:12px">읽는 중 상/하단 바 자동 숨김</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoHideToggle" onchange="setAutoHide(this.checked)" checked>
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+  <div class="prow" id="autoHideDelayRow" style="padding:6px 0">
+    <span class="plabel" style="font-size:12px">숨김 대기 시간 <span class="set-val-badge" id="hideDelayBadge">4초</span></span>
+    <input type="range" class="ns-slider" style="width:100px" id="hideDelaySlider" min="2" max="10" step="1" value="4" oninput="setHideDelay(this.value)">
+  </div>
+
+  <!-- 섹션: 자동 스크롤 -->
+  <div class="set-section-label">자동 스크롤</div>
+  <div class="prow" style="padding:8px 0">
+    <span class="plabel" style="font-size:12px">자동으로 천천히 스크롤</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoScrollToggle" onchange="setAutoScroll(this.checked)">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+  <div class="prow" id="autoScrollSpeedRow" style="padding:6px 0;display:none">
+    <span class="plabel" style="font-size:12px">속도 <span class="set-val-badge" id="scrollSpeedBadge">보통</span></span>
+    <input type="range" class="ns-slider" style="width:100px" id="scrollSpeedSlider" min="1" max="5" step="1" value="3" oninput="setScrollSpeed(this.value)">
   </div>
 </div>
 
@@ -588,6 +736,12 @@ let curId = null, curCh = 0;
 let fontSize   = parseInt(localStorage.getItem('ns_fontSize') || '17', 10);
 let lineHeight = parseFloat(localStorage.getItem('ns_lineHeight') || '1.9');
 let theme      = localStorage.getItem('ns_theme') || 'light';
+let fontFamily = localStorage.getItem('ns_font')      || 'system';
+let paraGap    = parseFloat(localStorage.getItem('ns_paraGap')   || '1.5');
+let maxWidth   = parseInt(localStorage.getItem('ns_maxWidth')    || '680', 10);
+let autoHide   = localStorage.getItem('ns_autoHide') !== 'false';
+let hideDelay  = parseInt(localStorage.getItem('ns_hideDelay')   || '4', 10);
+let scrollSpeed = parseInt(localStorage.getItem('ns_scrollSpeed')|| '3', 10);
 let viewMode   = localStorage.getItem('ns_viewMode') || 'grid'; // 'grid' | 'list'
 let statsOpen  = localStorage.getItem('ns_statsOpen') === 'true';
 let selG = '', coverUrl = '', curFile = null, fileContent = '';
@@ -764,42 +918,55 @@ document.addEventListener('click', () => document.getElementById('sortMenu').cla
 window.openDetail = function(id) {
   const n = novels.find(x=>x.id===id); if(!n) return;
   curId = id;
-  const hw = document.getElementById('dHero');
-  const existing = hw.querySelector('img.dcover');
-  if (existing) existing.remove();
-  // Hero bg = genre color
+
+  // Top bar title
+  document.getElementById('dBarTitle').textContent = n.title;
+
+  // Cover
+  const hero = document.getElementById('dHero');
+  const placeholder = document.getElementById('dCoverPlaceholder');
+  // Remove old cover img if any
+  hero.querySelectorAll('img.dcover').forEach(el => el.remove());
+
   const cc = genreCoverClass(n.genre);
-  hw.className = 'dhero ' + cc;
+  hero.className = 'dcover-wrap ' + cc;
+
   if (n.coverUrl) {
-    const img = document.createElement('img'); img.src=n.coverUrl; img.className='dcover'; img.alt=n.title;
-    img.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-    hw.insertBefore(img,hw.firstChild);
+    const img = document.createElement('img');
+    img.src = n.coverUrl; img.className = 'dcover'; img.alt = n.title;
+    hero.insertBefore(img, placeholder);
+    placeholder.style.display = 'none';
+  } else {
+    placeholder.style.display = 'flex';
+    placeholder.textContent = GENRE_ICON[n.genre] || '📖';
   }
+
   document.getElementById('dTitle').textContent  = n.title;
-  document.getElementById('dAuthor').textContent = n.author||'작자 미상';
-  const pct = n.progress||0;
-  document.getElementById('ringFill').style.strokeDashoffset = CIRCUMFERENCE*(1-pct/100);
-  document.getElementById('ringPct').textContent = pct+'%';
-  const pages = Math.round((n.totalChars||0)/500);
+  document.getElementById('dAuthor').textContent = n.author || '작자 미상';
+
+  // Progress ring
+  const pct = n.progress || 0;
+  document.getElementById('ringFill').style.strokeDashoffset = CIRCUMFERENCE * (1 - pct / 100);
+  document.getElementById('ringPct').textContent = pct + '%';
+
+  // Stats
+  const pages = Math.round((n.totalChars || 0) / 500);
   document.getElementById('dStats').innerHTML = `
     <div class="dstat"><span class="dstat-v">${pages||'-'}p</span><span class="dstat-k">분량</span></div>
     <div class="dstat"><span class="dstat-v">${LABELS[n.genre]||'기타'}</span><span class="dstat-k">장르</span></div>
     <div class="dstat"><span class="dstat-v">${n.lastReadAt?ago(n.lastReadAt):'-'}</span><span class="dstat-k">마지막 읽기</span></div>`;
-  document.getElementById('dSyn').textContent  = n.synopsis||'줄거리 없음';
-  document.getElementById('dTags').innerHTML   = (n.tags||[]).map(t=>`<span class="dtag">${escapeHtml(t)}</span>`).join('')||'<span style="color:var(--ink3);font-size:12px">태그 없음</span>';
-  document.getElementById('dReadBtn').textContent = n.progress>0&&n.progress<100?'이어 읽기':n.progress>=100?'다시 읽기':'처음부터 읽기';
-  document.getElementById('dDlBtn').style.display = n.filePath?'block':'none';
-  document.getElementById('dDelBtn').classList.remove('visible');
-  document.getElementById('dangerArrow').textContent = '▾';
+
+  document.getElementById('dSyn').textContent  = n.synopsis || '줄거리 없음';
+  document.getElementById('dTags').innerHTML   = (n.tags||[]).map(t=>`<span class="dtag">${escapeHtml(t)}</span>`).join('') || '<span style="color:var(--ink3);font-size:12px">태그 없음</span>';
+  document.getElementById('dReadBtn').textContent = n.progress>0&&n.progress<100 ? '이어 읽기' : n.progress>=100 ? '다시 읽기' : '처음부터 읽기';
+  document.getElementById('dDlBtn').style.display = n.filePath ? 'block' : 'none';
+
+  // Scroll to top before opening
+  document.getElementById('detail').scrollTop = 0;
   document.getElementById('detail').classList.add('on');
 };
 window.closeDetail = function() { document.getElementById('detail').classList.remove('on'); };
 window.readFromDetail = function() { closeDetail(); openViewer(curId); };
-window.toggleDangerZone = function(el) {
-  const btn = document.getElementById('dDelBtn');
-  const open = btn.classList.toggle('visible');
-  document.getElementById('dangerArrow').textContent = open?'▴':'▾';
-};
 window.deleteNovel = function() {
   const n = novels.find(x=>x.id===curId); if(!n) return;
   document.getElementById('confirmMsg').textContent = `"${n.title}"을(를) 삭제하면 되돌릴 수 없어요.`;
@@ -904,9 +1071,8 @@ function setViewerUI(visible) {
   document.getElementById('vNav').classList.toggle('hidden', !visible);
   document.getElementById('vFoot').classList.toggle('hidden', !visible);
   clearTimeout(uiHideTimer);
-  if (visible) {
-    // Auto-hide after 4s of inactivity
-    uiHideTimer = setTimeout(() => setViewerUI(false), 4000);
+  if (visible && autoHide) {
+    uiHideTimer = setTimeout(() => setViewerUI(false), hideDelay * 1000);
   }
 }
 
@@ -932,21 +1098,6 @@ window.closeChList = function() { document.getElementById('chListPanel').classLi
 window.jumpToCh = function(i) {
   curCh = i; closeChList(); renderCh();
 };
-
-function applyViewerSettings() {
-  const vBody = document.getElementById('vBody');
-  const vText = document.getElementById('vText');
-  vText.style.fontSize = fontSize+'px';
-  vText.style.lineHeight = lineHeight;
-  const themes = {light:['#fff','#2A2A2A'], sepia:['#F4ECD8','#3D2B1A'], dark:['#1C1C28','#C8C8D8']};
-  const [bg,color] = themes[theme]||themes.light;
-  vBody.style.background = bg; vBody.style.color = color;
-  document.getElementById('fVal').textContent = fontSize;
-  document.getElementById('lhSlider').value = Math.round(lineHeight*100);
-  // Sync theme dot
-  const themeOrder = ['light','sepia','dark'];
-  document.querySelectorAll('.tdot').forEach((d,i) => d.classList.toggle('on', themeOrder[i]===theme));
-}
 
 function renderCh() {
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
@@ -1009,6 +1160,8 @@ window.closeViewer = function() {
   document.getElementById('library').style.display='block';
   document.querySelector('.nav').style.display='flex';
   clearTimeout(uiHideTimer);
+  stopAutoScroll();
+  autoScroll = false;
   render();
 };
 
@@ -1032,26 +1185,229 @@ document.getElementById('vBody').addEventListener('touchend', e => {
 }, {passive:true});
 
 // ── SETTINGS ──
-window.togglePanel = function() { document.getElementById('setPanel').classList.toggle('on'); document.getElementById('setOv').classList.toggle('on'); clearTimeout(uiHideTimer); };
-window.closePanel  = function() { document.getElementById('setPanel').classList.remove('on'); document.getElementById('setOv').classList.remove('on'); setViewerUI(true); };
+let autoScroll   = false;
+let autoScrollRAF = null;
+
+const FONTS = {
+  system:  "-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,sans-serif",
+  gothic:  "'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
+  serif:   "'Nanum Myeongjo','Georgia',serif",
+  mono:    "'Courier New',monospace"
+};
+const THEMES = {
+  light:  { bg:'#fff',       text:'#2A2A2A', navBg:'rgba(255,255,255,.97)' },
+  sepia:  { bg:'#F4ECD8',    text:'#3D2B1A', navBg:'rgba(244,236,216,.97)' },
+  dark:   { bg:'#1C1C28',    text:'#C8C8D8', navBg:'rgba(28,28,40,.97)'   },
+  amoled: { bg:'#000000',    text:'#E0E0E0', navBg:'rgba(0,0,0,.97)'       }
+};
+const SPEED_LABELS = { 1:'매우 느림', 2:'느림', 3:'보통', 4:'빠름', 5:'매우 빠름' };
+
+window.togglePanel = function() {
+  const open = document.getElementById('setPanel').classList.toggle('on');
+  document.getElementById('setOv').classList.toggle('on', open);
+  if (open) { syncSettingsUI(); clearTimeout(uiHideTimer); }
+  else       { if (autoHide) setViewerUI(true); }
+};
+window.closePanel = function() {
+  document.getElementById('setPanel').classList.remove('on');
+  document.getElementById('setOv').classList.remove('on');
+  if (autoHide) setViewerUI(true);
+};
+
+// Sync all UI controls to current state
+function syncSettingsUI() {
+  // Theme cards
+  document.querySelectorAll('.theme-card').forEach(c =>
+    c.classList.toggle('on', c.dataset.theme === theme));
+  // Font buttons
+  document.querySelectorAll('.font-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.font === fontFamily));
+  // Font size
+  document.getElementById('fVal').textContent  = fontSize;
+  document.getElementById('fValBadge').textContent = fontSize + 'px';
+  document.getElementById('fontSlider').value  = fontSize;
+  // Line height
+  document.getElementById('lhValBadge').textContent = lineHeight.toFixed(1);
+  document.getElementById('lhSlider').value    = Math.round(lineHeight * 100);
+  // Para gap
+  document.getElementById('pgValBadge').textContent = paraGap.toFixed(1) + 'em';
+  document.getElementById('pgSlider').value    = Math.round(paraGap * 100);
+  // Max width
+  document.querySelectorAll('.width-btn').forEach(b =>
+    b.classList.toggle('on', parseInt(b.dataset.w) === maxWidth));
+  document.getElementById('widthValBadge').textContent = maxWidth >= 9999 ? '제한없음' : maxWidth + 'px';
+  // Auto-hide
+  document.getElementById('autoHideToggle').checked = autoHide;
+  document.getElementById('autoHideDelayRow').style.opacity = autoHide ? '1' : '.4';
+  document.getElementById('hideDelaySlider').value = hideDelay;
+  document.getElementById('hideDelayBadge').textContent = hideDelay + '초';
+  // Auto-scroll
+  document.getElementById('autoScrollToggle').checked = autoScroll;
+  document.getElementById('autoScrollSpeedRow').style.display = autoScroll ? 'flex' : 'none';
+  document.getElementById('scrollSpeedSlider').value  = scrollSpeed;
+  document.getElementById('scrollSpeedBadge').textContent = SPEED_LABELS[scrollSpeed];
+  // Update preview
+  updatePreview();
+}
+
+function updatePreview() {
+  const t = THEMES[theme] || THEMES.light;
+  const box = document.getElementById('settingsPreview');
+  const txt = document.getElementById('previewText');
+  box.style.background = t.bg;
+  box.style.borderColor = theme === 'amoled' ? '#333' : '';
+  txt.style.color      = t.text;
+  txt.style.fontSize   = fontSize + 'px';
+  txt.style.lineHeight = lineHeight;
+  txt.style.fontFamily = FONTS[fontFamily];
+}
+
+// Apply all settings to viewer body
+function applyViewerSettings() {
+  const vBody = document.getElementById('vBody');
+  const vText = document.getElementById('vText');
+  const t = THEMES[theme] || THEMES.light;
+  vBody.style.background = t.bg;
+  vBody.style.color      = t.text;
+  vBody.style.maxWidth   = maxWidth >= 9999 ? 'none' : maxWidth + 'px';
+  vText.style.fontSize   = fontSize   + 'px';
+  vText.style.lineHeight = lineHeight;
+  vText.style.fontFamily = FONTS[fontFamily];
+  // Apply para gap via CSS var workaround (set on vText directly)
+  vText.style.setProperty('--para-gap', paraGap + 'em');
+  // Update vText p margin-bottom
+  document.querySelectorAll('#vText p').forEach(p => p.style.marginBottom = paraGap + 'em');
+  // Nav/foot bg
+  const vn = document.getElementById('vNav');
+  const vf = document.getElementById('vFoot');
+  if (vn) vn.style.background = t.navBg;
+  if (vf) vf.style.background = t.navBg;
+  // Sync UI
+  document.getElementById('fVal').textContent = fontSize;
+  document.getElementById('fontSlider').value = fontSize;
+  document.getElementById('lhSlider').value   = Math.round(lineHeight * 100);
+}
+
+// ── THEME ──
+window.setTheme = function(t) {
+  theme = t;
+  localStorage.setItem('ns_theme', t);
+  applyViewerSettings();
+  syncSettingsUI();
+};
+
+// ── FONT ──
+window.setFont = function(f, el) {
+  fontFamily = f;
+  localStorage.setItem('ns_font', f);
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  applyViewerSettings();
+  updatePreview();
+};
+
+// ── FONT SIZE ──
 window.chFont = function(d) {
-  fontSize=Math.max(13,Math.min(26,fontSize+d));
-  document.getElementById('fVal').textContent=fontSize;
-  document.getElementById('vText').style.fontSize=fontSize+'px';
-  localStorage.setItem('ns_fontSize',fontSize);
+  fontSize = Math.max(13, Math.min(26, fontSize + d));
+  localStorage.setItem('ns_fontSize', fontSize);
+  applyViewerSettings();
+  syncSettingsUI();
 };
+window.chFontSlider = function(v) {
+  fontSize = parseInt(v, 10);
+  localStorage.setItem('ns_fontSize', fontSize);
+  document.getElementById('fVal').textContent = fontSize;
+  document.getElementById('fValBadge').textContent = fontSize + 'px';
+  applyViewerSettings();
+  updatePreview();
+};
+
+// ── LINE HEIGHT ──
 window.chLineHeight = function(v) {
-  lineHeight=v/100;
-  document.getElementById('vText').style.lineHeight=lineHeight;
-  localStorage.setItem('ns_lineHeight',lineHeight);
+  lineHeight = v / 100;
+  localStorage.setItem('ns_lineHeight', lineHeight);
+  document.getElementById('lhValBadge').textContent = lineHeight.toFixed(1);
+  applyViewerSettings();
+  updatePreview();
 };
-window.setTheme = function(t,el) {
-  theme=t;
-  document.querySelectorAll('.tdot').forEach(d=>d.classList.remove('on')); el.classList.add('on');
-  const themes={light:['#fff','#2A2A2A'],sepia:['#F4ECD8','#3D2B1A'],dark:['#1C1C28','#C8C8D8']};
-  const [bg,color]=themes[t]||themes.light;
-  const b=document.getElementById('vBody'); b.style.background=bg; b.style.color=color;
-  localStorage.setItem('ns_theme',t);
+
+// ── PARA GAP ──
+window.chParaGap = function(v) {
+  paraGap = v / 100;
+  localStorage.setItem('ns_paraGap', paraGap);
+  document.getElementById('pgValBadge').textContent = paraGap.toFixed(1) + 'em';
+  document.querySelectorAll('#vText p').forEach(p => p.style.marginBottom = paraGap + 'em');
+  updatePreview();
+};
+
+// ── MAX WIDTH ──
+window.setWidth = function(w, el) {
+  maxWidth = w;
+  localStorage.setItem('ns_maxWidth', w);
+  document.querySelectorAll('.width-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('widthValBadge').textContent = w >= 9999 ? '제한없음' : w + 'px';
+  document.getElementById('vBody').style.maxWidth = w >= 9999 ? 'none' : w + 'px';
+};
+
+// ── AUTO HIDE ──
+window.setAutoHide = function(on) {
+  autoHide = on;
+  localStorage.setItem('ns_autoHide', on);
+  document.getElementById('autoHideDelayRow').style.opacity = on ? '1' : '.4';
+  if (!on) clearTimeout(uiHideTimer);
+};
+window.setHideDelay = function(v) {
+  hideDelay = parseInt(v, 10);
+  localStorage.setItem('ns_hideDelay', hideDelay);
+  document.getElementById('hideDelayBadge').textContent = hideDelay + '초';
+};
+
+// ── AUTO SCROLL ──
+window.setAutoScroll = function(on) {
+  autoScroll = on;
+  document.getElementById('autoScrollSpeedRow').style.display = on ? 'flex' : 'none';
+  if (on) startAutoScroll(); else stopAutoScroll();
+};
+window.setScrollSpeed = function(v) {
+  scrollSpeed = parseInt(v, 10);
+  localStorage.setItem('ns_scrollSpeed', scrollSpeed);
+  document.getElementById('scrollSpeedBadge').textContent = SPEED_LABELS[scrollSpeed];
+  if (autoScroll) { stopAutoScroll(); startAutoScroll(); }
+};
+function startAutoScroll() {
+  stopAutoScroll();
+  const px = [0.3, 0.6, 1.0, 1.6, 2.4][scrollSpeed - 1]; // px per frame
+  function step() {
+    const el = document.getElementById('vBody');
+    if (!el || !autoScroll) return;
+    el.scrollTop += px;
+    // Auto advance chapter when reaching bottom
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+      const n = novels.find(x=>x.id===curId);
+      if (n?._chs && curCh < n._chs.length - 1) {
+        stopAutoScroll();
+        setTimeout(() => { nextCh(); if (autoScroll) startAutoScroll(); }, 1200);
+        return;
+      }
+    }
+    autoScrollRAF = requestAnimationFrame(step);
+  }
+  autoScrollRAF = requestAnimationFrame(step);
+}
+function stopAutoScroll() {
+  if (autoScrollRAF) { cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
+}
+
+// ── RESET ──
+window.resetSettings = function() {
+  fontSize = 17; lineHeight = 1.9; theme = 'light';
+  fontFamily = 'system'; paraGap = 1.5; maxWidth = 680;
+  autoHide = true; hideDelay = 4; scrollSpeed = 3;
+  ['ns_fontSize','ns_lineHeight','ns_theme','ns_font','ns_paraGap','ns_maxWidth','ns_autoHide','ns_hideDelay','ns_scrollSpeed'].forEach(k => localStorage.removeItem(k));
+  applyViewerSettings();
+  syncSettingsUI();
+  showToast('기본값으로 초기화했어요');
 };
 
 // ── ADD MODAL ──
