@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- NovelS v1.0.5 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -315,8 +316,8 @@ body {
 .vn { display:none; } /* 상단바 제거 */
 .vprog { position:fixed; top:0; left:0; right:0; height:3px; background:rgba(0,0,0,.1); z-index:510; }
 .vpfill { height:100%; background:var(--accent); transition:width .3s; }
-.vbody { flex:1; overflow-y:auto; padding:48px 24px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
-.vpage { width:100%; }
+.vbody { flex:1; overflow-y:auto; padding:0; width:100%; position:relative; }
+.vpage { padding:48px 24px 80px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
 .vch { font-size:17px; font-weight:800; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid var(--line); }
 .vtext { font-size:17px; line-height:1.9; color:#2A2A2A; word-break:keep-all; transition:font-size .15s; }
 .vtext p { margin-bottom:1.5em; }
@@ -642,6 +643,23 @@ body {
   .auth-google { height:56px; font-size:16px; }
 }
 </style>
+
+<script>
+// 버전 체크 - 캐시 무효화
+(function() {
+  const CURRENT = 'v1.0.5';
+  const stored = localStorage.getItem('ns_version');
+  if (stored && stored !== CURRENT) {
+    localStorage.setItem('ns_version', CURRENT);
+    // 스토리지 데이터는 유지하고 캐시만 무효화
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  } else {
+    localStorage.setItem('ns_version', CURRENT);
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -679,7 +697,7 @@ body {
 
 <nav class="nav" style="display:none">
   <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
-  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.0.4</div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.0.5</div>
   <div class="nav-user">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
