@@ -1691,30 +1691,25 @@ window.openViewer = async function(id) {
     if (n.inlineText) {
       txt = n.inlineText;
     } else if (n.filePath) {
-      showToast('Storage 연결 중...');
+      showToast('다운로드 URL 가져오는 중...');
+      const url = await getDownloadURL(ref(storage, n.filePath));
 
-      // 15초 타임아웃
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('타임아웃 - Storage 응답 없음 (15초)')), 15000)
-      );
-
-      const blob = await Promise.race([
-        getBlob(ref(storage, n.filePath)),
-        timeoutPromise
-      ]);
+      showToast('파일 다운로드 중...');
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       showToast('파일 읽는 중...');
-
       if (n.filePath.endsWith('.gz')) {
+        const buf = await res.arrayBuffer();
         const stream = new Response(
-          blob.stream().pipeThrough(new DecompressionStream('gzip'))
+          new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))
         );
         txt = await stream.text();
       } else {
-        txt = await blob.text();
+        txt = await res.text();
       }
     } else {
-      throw new Error('저장된 파일이 없어요. 소설을 다시 추가해주세요.');
+      throw new Error('저장된 파일이 없어요.');
     }
 
     if (!txt.trim()) throw new Error('파일 내용이 비어있어요');
