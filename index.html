@@ -195,7 +195,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,'Noto 
 .vbtn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
 
 /* Tap hint */
-.tap-hint { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.5); color:#fff; font-size:12px; padding:8px 16px; border-radius:20px; pointer-events:none; opacity:0; transition:opacity .3s; z-index:60; white-space:nowrap; }
+.tap-hint { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,.6); color:#fff; font-size:12px; padding:8px 16px; border-radius:20px; pointer-events:none; opacity:0; transition:opacity .3s; z-index:60; white-space:nowrap; }
 .tap-hint.show { opacity:1; }
 
 /* ── CHAPTER LIST PANEL ── */
@@ -580,7 +580,6 @@ const storage = getStorage(app);
 const LABELS = { romance:'로맨스', fantasy:'판타지', thriller:'스릴러', sf:'SF', historical:'역사', mystery:'미스터리' };
 const GENRE_ICON = { romance:'💕', fantasy:'🔮', thriller:'🔪', sf:'🚀', historical:'📜', mystery:'🕵️' };
 const SORTS = { recent:'최근 추가', lastRead:'최근 읽은', progress:'진행률 높은', progressAsc:'진행률 낮은', title:'제목순' };
-const NAVER_PROXY_URL = "https://delicate-bird-dd5a.qudrnr84.workers.dev/";
 const CIRCUMFERENCE = 2 * Math.PI * 42;
 
 // ── STATE ──
@@ -626,17 +625,19 @@ function updateStats() {
   document.getElementById('stat-done').textContent  = done;
   document.getElementById('stat-pages').textContent = pages > 999 ? (pages/1000).toFixed(1)+'k' : pages;
 
-  // Streak: count consecutive days with lastReadAt
+  // Streak: count consecutive days. Allow today to be unread (start check from yesterday if today has no reads)
   const today = new Date(); today.setHours(0,0,0,0);
   const readDays = new Set(
     novels.filter(n => n.lastReadAt)
       .map(n => { const d = new Date(n.lastReadAt); d.setHours(0,0,0,0); return d.getTime(); })
   );
+  // If today has reads, start from today (i=0). If not, start from yesterday (i=1).
+  const startOffset = readDays.has(today.getTime()) ? 0 : 1;
   let streak = 0;
-  for (let i = 0; i < 365; i++) {
+  for (let i = startOffset; i < 365; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
     if (readDays.has(d.getTime())) streak++;
-    else if (i > 0) break; // allow today to be unread yet
+    else break;
   }
   document.getElementById('streakText').textContent = streak > 0 ? `${streak}일 연속 독서 중! 🔥` : '오늘 독서를 시작해보세요';
   document.getElementById('streakSub').textContent  = done > 0 ? `완독 ${done}권 · 총 ${pages}p` : '아직 완독한 소설이 없어요';
@@ -909,15 +910,6 @@ function setViewerUI(visible) {
   }
 }
 
-// Reset auto-hide timer on scroll
-window.onVScroll = function() {
-  const el = document.getElementById('vBody');
-  const s = el.scrollTop/(el.scrollHeight-el.clientHeight)||0;
-  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
-  document.getElementById('vpFill').style.width = Math.round(((curCh+s)/n._chs.length)*100)+'%';
-  if (!uiVisible) { setViewerUI(true); } // show UI briefly on scroll
-};
-
 // ── CHAPTER LIST ──
 window.openChList = function() {
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
@@ -968,11 +960,11 @@ function renderCh() {
     : `<p style="color:var(--ink3);font-style:italic">(내용 없음)</p>`;
 
   // ── SCROLL POSITION RESTORE ──
-  // Save key: ns_scroll_{novelId}_{chIndex}
   const scrollKey = `ns_scroll_${curId}_${curCh}`;
   const savedScroll = parseInt(localStorage.getItem(scrollKey) || '0', 10);
   const vBody = document.getElementById('vBody');
-  vBody.scrollTop = savedScroll;
+  // Use rAF so scrollTop is applied after the DOM has actually painted
+  requestAnimationFrame(() => { vBody.scrollTop = savedScroll; });
 
   const pct = Math.round(((curCh+1)/n._chs.length)*100);
   document.getElementById('vpFill').style.width = pct+'%';
