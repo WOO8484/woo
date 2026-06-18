@@ -25,7 +25,7 @@ body {
   -webkit-font-smoothing:antialiased;
   color-scheme: light; /* 다크모드 비활성화 */
 }
-#library { background:#FFFFFF; min-height:100vh; }
+
 
 /* ── AUTH SCREEN ── */
 #authScreen { position:fixed; inset:0; background:#fff; z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 28px; }
@@ -63,6 +63,113 @@ body {
 .nav-logo span { color:var(--ink3); font-weight:400; font-size:12px; margin-left:4px; letter-spacing:0; }
 .nav-add { height:34px; padding:0 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:opacity var(--tr),transform var(--tr); }
 .nav-add:hover { opacity:.88; transform:translateY(-1px); }
+
+/* ── BOTTOM TAB BAR ── */
+.tab-bar { position:fixed; bottom:0; left:0; right:0; height:60px; background:#fff; border-top:1px solid var(--line); display:flex; align-items:center; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; padding:6px 0; border:none; background:none; transition:color var(--tr); color:var(--ink3); }
+.tab-item.on { color:var(--accent); }
+.tab-icon { font-size:22px; line-height:1; }
+.tab-label { font-size:10px; font-weight:600; }
+
+/* ── PAGE WRAPPER ── */
+.page { display:none; padding-bottom:70px; min-height:100vh; }
+.page.active { display:block; }
+
+/* ── HOME PAGE ── */
+.home-header { padding:20px 16px 8px; }
+.home-greeting { font-size:22px; font-weight:900; color:var(--ink); margin-bottom:2px; }
+.home-greeting em { color:var(--accent); font-style:normal; }
+.home-date { font-size:12px; color:var(--ink3); }
+
+.home-section { margin-top:20px; }
+.home-sec-header { display:flex; align-items:center; justify-content:space-between; padding:0 16px 10px; }
+.home-sec-title { font-size:15px; font-weight:800; }
+.home-sec-more { font-size:12px; color:var(--accent); cursor:pointer; }
+
+/* 홈 이어읽기 카드 (큰 버전) */
+.home-continue { display:flex; gap:10px; padding:0 16px 4px; overflow-x:auto; scrollbar-width:none; }
+.home-continue::-webkit-scrollbar { display:none; }
+.home-con-card { flex-shrink:0; width:280px; background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px; display:flex; gap:12px; cursor:pointer; transition:box-shadow var(--tr); }
+.home-con-card:hover { box-shadow:var(--sh2); }
+.home-con-thumb { width:56px; height:74px; border-radius:8px; overflow:hidden; flex-shrink:0; }
+.home-con-thumb img { width:100%; height:100%; object-fit:cover; }
+.home-con-info { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; }
+.home-con-title { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.home-con-author { font-size:11px; color:var(--ink3); margin-top:2px; }
+.home-con-prog { margin-top:auto; }
+.home-con-bar { height:3px; background:var(--line); border-radius:2px; overflow:hidden; margin-bottom:3px; }
+.home-con-fill { height:100%; background:var(--accent); border-radius:2px; }
+.home-con-pct { font-size:10px; color:var(--ink3); display:flex; justify-content:space-between; }
+.home-con-btn { width:100%; height:28px; background:var(--accent2); color:var(--accent); border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; margin-top:8px; }
+.home-con-btn:hover { background:var(--accent); color:#fff; }
+
+/* 홈 빠른 추가 배너 */
+.home-banner { margin:16px; background:linear-gradient(135deg,var(--accent),#A29BFE); border-radius:16px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+.home-banner-text { color:#fff; }
+.home-banner-title { font-size:15px; font-weight:800; margin-bottom:3px; }
+.home-banner-sub { font-size:12px; opacity:.85; }
+.home-banner-btn { height:34px; padding:0 16px; background:#fff; color:var(--accent); border:none; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+/* 홈 통계 카드 */
+.home-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:0 16px; }
+.home-stat-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 10px; text-align:center; }
+.home-stat-val { font-size:22px; font-weight:900; color:var(--accent); display:block; line-height:1; }
+.home-stat-lbl { font-size:10px; color:var(--ink3); margin-top:4px; display:block; }
+.home-streak-card { margin:10px 16px 0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:12px; }
+.home-streak-icon { font-size:28px; }
+.home-streak-text { font-size:14px; font-weight:700; }
+.home-streak-sub { font-size:11px; color:var(--ink3); margin-top:2px; }
+
+/* 홈 최근 추가 */
+.home-recent-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:0 16px; }
+
+/* 홈 빈 상태 */
+.home-empty { text-align:center; padding:48px 20px; color:var(--ink3); }
+.home-empty-icon { font-size:48px; margin-bottom:12px; }
+.home-empty-t { font-size:16px; font-weight:700; color:var(--ink2); margin-bottom:6px; }
+.home-empty-s { font-size:13px; line-height:1.6; }
+.home-empty-btn { margin-top:20px; height:46px; padding:0 28px; background:var(--accent); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 14px rgba(108,92,231,.3); }
+
+/* ── SHELF PAGE (서재) ── */
+/* 즐겨찾기 버튼 */
+.fav-btn { position:absolute; top:7px; left:7px; background:none; border:none; cursor:pointer; font-size:16px; z-index:2; padding:0; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+
+/* 서재 탭 (전체/즐겨찾기/읽는중/완독) */
+.shelf-tabs { display:flex; border-bottom:1px solid var(--line); background:#fff; overflow-x:auto; scrollbar-width:none; }
+.shelf-tabs::-webkit-scrollbar { display:none; }
+.shelf-tab { flex-shrink:0; padding:13px 16px; font-size:13px; font-weight:600; color:var(--ink3); cursor:pointer; position:relative; white-space:nowrap; border:none; background:none; }
+.shelf-tab::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--accent); transform:scaleX(0); transition:transform .2s; }
+.shelf-tab.on { color:var(--accent); }
+.shelf-tab.on::after { transform:scaleX(1); }
+.shelf-tab-badge { display:inline-block; background:var(--accent2); color:var(--accent); font-size:9px; font-weight:700; padding:1px 5px; border-radius:8px; margin-left:4px; }
+
+/* ── PROFILE PAGE ── */
+.profile-page { background:#F5F5F5; min-height:100vh; }
+.profile-hero { background:#fff; padding:28px 20px 24px; display:flex; align-items:center; gap:16px; border-bottom:1px solid var(--line); }
+.profile-hero-avatar { width:64px; height:64px; border-radius:50%; overflow:hidden; background:var(--accent2); border:3px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; color:var(--accent); flex-shrink:0; }
+.profile-hero-avatar img { width:100%; height:100%; object-fit:cover; }
+.profile-hero-name { font-size:18px; font-weight:800; }
+.profile-hero-email { font-size:12px; color:var(--ink3); margin-top:3px; }
+.profile-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:0; background:#fff; border-bottom:1px solid var(--line); }
+.profile-stat { padding:16px 0; text-align:center; position:relative; }
+.profile-stat + .profile-stat::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:1px; background:var(--line); }
+.profile-stat-val { font-size:20px; font-weight:900; color:var(--accent); display:block; }
+.profile-stat-lbl { font-size:10px; color:var(--ink3); margin-top:3px; display:block; }
+.profile-section { margin-top:10px; }
+.profile-section-title { font-size:11px; font-weight:700; color:var(--ink3); padding:12px 16px 6px; text-transform:uppercase; letter-spacing:.5px; }
+.profile-menu-card { background:#fff; border-radius:0; overflow:hidden; }
+.profile-menu-item { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); cursor:pointer; transition:background var(--tr); }
+.profile-menu-item:last-child { border-bottom:none; }
+.profile-menu-item:hover { background:var(--bg2); }
+.profile-menu-icon { font-size:18px; width:24px; text-align:center; flex-shrink:0; }
+.profile-menu-label { flex:1; font-size:14px; font-weight:500; color:var(--ink); }
+.profile-menu-value { font-size:12px; color:var(--ink3); }
+.profile-menu-arrow { color:var(--ink3); font-size:12px; }
+.profile-menu-item.danger .profile-menu-label { color:var(--danger); }
+.profile-streak-banner { margin:10px 16px; background:linear-gradient(135deg,var(--accent),#A29BFE); border-radius:14px; padding:16px; display:flex; align-items:center; gap:12px; }
+.profile-streak-icon { font-size:28px; }
+.profile-streak-text { font-size:14px; font-weight:700; color:#fff; }
+.profile-streak-sub { font-size:11px; color:rgba(255,255,255,.8); margin-top:2px; }
 
 /* ── STATS TABS ── */
 .stats { display:flex; border-bottom:1px solid var(--line); background:#fff; }
@@ -501,37 +608,93 @@ body {
 </div>
 
 <nav class="nav" style="display:none">
-  <div class="nav-logo">Novel<em>S</em><span>내 서재</span></div>
+  <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
   <div class="nav-user">
-    <button class="nav-add" onclick="openAdd()">＋ 소설 추가</button>
+    <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
   </div>
 </nav>
 
-<div id="library" style="display:none">
-  <div class="stats">
-    <div class="stat on" id="st-all" onclick="setTab('all',this)"><span class="sn" id="sn-all">0</span><span class="sl">전체</span></div>
-    <div class="stat" id="st-reading" onclick="setTab('reading',this)"><span class="sn" id="sn-reading">0</span><span class="sl">읽는 중</span></div>
-    <div class="stat" id="st-done" onclick="setTab('done',this)"><span class="sn" id="sn-done">0</span><span class="sl">완독</span></div>
+<!-- ── TAB BAR ── -->
+<div class="tab-bar" id="tabBar" style="display:none">
+  <button class="tab-item on" id="tab-home"    onclick="switchTab('home')">
+    <span class="tab-icon">🏠</span><span class="tab-label">홈</span>
+  </button>
+  <button class="tab-item"    id="tab-shelf"   onclick="switchTab('shelf')">
+    <span class="tab-icon">📚</span><span class="tab-label">서재</span>
+  </button>
+  <button class="tab-item"    id="tab-profile" onclick="switchTab('profile')">
+    <span class="tab-icon">👤</span><span class="tab-label">프로필</span>
+  </button>
+</div>
+
+<!-- ══════════════════════════════════
+     홈 페이지
+══════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="home-header">
+    <div class="home-greeting">안녕하세요, <em id="homeUserName">독자</em>님 👋</div>
+    <div class="home-date" id="homeDate"></div>
   </div>
 
-  <!-- 독서 통계 카드 -->
-  <div class="stats-card" id="statsCard">
-    <div class="stats-card-title">📊 독서 통계</div>
-    <div class="stats-row">
-      <div class="stats-item"><span class="stats-val" id="stat-total">0</span><span class="stats-lbl">전체</span></div>
-      <div class="stats-item"><span class="stats-val" id="stat-done">0</span><span class="stats-lbl">완독</span></div>
-      <div class="stats-item"><span class="stats-val" id="stat-pages">0</span><span class="stats-lbl">읽은 페이지</span></div>
-    </div>
-    <div class="streak-row">
-      <span class="streak-fire">🔥</span>
-      <div>
-        <div class="streak-text" id="streakText">연속 독서 스트릭</div>
-        <div class="streak-sub" id="streakSub">독서를 시작해보세요!</div>
-      </div>
-    </div>
+  <!-- 통계 -->
+  <div class="home-stats-row" id="homeStatsRow">
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatTotal">0</span><span class="home-stat-lbl">전체</span></div>
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatReading">0</span><span class="home-stat-lbl">읽는 중</span></div>
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatDone">0</span><span class="home-stat-lbl">완독</span></div>
   </div>
-  <button class="stats-toggle" id="statsToggle" onclick="toggleStats()">📊 독서 통계 보기 ▾</button>
+  <div class="home-streak-card" id="homeStreakCard">
+    <span class="home-streak-icon">🔥</span>
+    <div><div class="home-streak-text" id="hStreakText">오늘 독서를 시작해보세요</div><div class="home-streak-sub" id="hStreakSub"></div></div>
+  </div>
+
+  <!-- 이어 읽기 -->
+  <div class="home-section" id="homeContinueSec">
+    <div class="home-sec-header">
+      <span class="home-sec-title">📖 이어 읽기</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="home-continue" id="homeContinue"></div>
+  </div>
+
+  <!-- 소설 추가 배너 -->
+  <div class="home-banner" onclick="openAdd()">
+    <div class="home-banner-text">
+      <div class="home-banner-title">새 소설 추가하기</div>
+      <div class="home-banner-sub">TXT 파일을 업로드해보세요</div>
+    </div>
+    <button class="home-banner-btn">＋ 추가</button>
+  </div>
+
+  <!-- 최근 추가 -->
+  <div class="home-section" id="homeRecentSec">
+    <div class="home-sec-header">
+      <span class="home-sec-title">🆕 최근 추가</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="home-recent-grid" id="homeRecentGrid"></div>
+  </div>
+
+  <!-- 빈 상태 -->
+  <div class="home-empty" id="homeEmpty" style="display:none">
+    <div class="home-empty-icon">📚</div>
+    <div class="home-empty-t">서재가 비어있어요</div>
+    <div class="home-empty-s">TXT 파일을 추가해서<br>독서를 시작해보세요!</div>
+    <button class="home-empty-btn" onclick="openAdd()">첫 소설 추가하기</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     서재 페이지
+══════════════════════════════════ -->
+<div class="page" id="page-shelf">
+  <!-- 서재 탭 (전체/즐겨찾기/읽는중/완독) -->
+  <div class="shelf-tabs">
+    <button class="shelf-tab on" id="stab-all"   onclick="setShelfTab('all',this)">전체 <span class="shelf-tab-badge" id="sbadge-all">0</span></button>
+    <button class="shelf-tab"    id="stab-fav"   onclick="setShelfTab('fav',this)">⭐ 즐겨찾기 <span class="shelf-tab-badge" id="sbadge-fav">0</span></button>
+    <button class="shelf-tab"    id="stab-reading" onclick="setShelfTab('reading',this)">읽는 중 <span class="shelf-tab-badge" id="sbadge-reading">0</span></button>
+    <button class="shelf-tab"    id="stab-done"  onclick="setShelfTab('done',this)">완독 <span class="shelf-tab-badge" id="sbadge-done">0</span></button>
+  </div>
 
   <div class="toolbar">
     <input class="search-box" type="search" id="searchInput" placeholder="제목, 작가, 태그 검색..." oninput="onSearch()">
@@ -558,16 +721,91 @@ body {
     <button class="chip" onclick="setGenre('mystery',this)">미스터리</button>
   </div>
 
-  <div id="recentSec" style="display:none">
-    <div class="sec" style="padding-top:4px"><span class="sec-t">이어 읽기</span></div>
-    <div class="recent-scroll" id="recentScroll"></div>
-  </div>
-
   <div class="sec" style="padding-top:12px">
     <span class="sec-t" id="gridTitle">전체 소설</span>
     <span class="sec-c" id="gridCount"></span>
   </div>
   <div class="grid" id="grid"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     프로필 페이지
+══════════════════════════════════ -->
+<div class="page profile-page" id="page-profile">
+  <!-- 유저 정보 -->
+  <div class="profile-hero">
+    <div class="profile-hero-avatar" id="profileAvatar"></div>
+    <div>
+      <div class="profile-hero-name" id="profileName">-</div>
+      <div class="profile-hero-email" id="profileEmail">-</div>
+    </div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="profile-stats-row">
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatTotal">0</span><span class="profile-stat-lbl">전체</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatDone">0</span><span class="profile-stat-lbl">완독</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatPages">0</span><span class="profile-stat-lbl">읽은 페이지</span></div>
+  </div>
+
+  <!-- 스트릭 배너 -->
+  <div class="profile-streak-banner" id="profileStreakBanner">
+    <span class="profile-streak-icon">🔥</span>
+    <div>
+      <div class="profile-streak-text" id="pStreakText">독서 스트릭</div>
+      <div class="profile-streak-sub" id="pStreakSub">오늘 독서를 시작해보세요!</div>
+    </div>
+  </div>
+
+  <!-- 독서 설정 메뉴 -->
+  <div class="profile-section">
+    <div class="profile-section-title">독서</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item" onclick="switchTab('shelf')">
+        <span class="profile-menu-icon">📚</span>
+        <span class="profile-menu-label">내 서재</span>
+        <span class="profile-menu-value" id="pMenuShelfCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+      <div class="profile-menu-item" onclick="switchTab('shelf');setShelfTab('fav',document.getElementById('stab-fav'))">
+        <span class="profile-menu-icon">⭐</span>
+        <span class="profile-menu-label">즐겨찾기</span>
+        <span class="profile-menu-value" id="pMenuFavCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+      <div class="profile-menu-item" onclick="switchTab('shelf');setShelfTab('done',document.getElementById('stab-done'))">
+        <span class="profile-menu-icon">✅</span>
+        <span class="profile-menu-label">완독한 소설</span>
+        <span class="profile-menu-value" id="pMenuDoneCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 앱 설정 -->
+  <div class="profile-section">
+    <div class="profile-section-title">설정</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item" onclick="openReadingSettings()">
+        <span class="profile-menu-icon">📖</span>
+        <span class="profile-menu-label">읽기 설정</span>
+        <span class="profile-menu-value" id="pMenuFont">기본</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 계정 -->
+  <div class="profile-section">
+    <div class="profile-section-title">계정</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item danger" onclick="confirmLogout()">
+        <span class="profile-menu-icon">🚪</span>
+        <span class="profile-menu-label">로그아웃</span>
+      </div>
+    </div>
+  </div>
+  <div style="height:20px"></div>
 </div>
 
 <!-- ── VIEWER ── -->
@@ -879,8 +1117,9 @@ const GENRE_ICON = { romance:'💕', fantasy:'🔮', thriller:'🔪', sf:'🚀',
 const SORTS = { recent:'최근 추가', lastRead:'최근 읽은', progress:'진행률 높은', progressAsc:'진행률 낮은', title:'제목순' };
 
 // ── STATE ──
-let novels = [], genre = 'all', sortKey = 'recent', tab = 'all';
+let novels = [], genre = 'all', sortKey = 'recent', tab = 'all', shelfTab = 'all';
 let curId = null, curCh = 0;
+let currentTab = 'home'; // 현재 탭
 let fontSize   = parseInt(localStorage.getItem('ns_fontSize') || '17', 10);
 let lineHeight = parseFloat(localStorage.getItem('ns_lineHeight') || '1.9');
 let theme      = localStorage.getItem('ns_theme') || 'light';
@@ -900,8 +1139,7 @@ let uiVisible = true, tapHintShown = false, uiHideTimer = null;
 // ── LOAD ──
 async function loadNovels() {
   if (!currentUser) return;
-  // statsOpen 초기화 (최초 1회)
-  if(statsOpen) { document.getElementById('statsCard').classList.add('visible'); document.getElementById('statsToggle').textContent='📊 독서 통계 닫기 ▴'; }
+  
   renderSkeletons();
   try {
     const q = query(
@@ -911,7 +1149,8 @@ async function loadNovels() {
     const snap = await getDocs(q);
     novels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
-    updateStats();
+    renderHome();
+    renderProfile();
   } catch(e) {
     showToast('데이터 불러오기 실패', 'error');
     document.getElementById('grid').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-t">불러오기 실패</div><div class="empty-s">${escapeHtml(e.message)}</div><button onclick="loadNovels()" style="margin-top:14px;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">다시 시도</button></div>`;
@@ -923,39 +1162,180 @@ function renderSkeletons() {
     `<div class="skel-card"><div class="skeleton skel-cover"></div><div class="skeleton skel-line1"></div><div class="skeleton skel-line2"></div></div>`).join('');
 }
 
-// ── STATS (독서 통계) ──
-function updateStats() {
+// ── TAB NAVIGATION ──
+window.switchTab = function(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
+  document.getElementById('page-' + tabName).classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('on');
+  // nav 버튼 표시/숨김
+  document.getElementById('navAddBtn').style.display = tabName === 'shelf' ? '' : 'none';
+  // 탭별 타이틀
+  const titles = { home:'Novel S', shelf:'내 서재', profile:'프로필' };
+  document.getElementById('navLogo').innerHTML = `Novel<em>S</em><span>${tabName !== 'home' ? ' ' + (tabName === 'shelf' ? '서재' : '프로필') : ''}</span>`;
+};
+
+// ── SHELF TAB (즐겨찾기/읽는중/완독/전체) ──
+window.setShelfTab = function(t, el) {
+  shelfTab = t;
+  document.querySelectorAll('.shelf-tab').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  render();
+};
+
+// ── FAVORITES ──
+window.toggleFav = async function(id, e) {
+  e.stopPropagation();
+  const n = novels.find(x => x.id === id); if (!n) return;
+  const newFav = !n.favorite;
+  n.favorite = newFav;
+  try {
+    await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), { favorite: newFav });
+    render(); renderHome(); renderProfile();
+    showToast(newFav ? '⭐ 즐겨찾기에 추가했어요' : '즐겨찾기에서 제거했어요');
+  } catch(e) { showToast('저장 실패', 'error'); n.favorite = !newFav; }
+};
+
+// ── RENDER HOME ──
+function renderHome() {
+  const user = currentUser;
+  if (!user) return;
+
+  // 인사말
+  const name = user.displayName || user.email?.split('@')[0] || '독자';
+  document.getElementById('homeUserName').textContent = name;
+  const now = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('homeDate').textContent =
+    `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+
+  // 통계
+  const total   = novels.length;
+  const reading = novels.filter(n => n.progress > 0 && n.progress < 100).length;
+  const done    = novels.filter(n => n.progress >= 100).length;
+  document.getElementById('hStatTotal').textContent   = total;
+  document.getElementById('hStatReading').textContent = reading;
+  document.getElementById('hStatDone').textContent    = done;
+
+  // 스트릭
+  const streak = calcStreak();
+  document.getElementById('hStreakText').textContent = streak > 0 ? `${streak}일 연속 독서 중! 🔥` : '오늘 독서를 시작해보세요';
+  document.getElementById('hStreakSub').textContent  = done > 0 ? `완독 ${done}권` : '';
+
+  // 빈 상태
+  document.getElementById('homeEmpty').style.display         = total === 0 ? 'block' : 'none';
+  document.getElementById('homeStatsRow').style.display      = total === 0 ? 'none' : '';
+  document.getElementById('homeStreakCard').style.display     = total === 0 ? 'none' : '';
+  document.getElementById('homeContinueSec').style.display   = total === 0 ? 'none' : '';
+  document.getElementById('homeRecentSec').style.display     = total === 0 ? 'none' : '';
+
+  // 이어 읽기
+  const inProg = [...novels].filter(n => n.progress > 0 && n.progress < 100 && n.lastReadAt)
+    .sort((a,b) => new Date(b.lastReadAt) - new Date(a.lastReadAt)).slice(0, 5);
+  document.getElementById('homeContinue').innerHTML = inProg.length ? inProg.map(n => {
+    const cc = genreCoverClass(n.genre);
+    return `<div class="home-con-card" onclick="openDetail('${n.id}')">
+      <div class="home-con-thumb ${cc}">
+        ${n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy">` : ''}
+      </div>
+      <div class="home-con-info">
+        <div>
+          <div class="home-con-title">${escapeHtml(n.title)}</div>
+          <div class="home-con-author">${escapeHtml(n.author||'작자 미상')}</div>
+        </div>
+        <div class="home-con-prog">
+          <div class="home-con-bar"><div class="home-con-fill" style="width:${n.progress}%"></div></div>
+          <div class="home-con-pct"><span>진행률</span><span>${n.progress}%</span></div>
+          <button class="home-con-btn" onclick="event.stopPropagation();openViewer('${n.id}')">이어 읽기</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:0 16px;font-size:13px;color:var(--ink3)">읽는 중인 소설이 없어요</div>';
+
+  // 최근 추가
+  const recent = [...novels].sort((a,b) => new Date(b.addedAt)-new Date(a.addedAt)).slice(0, 6);
+  document.getElementById('homeRecentGrid').innerHTML = recent.map(n => {
+    const cc = genreCoverClass(n.genre);
+    const icon = GENRE_ICON[n.genre] || '📖';
+    return `<div class="card" onclick="openDetail('${n.id}')">
+      <div class="cover-wrap ${cc}">
+        ${n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy">` : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`}
+        ${n.progress >= 100 ? '<div class="done-badge">완독</div>' : ''}
+        ${n.progress > 0 && n.progress < 100 ? `<div class="pct-badge">${n.progress}%</div>` : ''}
+        <div class="cover-grad"><div class="cover-title">${escapeHtml(n.title)}</div></div>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${n.progress}%"></div></div>
+      <div class="card-meta">
+        <div class="card-title">${escapeHtml(n.title)}</div>
+        <div class="card-sub"><span>${LABELS[n.genre]||'기타'}</span><span>${n.progress===100?'완독':n.progress>0?n.progress+'%':'미시작'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER PROFILE ──
+function renderProfile() {
+  const user = currentUser; if (!user) return;
+  const name = user.displayName || user.email?.split('@')[0] || '사용자';
+  document.getElementById('profileName').textContent  = name;
+  document.getElementById('profileEmail').textContent = user.email || '';
+  const av = document.getElementById('profileAvatar');
+  if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+  else av.textContent = name.charAt(0).toUpperCase();
+
   const total = novels.length;
   const done  = novels.filter(n => n.progress >= 100).length;
-  const pages = novels.reduce((s, n) => s + Math.round((n.totalChars || 0) / 500 * (n.progress / 100)), 0);
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-done').textContent  = done;
-  document.getElementById('stat-pages').textContent = pages > 999 ? (pages/1000).toFixed(1)+'k' : pages;
+  const fav   = novels.filter(n => n.favorite).length;
+  const pages = novels.reduce((s,n) => s + Math.round((n.totalChars||0)/500*(n.progress/100)), 0);
 
-  // Streak: count consecutive days. Allow today to be unread (start check from yesterday if today has no reads)
+  document.getElementById('pStatTotal').textContent = total;
+  document.getElementById('pStatDone').textContent  = done;
+  document.getElementById('pStatPages').textContent = pages > 999 ? (pages/1000).toFixed(1)+'k' : pages;
+  document.getElementById('pMenuShelfCount').textContent = total + '권';
+  document.getElementById('pMenuFavCount').textContent   = fav + '권';
+  document.getElementById('pMenuDoneCount').textContent  = done + '권';
+
+  const streak = calcStreak();
+  document.getElementById('pStreakText').textContent = streak > 0 ? `${streak}일 연속 독서 중!` : '오늘 독서를 시작해보세요';
+  document.getElementById('pStreakSub').textContent  = done > 0 ? `완독 ${done}권 · 총 ${pages}p 읽음` : '';
+
+  // 읽기 설정 현재값
+  const fontMap = { system:'기본', gothic:'고딕', serif:'명조', mono:'모노' };
+  document.getElementById('pMenuFont').textContent = fontMap[fontFamily] || '기본';
+
+  // 서재 탭 배지 업데이트
+  document.getElementById('sbadge-all').textContent     = total;
+  document.getElementById('sbadge-fav').textContent     = fav;
+  document.getElementById('sbadge-reading').textContent = novels.filter(n=>n.progress>0&&n.progress<100).length;
+  document.getElementById('sbadge-done').textContent    = done;
+}
+
+function calcStreak() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const readDays = new Set(
-    novels.filter(n => n.lastReadAt)
-      .map(n => { const d = new Date(n.lastReadAt); d.setHours(0,0,0,0); return d.getTime(); })
-  );
-  // If today has reads, start from today (i=0). If not, start from yesterday (i=1).
+  const readDays = new Set(novels.filter(n=>n.lastReadAt).map(n=>{ const d=new Date(n.lastReadAt); d.setHours(0,0,0,0); return d.getTime(); }));
   const startOffset = readDays.has(today.getTime()) ? 0 : 1;
   let streak = 0;
   for (let i = startOffset; i < 365; i++) {
-    const d = new Date(today); d.setDate(d.getDate() - i);
+    const d = new Date(today); d.setDate(d.getDate()-i);
     if (readDays.has(d.getTime())) streak++;
     else break;
   }
-  document.getElementById('streakText').textContent = streak > 0 ? `${streak}일 연속 독서 중! 🔥` : '오늘 독서를 시작해보세요';
-  document.getElementById('streakSub').textContent  = done > 0 ? `완독 ${done}권 · 총 ${pages}p` : '아직 완독한 소설이 없어요';
-  // Show/hide stats card
-  document.getElementById('statsCard').classList.toggle('visible', statsOpen);
-  document.getElementById('statsToggle').textContent = statsOpen ? '📊 독서 통계 닫기 ▴' : '📊 독서 통계 보기 ▾';
+  return streak;
 }
-window.toggleStats = function() {
-  statsOpen = !statsOpen;
-  localStorage.setItem('ns_statsOpen', statsOpen);
-  updateStats();
+
+window.openReadingSettings = function() {
+  // 뷰어 설정 패널 열기 (뷰어 밖에서도 접근 가능하게)
+  document.getElementById('setPanel').classList.add('on');
+  document.getElementById('setOv').classList.add('on');
+  syncSettingsUI();
+};
+
+window.confirmLogout = function() {
+  document.getElementById('confirmMsg').textContent = '로그아웃 하시겠어요?';
+  document.getElementById('confirmOv').classList.add('on');
+  document.getElementById('confirmOkBtn').textContent = '로그아웃';
+  document.getElementById('confirmOkBtn').onclick = () => { closeConfirm(); doLogout(); };
 };
 
 // ── VIEW MODE (grid / list) ──
@@ -976,8 +1356,9 @@ function genreCoverClass(genre) {
 window.render = function() {
   const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
   let list = novels.filter(n => {
-    if (tab === 'reading') return n.progress > 0 && n.progress < 100;
-    if (tab === 'done')    return n.progress >= 100;
+    if (shelfTab === 'fav')     return n.favorite;
+    if (shelfTab === 'reading') return n.progress > 0 && n.progress < 100;
+    if (shelfTab === 'done')    return n.progress >= 100;
     return true;
   }).filter(n =>
     (genre === 'all' || n.genre === genre) &&
@@ -992,39 +1373,24 @@ window.render = function() {
     return 0;
   });
 
-  document.getElementById('sn-all').textContent     = novels.length;
-  document.getElementById('sn-reading').textContent = novels.filter(n=>n.progress>0&&n.progress<100).length;
-  document.getElementById('sn-done').textContent    = novels.filter(n=>n.progress>=100).length;
-  document.getElementById('gridTitle').textContent  = genre==='all'?'전체 소설':(LABELS[genre]||genre);
-  document.getElementById('gridCount').textContent  = list.length+'권';
-
-  // Continue reading
-  const inProg = [...novels].filter(n=>n.progress>0&&n.progress<100&&n.lastReadAt).sort((a,b)=>new Date(b.lastReadAt)-new Date(a.lastReadAt)).slice(0,5);
-  const recSec = document.getElementById('recentSec');
-  if (inProg.length && tab==='all' && !q && genre==='all') {
-    recSec.style.display='block';
-    document.getElementById('recentScroll').innerHTML = inProg.map(n => {
-      const cc = genreCoverClass(n.genre);
-      const icon = GENRE_ICON[n.genre] || '📖';
-      return `<div class="rc" onclick="openDetail('${n.id}')">
-        <div class="rc-thumb ${cc}" style="border-radius:7px">
-          ${n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy">` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.8">${icon}</div>`}
-        </div>
-        <div class="rc-info">
-          <div class="rc-title">${escapeHtml(n.title)}</div>
-          <div class="rc-author">${escapeHtml(n.author||'작자 미상')}</div>
-          <div class="rc-pb"><div class="rc-pf" style="width:${n.progress}%"></div></div>
-          <div class="rc-pt"><span>진행률</span><span>${n.progress}%</span></div>
-          <button class="rc-btn" onclick="event.stopPropagation();openViewer('${n.id}')">이어 읽기</button>
-        </div>
-      </div>`;
-    }).join('');
-  } else { recSec.style.display='none'; }
+  // 서재 탭 배지
+  document.getElementById('sbadge-all').textContent     = novels.length;
+  document.getElementById('sbadge-fav').textContent     = novels.filter(n=>n.favorite).length;
+  document.getElementById('sbadge-reading').textContent = novels.filter(n=>n.progress>0&&n.progress<100).length;
+  document.getElementById('sbadge-done').textContent    = novels.filter(n=>n.progress>=100).length;
+  document.getElementById('gridTitle').textContent      = genre==='all'?'전체 소설':(LABELS[genre]||genre);
+  document.getElementById('gridCount').textContent      = list.length+'권';
 
   const grid = document.getElementById('grid');
   grid.className = viewMode==='list' ? 'grid list-view' : 'grid';
   if (!list.length) {
-    grid.innerHTML = `<div class="empty"><div class="empty-icon">${q?'🔍':'📖'}</div><div class="empty-t">${q?`"${escapeHtml(q)}" 검색 결과가 없어요`:'소설이 없어요'}</div><div class="empty-s">${q?'다른 검색어를 입력해보세요':'TXT 파일을 추가해보세요'}</div></div>`;
+    const emptyMsgs = {
+      fav: ['⭐', '즐겨찾기가 없어요', '소설 카드의 ★ 버튼으로 추가하세요'],
+      reading: ['📖', '읽는 중인 소설이 없어요', '서재에서 소설을 선택해 읽기 시작하세요'],
+      done: ['✅', '완독한 소설이 없어요', '열심히 읽어봐요!'],
+    };
+    const [icon, title, sub] = emptyMsgs[shelfTab] || [q?'🔍':'📖', q?`"${escapeHtml(q)}" 검색 결과가 없어요`:'소설이 없어요', q?'다른 검색어를 입력해보세요':'TXT 파일을 추가해보세요'];
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-t">${title}</div><div class="empty-s">${sub}</div></div>`;
     return;
   }
 
@@ -1034,9 +1400,11 @@ window.render = function() {
     const coverInner = n.coverUrl
       ? `<img src="${escapeHtml(n.coverUrl)}" alt="${escapeHtml(n.title)} 표지" loading="lazy">`
       : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`;
+    const favStar = n.favorite ? '⭐' : '☆';
     return `<div class="card" onclick="openDetail('${n.id}')">
-      <div class="cover-wrap ${cc}">
+      <div class="cover-wrap ${cc}" style="position:relative">
         ${coverInner}
+        <button class="fav-btn" onclick="toggleFav('${n.id}',event)" title="즐겨찾기">${favStar}</button>
         ${n.progress>=100?'<div class="done-badge">완독</div>':''}
         ${n.progress>0&&n.progress<100?`<div class="pct-badge">${n.progress}%</div>`:''}
         <div class="cover-grad"><div class="cover-title">${escapeHtml(n.title)}</div></div>
@@ -1204,7 +1572,7 @@ window.openViewer = async function(id) {
   curId = id;
   try {
     document.getElementById('vTitle').textContent = n.title;
-    document.getElementById('library').style.display='none';
+    
     document.querySelector('.nav').style.display='none';
     const vv = document.getElementById('viewer');
     vv.style.display='flex'; vv.style.flexDirection='column';
@@ -1346,7 +1714,7 @@ window.nextCh = function() {
 window.prevCh = function() { if(curCh>0){curCh--;renderCh();} };
 window.closeViewer = function() {
   document.getElementById('viewer').style.display='none';
-  document.getElementById('library').style.display='block';
+  
   document.querySelector('.nav').style.display='flex';
   clearTimeout(uiHideTimer);
   stopAutoScroll();
@@ -1702,13 +2070,14 @@ onAuthStateChanged(auth, user => {
   if (user) {
     document.getElementById('authScreen').style.display = 'none';
     document.querySelector('.nav').style.display = 'flex';
-    document.getElementById('library').style.display = 'block';
+    document.getElementById('tabBar').style.display = 'flex';
     updateNavAvatar(user);
     loadNovels();
   } else {
     document.getElementById('authScreen').style.display = 'flex';
     document.querySelector('.nav').style.display = 'none';
-    document.getElementById('library').style.display = 'none';
+    document.getElementById('tabBar').style.display = 'none';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     novels = [];
   }
 });
@@ -1743,6 +2112,9 @@ function updateNavAvatar(user) {
   document.getElementById('menuEmail').textContent = user.email;
   if (user.photoURL) avatar.innerHTML = `<img src="${user.photoURL}" alt="프로필" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
   else avatar.textContent = name.charAt(0).toUpperCase();
+  // 초기 탭 설정
+  switchTab('home');
+  document.getElementById('navAddBtn').style.display = 'none';
 }
 window.toggleUserMenu = function(e) { e.stopPropagation(); document.getElementById('userMenu').classList.toggle('open'); };
 window.closeUserMenu  = function()  { document.getElementById('userMenu').classList.remove('open'); };
