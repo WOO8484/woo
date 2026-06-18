@@ -27,6 +27,62 @@ body {
 }
 #library { background:#FFFFFF; min-height:100vh; }
 
+/* ── AUTH SCREEN ── */
+#authScreen {
+  position:fixed; inset:0; background:#fff; z-index:1000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:32px 28px;
+}
+.auth-logo { font-size:28px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
+.auth-logo em { color:var(--accent); font-style:normal; }
+.auth-sub { font-size:13px; color:var(--ink3); margin-bottom:36px; }
+.auth-tabs { display:flex; width:100%; max-width:360px; background:var(--bg2); border-radius:10px; padding:4px; margin-bottom:24px; }
+.auth-tab { flex:1; height:36px; border:none; background:none; border-radius:7px; font-size:13px; font-weight:600; color:var(--ink3); cursor:pointer; transition:all var(--tr); }
+.auth-tab.on { background:#fff; color:var(--ink); box-shadow:var(--sh); }
+.auth-form { width:100%; max-width:360px; display:flex; flex-direction:column; gap:12px; }
+.auth-input {
+  width:100%; height:48px; border:1.5px solid var(--line); border-radius:12px;
+  padding:0 16px; font-size:15px; color:var(--ink); outline:none;
+  background:#fff; transition:border-color var(--tr);
+}
+.auth-input:focus { border-color:var(--accent); }
+.auth-input.error { border-color:var(--danger); }
+.auth-btn {
+  width:100%; height:50px; background:var(--accent); color:#fff;
+  border:none; border-radius:14px; font-size:16px; font-weight:700;
+  cursor:pointer; margin-top:4px; transition:opacity var(--tr);
+  box-shadow:0 4px 16px rgba(108,92,231,.3);
+}
+.auth-btn:hover { opacity:.9; }
+.auth-btn:disabled { opacity:.5; cursor:not-allowed; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:4px 0; }
+.auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--line); }
+.auth-divider span { font-size:12px; color:var(--ink3); }
+.auth-google {
+  width:100%; height:50px; background:#fff; color:var(--ink);
+  border:1.5px solid var(--line); border-radius:14px;
+  font-size:15px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  transition:border-color var(--tr), box-shadow var(--tr);
+}
+.auth-google:hover { border-color:#aaa; box-shadow:var(--sh); }
+.auth-google svg { width:20px; height:20px; flex-shrink:0; }
+.auth-forgot { text-align:center; font-size:12px; color:var(--accent); cursor:pointer; margin-top:2px; text-decoration:underline; }
+.auth-err { font-size:12px; color:var(--danger); text-align:center; min-height:16px; }
+
+/* Nav user info */
+.nav-user { display:flex; align-items:center; gap:8px; }
+.nav-avatar { width:30px; height:30px; border-radius:50%; background:var(--accent2); border:2px solid var(--accent); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--accent); cursor:pointer; }
+.nav-avatar img { width:100%; height:100%; object-fit:cover; }
+.user-menu { position:absolute; right:16px; top:58px; background:#fff; border:1px solid var(--line); border-radius:var(--r2); box-shadow:var(--sh2); min-width:180px; z-index:200; overflow:hidden; display:none; }
+.user-menu.open { display:block; }
+.user-menu-info { padding:14px 16px 10px; border-bottom:1px solid var(--line); }
+.user-menu-name { font-size:13px; font-weight:700; color:var(--ink); }
+.user-menu-email { font-size:11px; color:var(--ink3); margin-top:2px; }
+.user-menu-item { padding:11px 16px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:10px; color:var(--ink2); transition:background var(--tr); }
+.user-menu-item:hover { background:var(--bg2); }
+.user-menu-item.danger { color:var(--danger); }
+
 /* ── SKELETON ── */
 @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
 .skeleton { background:linear-gradient(90deg,var(--bg2) 25%,var(--line) 50%,var(--bg2) 75%); background-size:800px 100%; animation:shimmer 1.4s infinite; border-radius:6px; }
@@ -450,12 +506,55 @@ body {
 </head>
 <body>
 
-<nav class="nav">
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen" style="display:none">
+  <div class="auth-logo">Novel<em>S</em></div>
+  <div class="auth-sub">내 소설 서재에 오신 것을 환영해요</div>
+
+  <div class="auth-tabs">
+    <button class="auth-tab on" id="tabLogin"  onclick="switchAuthTab('login')">로그인</button>
+    <button class="auth-tab"    id="tabSignup" onclick="switchAuthTab('signup')">회원가입</button>
+  </div>
+
+  <div class="auth-form">
+    <!-- 회원가입 전용: 닉네임 -->
+    <input class="auth-input" id="authName" placeholder="닉네임" style="display:none" autocomplete="nickname">
+    <input class="auth-input" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
+    <input class="auth-input" id="authPw"    type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
+    <!-- 회원가입 전용: 비밀번호 확인 -->
+    <input class="auth-input" id="authPw2"   type="password" placeholder="비밀번호 확인" style="display:none" autocomplete="new-password">
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-btn" id="authSubmitBtn" onclick="authSubmit()">로그인</button>
+    <div class="auth-forgot" id="authForgot" onclick="sendReset()">비밀번호를 잊으셨나요?</div>
+
+    <div class="auth-divider"><span>또는</span></div>
+
+    <button class="auth-google" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.9 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-21 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.1 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.2 2 9.4 7.3 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.8 0 10.7-1.9 14.3-5.2l-6.6-5.4C29.8 37 27 38 24 38c-5.8 0-10.7-3.9-12.5-9.3l-7 5.4C7.9 41.3 15.4 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.8 2.3-2.3 4.3-4.3 5.7l6.6 5.4C42 36.1 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+      Google로 계속하기
+    </button>
+  </div>
+</div>
+
+<!-- ── USER MENU ── -->
+<div class="user-menu" id="userMenu" onclick="event.stopPropagation()">
+  <div class="user-menu-info">
+    <div class="user-menu-name" id="menuName">사용자</div>
+    <div class="user-menu-email" id="menuEmail"></div>
+  </div>
+  <div class="user-menu-item" onclick="closeUserMenu()">⚙️ 설정</div>
+  <div class="user-menu-item danger" onclick="doLogout()">🚪 로그아웃</div>
+</div>
+
+<nav class="nav" style="display:none">
   <div class="nav-logo">Novel<em>S</em><span>내 서재</span></div>
-  <button class="nav-add" onclick="openAdd()">＋ 소설 추가</button>
+  <div class="nav-user">
+    <button class="nav-add" onclick="openAdd()">＋ 소설 추가</button>
+    <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">?</div>
+  </div>
 </nav>
 
-<div id="library">
+<div id="library" style="display:none">
   <div class="stats">
     <div class="stat on" id="st-all" onclick="setTab('all',this)"><span class="sn" id="sn-all">0</span><span class="sl">전체</span></div>
     <div class="stat" id="st-reading" onclick="setTab('reading',this)"><span class="sn" id="sn-reading">0</span><span class="sl">읽는 중</span></div>
@@ -792,8 +891,14 @@ body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+import {
+  getAuth, onAuthStateChanged,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, sendPasswordResetEmail, updateProfile,
+  GoogleAuthProvider, signInWithPopup
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
 // ⚠️ Firebase API 키가 클라이언트에 노출됩니다. Firebase 콘솔에서 도메인 제한 및 Security Rules를 반드시 설정하세요.
 const firebaseConfig = {
@@ -805,8 +910,11 @@ const firebaseConfig = {
   appId: "1:403423678374:web:7a66d3b9fad1ec4e3a8967"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db      = getFirestore(app);
 const storage = getStorage(app);
+const auth    = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+let currentUser = null;
 
 // ── CONSTANTS ──
 const LABELS = { romance:'로맨스', fantasy:'판타지', thriller:'스릴러', sf:'SF', historical:'역사', mystery:'미스터리' };
@@ -834,9 +942,15 @@ let uiVisible = true, tapHintShown = false, uiHideTimer = null;
 
 // ── LOAD ──
 async function loadNovels() {
+  if (!currentUser) return;
+  // statsOpen 초기화 (최초 1회)
+  if(statsOpen) { document.getElementById('statsCard').classList.add('visible'); document.getElementById('statsToggle').textContent='📊 독서 통계 닫기 ▴'; }
   renderSkeletons();
   try {
-    const q = query(collection(db, 'novels'), orderBy('addedAt', 'desc'));
+    const q = query(
+      collection(db, 'users', currentUser.uid, 'novels'),
+      orderBy('addedAt', 'desc')
+    );
     const snap = await getDocs(q);
     novels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
@@ -1093,7 +1207,7 @@ window.deleteNovel = function() {
     closeConfirm();
     try {
       if(n.filePath) await deleteObject(ref(storage,n.filePath));
-      await deleteDoc(doc(db,'novels',curId));
+      await deleteDoc(doc(db,'users',currentUser.uid,'novels',curId));
       novels=novels.filter(x=>x.id!==curId);
       closeDetail(); render(); updateStats(); showToast('삭제했습니다');
     } catch(e) { showToast('삭제 실패: '+e.message,'error'); }
@@ -1149,7 +1263,7 @@ window.openViewer = async function(id) {
     applyViewerSettings();
     setViewerUI(true); // always show UI on open
 
-    await updateDoc(doc(db,'novels',id),{lastReadAt:new Date().toISOString()});
+    await updateDoc(doc(db,'users',currentUser.uid,'novels',id),{lastReadAt:new Date().toISOString()});
     n.lastReadAt=new Date().toISOString();
     renderCh();
     updateStats();
@@ -1240,7 +1354,7 @@ function renderCh() {
   document.getElementById('prevBtn').disabled = curCh===0;
   document.getElementById('nextBtn').textContent = curCh===n._chs.length-1?'완독 ✓':'다음 →';
   n.progress = pct;
-  updateDoc(doc(db,'novels',curId),{progress:pct}).catch(()=>{});
+  updateDoc(doc(db,'users',currentUser.uid,'novels',curId),{progress:pct}).catch(()=>{});
 
   // Reset auto-hide
   setViewerUI(true);
@@ -1266,7 +1380,7 @@ window.nextCh = function() {
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
   if (curCh<n._chs.length-1) { curCh++; renderCh(); }
   else {
-    updateDoc(doc(db,'novels',curId),{progress:100}).catch(()=>{});
+    updateDoc(doc(db,'users',currentUser.uid,'novels',curId),{progress:100}).catch(()=>{});
     n.progress=100; updateStats();
     showToast('🎉 완독을 축하드려요!');
     setTimeout(closeViewer,1800);
@@ -1569,10 +1683,10 @@ window.saveNovel = async function() {
   saveBtn.textContent='저장 중...'; saveBtn.disabled=true;
   try {
     let filePath=null;
-    if(curFile){ const safe=curFile.name.replace(/[^a-zA-Z0-9가-힣._-]/g,'_'); filePath=`novels/${Date.now()}_${safe}`; await uploadBytes(ref(storage,filePath),curFile); }
+    if(curFile){ const safe=curFile.name.replace(/[^a-zA-Z0-9가-힣._-]/g,'_'); filePath=`users/${currentUser.uid}/novels/${Date.now()}_${safe}`; await uploadBytes(ref(storage,filePath),curFile); }
     const tags=document.getElementById('iTags').value.split(',').map(t=>t.trim()).filter(Boolean);
     const data={title,author:document.getElementById('iAuthor').value.trim()||'작자 미상',genre:selG||'romance',synopsis:document.getElementById('iSyn').value.trim(),tags,progress:0,coverUrl,filePath,totalChars:curFile?.size||0,addedAt:new Date().toISOString(),lastReadAt:null};
-    const docRef=await addDoc(collection(db,'novels'),data);
+    const docRef=await addDoc(collection(db,'users',currentUser.uid,'novels'),data);
     novels.unshift({id:docRef.id,...data});
     closeAdd(); render(); updateStats(); showToast('서재에 추가했습니다 📚');
   } catch(e){ showToast('저장 실패: '+e.message,'error'); }
@@ -1625,9 +1739,136 @@ function showToast(msg,type='') {
 }
 window.toast = msg => showToast(msg);
 
-// ── INIT ──
-if(statsOpen) { document.getElementById('statsCard').classList.add('visible'); document.getElementById('statsToggle').textContent='📊 독서 통계 닫기 ▴'; }
-loadNovels();
+// ── AUTH STATE ──
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    // 로그인 됨 → 앱 표시
+    document.getElementById('authScreen').style.display = 'none';
+    document.querySelector('.nav').style.display = 'flex';
+    document.getElementById('library').style.display = 'block';
+    updateNavAvatar(user);
+    loadNovels();
+  } else {
+    // 로그아웃 됨 → 로그인 화면
+    document.getElementById('authScreen').style.display = 'flex';
+    document.querySelector('.nav').style.display = 'none';
+    document.getElementById('library').style.display = 'none';
+    novels = [];
+  }
+});
+
+// ── AUTH UI ──
+let authMode = 'login'; // 'login' | 'signup'
+
+window.switchAuthTab = function(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('on',  mode === 'login');
+  document.getElementById('tabSignup').classList.toggle('on', mode === 'signup');
+  document.getElementById('authSubmitBtn').textContent = mode === 'login' ? '로그인' : '회원가입';
+  document.getElementById('authName').style.display  = mode === 'signup' ? '' : 'none';
+  document.getElementById('authPw2').style.display   = mode === 'signup' ? '' : 'none';
+  document.getElementById('authForgot').style.display = mode === 'login' ? '' : 'none';
+  document.getElementById('authPw').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+  document.getElementById('authErr').textContent = '';
+};
+
+window.authSubmit = async function() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pw    = document.getElementById('authPw').value;
+  const pw2   = document.getElementById('authPw2').value;
+  const name  = document.getElementById('authName').value.trim();
+  const errEl = document.getElementById('authErr');
+  const btn   = document.getElementById('authSubmitBtn');
+
+  errEl.textContent = '';
+  if (!email || !pw) { errEl.textContent = '이메일과 비밀번호를 입력해주세요'; return; }
+  if (authMode === 'signup') {
+    if (!name) { errEl.textContent = '닉네임을 입력해주세요'; return; }
+    if (pw.length < 6) { errEl.textContent = '비밀번호는 6자 이상이어야 해요'; return; }
+    if (pw !== pw2) { errEl.textContent = '비밀번호가 일치하지 않아요'; return; }
+  }
+
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? '로그인 중...' : '가입 중...';
+  try {
+    if (authMode === 'login') {
+      await signInWithEmailAndPassword(auth, email, pw);
+    } else {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: name });
+    }
+  } catch(e) {
+    errEl.textContent = authErrorMsg(e.code);
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? '로그인' : '회원가입';
+  }
+};
+
+window.loginGoogle = async function() {
+  const errEl = document.getElementById('authErr');
+  errEl.textContent = '';
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch(e) {
+    if (e.code !== 'auth/popup-closed-by-user') {
+      errEl.textContent = authErrorMsg(e.code);
+    }
+  }
+};
+
+window.sendReset = async function() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) { document.getElementById('authErr').textContent = '이메일을 먼저 입력해주세요'; return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showToast('비밀번호 재설정 메일을 보냈어요 📧');
+  } catch(e) {
+    document.getElementById('authErr').textContent = authErrorMsg(e.code);
+  }
+};
+
+window.doLogout = async function() {
+  closeUserMenu();
+  await signOut(auth);
+  showToast('로그아웃 했어요');
+};
+
+function authErrorMsg(code) {
+  const map = {
+    'auth/user-not-found':      '등록되지 않은 이메일이에요',
+    'auth/wrong-password':      '비밀번호가 올바르지 않아요',
+    'auth/invalid-credential':  '이메일 또는 비밀번호가 올바르지 않아요',
+    'auth/email-already-in-use':'이미 사용 중인 이메일이에요',
+    'auth/invalid-email':       '올바른 이메일 형식이 아니에요',
+    'auth/weak-password':       '비밀번호가 너무 짧아요 (6자 이상)',
+    'auth/network-request-failed':'네트워크 연결을 확인해주세요',
+    'auth/too-many-requests':   '잠시 후 다시 시도해주세요',
+  };
+  return map[code] || '오류가 발생했어요 (' + code + ')';
+}
+
+// ── NAV USER MENU ──
+function updateNavAvatar(user) {
+  const avatar = document.getElementById('navAvatar');
+  const name   = user.displayName || user.email.split('@')[0];
+  document.getElementById('menuName').textContent  = user.displayName || '사용자';
+  document.getElementById('menuEmail').textContent = user.email;
+  if (user.photoURL) {
+    avatar.innerHTML = `<img src="${user.photoURL}" alt="프로필">`;
+  } else {
+    avatar.textContent = name.charAt(0).toUpperCase();
+  }
+}
+
+window.toggleUserMenu = function(e) {
+  e.stopPropagation();
+  document.getElementById('userMenu').classList.toggle('open');
+};
+window.closeUserMenu = function() {
+  document.getElementById('userMenu').classList.remove('open');
+};
+document.addEventListener('click', () => closeUserMenu());
 </script>
 </body>
 </html>
