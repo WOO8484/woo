@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NovelShelf</title>
 <style>
 /* ── DESIGN TOKENS ── */
@@ -315,8 +315,8 @@ body {
 .vn { display:none; } /* 상단바 제거 */
 .vprog { position:fixed; top:0; left:0; right:0; height:3px; background:rgba(0,0,0,.1); z-index:510; }
 .vpfill { height:100%; background:var(--accent); transition:width .3s; }
-.vbody { flex:1; overflow:hidden; padding:0; width:100%; position:relative; display:flex; flex-direction:column; }
-.vpage { flex:1; overflow-y:auto; padding:48px 24px 48px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
+.vbody { flex:1; overflow-y:auto; padding:48px 24px; max-width:680px; margin:0 auto; width:100%; box-sizing:border-box; }
+.vpage { width:100%; }
 .vch { font-size:17px; font-weight:800; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid var(--line); }
 .vtext { font-size:17px; line-height:1.9; color:#2A2A2A; word-break:keep-all; transition:font-size .15s; }
 .vtext p { margin-bottom:1.5em; }
@@ -642,31 +642,1916 @@ body {
   .auth-google { height:56px; font-size:16px; }
 }
 </style>
-
-<script>
-// v1.0.7 Cache Busting + Bug Fixes
-(function() {
-  const CURRENT = 'v1.0.7';
-  const stored = localStorage.getItem('ns_version');
-  if (stored !== CURRENT) {
-    localStorage.setItem('ns_version', CURRENT);
-    if ('caches' in window) {
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-    }
-    console.log('%c✅ NovelShelf v1.0.7 - Cache cleared and full restore', 'color:#6C5CE7;font-weight:bold');
-  }
-})();
-</script>
 </head>
 <body>
 
-<!-- Full HTML from original file -->
-<!-- AUTH, NAV, PAGES, VIEWER, etc. all included -->
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen" style="display:none">
+  <div class="auth-logo">Novel<em>S</em></div>
+  <div class="auth-sub">소설 서재에 오신 것을 환영해요</div>
+
+  <div class="auth-form" style="margin-top:8px">
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-google" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.9 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-21 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.1 16.1 19.2 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.2 2 9.4 7.3 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.8 0 10.7-1.9 14.3-5.2l-6.6-5.4C29.8 37 27 38 24 38c-5.8 0-10.7-3.9-12.5-9.3l-7 5.4C7.9 41.3 15.4 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-.8 2.3-2.3 4.3-4.3 5.7l6.6 5.4C42 36.1 45 30.5 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+      Google로 로그인
+    </button>
+  </div>
+
+  <!-- 이메일/비밀번호 로그인은 비활성화 중입니다. 필요시 복원 가능합니다. -->
+</div>
+
+<!-- ── WAITING SCREEN ── -->
+<div id="waitScreen">
+  <div class="wait-icon">⏳</div>
+  <div class="wait-title">승인 대기 중이에요</div>
+  <div class="wait-sub">관리자가 확인 후 승인하면<br>서재를 이용할 수 있어요</div>
+  <div class="wait-email" id="waitEmail"></div>
+  <button class="wait-logout" onclick="doLogout()">다른 계정으로 로그인</button>
+</div>
+<div class="user-menu" id="userMenu" onclick="event.stopPropagation()">
+  <div class="user-menu-info">
+    <div class="user-menu-name" id="menuName">사용자</div>
+    <div class="user-menu-email" id="menuEmail"></div>
+  </div>
+  <div class="user-menu-item danger" onclick="doLogout()">🚪 로그아웃</div>
+</div>
+
+<nav class="nav" style="display:none">
+  <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.0.4</div>
+  <div class="nav-user">
+    <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
+    <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
+  </div>
+</nav>
+
+<!-- ── TAB BAR ── -->
+<div class="tab-bar" id="tabBar" style="display:none">
+  <button class="tab-item on" id="tab-home"    onclick="switchTab('home')">
+    <span class="tab-icon">🏠</span><span class="tab-label">홈</span>
+  </button>
+  <button class="tab-item"    id="tab-shelf"   onclick="switchTab('shelf')">
+    <span class="tab-icon">📚</span><span class="tab-label">서재</span>
+  </button>
+  <button class="tab-item"    id="tab-profile" onclick="switchTab('profile')">
+    <span class="tab-icon">👤</span><span class="tab-label">프로필</span>
+  </button>
+</div>
+
+<!-- ══════════════════════════════════
+     홈 페이지
+══════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="home-header">
+    <div class="home-greeting">안녕하세요, <em id="homeUserName">독자</em>님 👋</div>
+    <div class="home-date" id="homeDate"></div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="home-stats-row" id="homeStatsRow">
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatTotal">0</span><span class="home-stat-lbl">전체</span></div>
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatReading">0</span><span class="home-stat-lbl">읽는 중</span></div>
+    <div class="home-stat-card"><span class="home-stat-val" id="hStatDone">0</span><span class="home-stat-lbl">완독</span></div>
+  </div>
+  <div class="home-streak-card" id="homeStreakCard">
+    <span class="home-streak-icon">🔥</span>
+    <div><div class="home-streak-text" id="hStreakText">오늘 독서를 시작해보세요</div><div class="home-streak-sub" id="hStreakSub"></div></div>
+  </div>
+
+  <!-- 이어 읽기 -->
+  <div class="home-section" id="homeContinueSec">
+    <div class="home-sec-header">
+      <span class="home-sec-title">📖 이어 읽기</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="home-continue" id="homeContinue"></div>
+  </div>
+
+  <!-- 소설 추가 배너 (관리자만 표시) -->
+  <div class="home-banner" id="homeBanner" style="display:none" onclick="openAdd()">
+    <div class="home-banner-text">
+      <div class="home-banner-title">새 소설 추가하기</div>
+      <div class="home-banner-sub">TXT 파일을 업로드해보세요</div>
+    </div>
+    <button class="home-banner-btn">＋ 추가</button>
+  </div>
+
+  <!-- 최근 추가 -->
+  <div class="home-section" id="homeRecentSec">
+    <div class="home-sec-header">
+      <span class="home-sec-title">🆕 최근 추가</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="home-recent-grid" id="homeRecentGrid"></div>
+  </div>
+
+  <!-- 빈 상태 -->
+  <div class="home-empty" id="homeEmpty" style="display:none">
+    <div class="home-empty-icon">📚</div>
+    <div class="home-empty-t">서재가 비어있어요</div>
+    <div class="home-empty-s">관리자가 소설을 추가하면<br>여기에 표시됩니다</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     서재 페이지
+══════════════════════════════════ -->
+<div class="page" id="page-shelf">
+  <!-- 서재 탭 (전체/즐겨찾기/읽는중/완독) -->
+  <div class="shelf-tabs">
+    <button class="shelf-tab on" id="stab-all"   onclick="setShelfTab('all',this)">전체 <span class="shelf-tab-badge" id="sbadge-all">0</span></button>
+    <button class="shelf-tab"    id="stab-fav"   onclick="setShelfTab('fav',this)">⭐ 즐겨찾기 <span class="shelf-tab-badge" id="sbadge-fav">0</span></button>
+    <button class="shelf-tab"    id="stab-reading" onclick="setShelfTab('reading',this)">읽는 중 <span class="shelf-tab-badge" id="sbadge-reading">0</span></button>
+    <button class="shelf-tab"    id="stab-done"  onclick="setShelfTab('done',this)">완독 <span class="shelf-tab-badge" id="sbadge-done">0</span></button>
+  </div>
+
+  <div class="toolbar">
+    <input class="search-box" type="search" id="searchInput" placeholder="제목, 작가, 장르, 태그 검색..." oninput="onSearch()">
+    <button class="view-toggle" onclick="toggleView()" id="viewToggleBtn" title="뷰 전환">⊞</button>
+    <div class="sort-wrap">
+      <button class="sort-btn" id="sortBtn" onclick="toggleSort(event)"><span id="sortLabel">최근 추가</span> ▾</button>
+      <div class="sort-menu" id="sortMenu" onclick="event.stopPropagation()">
+        <div class="sort-item on" onclick="setSort('recent',this)">최근 추가 <span id="ck-recent">✓</span></div>
+        <div class="sort-item" onclick="setSort('lastRead',this)">최근 읽은 <span id="ck-lastRead"></span></div>
+        <div class="sort-item" onclick="setSort('progress',this)">진행률 높은 <span id="ck-progress"></span></div>
+        <div class="sort-item" onclick="setSort('progressAsc',this)">진행률 낮은 <span id="ck-progressAsc"></span></div>
+        <div class="sort-item" onclick="setSort('title',this)">제목순 <span id="ck-title"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter">
+    <button class="chip on" onclick="setGenre('all',this)">전체</button>
+    <button class="chip" onclick="setGenre('romance',this)">로맨스</button>
+    <button class="chip" onclick="setGenre('fantasy',this)">판타지</button>
+    <button class="chip" onclick="setGenre('thriller',this)">스릴러</button>
+    <button class="chip" onclick="setGenre('sf',this)">SF</button>
+    <button class="chip" onclick="setGenre('historical',this)">역사</button>
+    <button class="chip" onclick="setGenre('mystery',this)">미스터리</button>
+  </div>
+
+  <div class="sec" style="padding-top:12px">
+    <span class="sec-t" id="gridTitle">전체 소설</span>
+    <span class="sec-c" id="gridCount"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     프로필 페이지
+══════════════════════════════════ -->
+<div class="page profile-page" id="page-profile">
+  <!-- 유저 정보 -->
+  <div class="profile-hero">
+    <div class="profile-hero-avatar" id="profileAvatar"></div>
+    <div>
+      <div class="profile-hero-name" id="profileName">-</div>
+      <div class="profile-hero-email" id="profileEmail">-</div>
+    </div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="profile-stats-row">
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatTotal">0</span><span class="profile-stat-lbl">전체</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatDone">0</span><span class="profile-stat-lbl">완독</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatPages">0</span><span class="profile-stat-lbl">읽은 페이지</span></div>
+  </div>
+
+  <!-- 스트릭 배너 -->
+  <div class="profile-streak-banner" id="profileStreakBanner">
+    <span class="profile-streak-icon">🔥</span>
+    <div>
+      <div class="profile-streak-text" id="pStreakText">독서 스트릭</div>
+      <div class="profile-streak-sub" id="pStreakSub">오늘 독서를 시작해보세요!</div>
+    </div>
+  </div>
+
+  <!-- 독서 설정 메뉴 -->
+  <div class="profile-section">
+    <div class="profile-section-title">독서</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item" onclick="switchTab('shelf')">
+        <span class="profile-menu-icon">📚</span>
+        <span class="profile-menu-label">내 서재</span>
+        <span class="profile-menu-value" id="pMenuShelfCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+      <div class="profile-menu-item" onclick="switchTab('shelf');setShelfTab('fav',document.getElementById('stab-fav'))">
+        <span class="profile-menu-icon">⭐</span>
+        <span class="profile-menu-label">즐겨찾기</span>
+        <span class="profile-menu-value" id="pMenuFavCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+      <div class="profile-menu-item" onclick="switchTab('shelf');setShelfTab('done',document.getElementById('stab-done'))">
+        <span class="profile-menu-icon">✅</span>
+        <span class="profile-menu-label">완독한 소설</span>
+        <span class="profile-menu-value" id="pMenuDoneCount">0권</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 앱 설정 -->
+  <div class="profile-section">
+    <div class="profile-section-title">설정</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item" onclick="openReadingSettings()">
+        <span class="profile-menu-icon">📖</span>
+        <span class="profile-menu-label">읽기 설정</span>
+        <span class="profile-menu-value" id="pMenuFont">기본</span>
+        <span class="profile-menu-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 계정 -->
+  <div class="profile-section">
+    <div class="profile-section-title">계정</div>
+    <div class="profile-menu-card">
+      <div class="profile-menu-item danger" onclick="confirmLogout()">
+        <span class="profile-menu-icon">🚪</span>
+        <span class="profile-menu-label">로그아웃</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 전용 섹션 (isAdmin일 때만 표시) -->
+  <div class="admin-panel" id="adminPanel" style="display:none">
+    <div class="profile-section">
+      <div class="profile-section-title">
+        관리자 <span class="admin-badge">ADMIN</span>
+      </div>
+      <!-- 승인 대기 -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;padding:0 4px 8px;display:flex;align-items:center;gap:6px">
+          승인 대기
+          <span id="pendingBadge" style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;display:none"></span>
+        </div>
+        <div class="pending-card" id="pendingList">
+          <div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">대기 중인 사용자가 없어요</div>
+        </div>
+      </div>
+      <!-- 승인된 사용자 -->
+      <div>
+        <div style="font-size:13px;font-weight:700;padding:0 4px 8px">승인된 사용자</div>
+        <div class="pending-card" id="approvedList">
+          <div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+</div>
+
+<!-- ── VIEWER ── -->
+<div id="viewer">
+  <div class="vprog" id="vprogBar"><div class="vpfill" id="vpFill" style="width:0%"></div></div>
+  <div class="vbody" id="vBody" onscroll="onVScroll()">
+    <div class="vpage" id="vPage">
+      <div class="vch" id="vChTitle"></div>
+      <div class="vtext" id="vText"></div>
+    </div>
+  </div>
+  <!-- 터치 영역 -->
+  <div class="vtap-left"   onclick="prevCh()"></div>
+  <div class="vtap-right"  onclick="nextCh()"></div>
+  <div class="vtap-center" onclick="openViewerPopup()"></div>
+  <!-- 페이지 정보 -->
+  <div class="vpage-info" id="vPageInfo"></div>
+</div>
+
+<!-- 뷰어 팝업 (중앙 탭 시) -->
+<div class="vpopup-ov" id="vpopupOv" onclick="closeViewerPopup()">
+  <div class="vpopup" onclick="event.stopPropagation()">
+    <div class="vpopup-title" id="vpopupTitle"></div>
+    <div class="vpopup-info"  id="vpopupInfo"></div>
+    <div class="vpopup-btns">
+      <button class="vpopup-btn" onclick="closeViewerPopup();openChList()">
+        <span>📋</span> 챕터 목록
+      </button>
+      <button class="vpopup-btn" onclick="closeViewerPopup();togglePanel()">
+        <span>⚙️</span> 읽기 설정
+      </button>
+      <button class="vpopup-btn danger" onclick="closeViewerPopup();closeViewer()">
+        <span>✕</span> 서재로 나가기
+      </button>
+    </div>
+    <button class="vpopup-close" onclick="closeViewerPopup()">계속 읽기</button>
+  </div>
+</div>
+
+<!-- ── CHAPTER LIST ── -->
+<div class="ch-list-panel" id="chListPanel">
+  <div class="ch-list-header">
+    <button class="ch-close" onclick="closeChList()">←</button>
+    <div class="ch-list-header-title" id="chListTitle">챕터 목록</div>
+  </div>
+  <div class="ch-list" id="chList"></div>
+</div>
+
+<!-- ── DETAIL ── -->
+<div class="detail" id="detail">
+
+  <!-- 뒤로가기 버튼 (히어로 위에 absolute) -->
+  <div class="dbar">
+    <button class="dbar-back" onclick="closeDetail()">←</button>
+  </div>
+
+  <div class="detail-scroll">
+    <!-- 히어로: 표지+제목이 배경 위에 -->
+    <div class="dhero-section" id="dHeroSection">
+      <div class="dhero-bg" id="dHeroBg">
+        <div class="dhero-bg-color" id="dHeroBgColor"></div>
+        <div class="dhero-bg-blur"  id="dHeroBgBlur"></div>
+        <div class="dhero-bg-grad"></div>
+      </div>
+      <!-- 표지 (좌) -->
+      <div class="dcover-img-wrap" id="dCoverImgWrap">
+        <div class="dcover-img-placeholder" id="dCoverPlaceholder">📖</div>
+      </div>
+      <!-- 제목/작가/메타/진행률 (우) -->
+      <div class="dhero-info">
+        <div class="dh-title"  id="dTitle"></div>
+        <div class="dh-author" id="dAuthor"></div>
+        <div class="dh-meta"   id="dMeta"></div>
+        <div class="dh-progress" id="dProgressWrap">
+          <div class="dh-prog-bar"><div class="dh-prog-fill" id="dProgFill"></div></div>
+          <div class="dh-prog-text" id="dProgText"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 회색 배경 카드 영역 -->
+    <div class="dbody">
+
+      <!-- 통계 카드 -->
+      <div class="dcard">
+        <div class="dstats" id="dStats"></div>
+      </div>
+
+      <!-- 줄거리 카드 -->
+      <div class="dcard dsyn-card">
+        <div class="dsyn" id="dSyn"></div>
+      </div>
+
+      <!-- 태그 카드 -->
+      <div class="dcard">
+        <div class="dsec">태그</div>
+        <div class="dtags" id="dTags"></div>
+      </div>
+
+      <!-- 다운로드 / 삭제 -->
+      <button class="ddl" id="dDlBtn" onclick="downloadTxt()">↓ TXT 다운로드</button>
+      <button class="ddel" onclick="deleteNovel()">🗑 소설 삭제</button>
+    </div>
+  </div>
+
+  <!-- 하단 고정 읽기 버튼 -->
+  <div class="dfoot">
+    <button class="dread" id="dReadBtn" onclick="readFromDetail()">읽기</button>
+  </div>
+</div>
+
+<!-- ── SETTINGS PANEL ── -->
+<div class="overlay" id="setOv" onclick="closePanel()"></div>
+<div class="panel" id="setPanel">
+  <div class="phandle"></div>
+  <div class="panel-header">
+    <span class="ptitle">읽기 설정</span>
+    <button class="preset-btn" onclick="resetSettings()">기본값 초기화</button>
+  </div>
+
+  <!-- 미리보기 -->
+  <div class="preview-box" id="settingsPreview">
+    <span id="previewText">가나다라 AaBbCc 소설 미리보기</span>
+  </div>
+
+  <!-- 섹션: 배경 -->
+  <div class="set-section-label">배경 테마</div>
+  <div class="theme-grid">
+    <div class="theme-card on" id="theme-light"   onclick="setTheme('light')"   data-theme="light">
+      <div class="theme-preview" style="background:#fff;color:#2A2A2A">가나다</div>
+      <span>라이트</span>
+    </div>
+    <div class="theme-card" id="theme-sepia"   onclick="setTheme('sepia')"   data-theme="sepia">
+      <div class="theme-preview" style="background:#F4ECD8;color:#3D2B1A">가나다</div>
+      <span>세피아</span>
+    </div>
+    <div class="theme-card" id="theme-dark"    onclick="setTheme('dark')"    data-theme="dark">
+      <div class="theme-preview" style="background:#1C1C28;color:#C8C8D8">가나다</div>
+      <span>다크</span>
+    </div>
+    <div class="theme-card" id="theme-amoled"  onclick="setTheme('amoled')"  data-theme="amoled">
+      <div class="theme-preview" style="background:#000;color:#E0E0E0">가나다</div>
+      <span>AMOLED</span>
+    </div>
+  </div>
+
+  <!-- 섹션: 글꼴 -->
+  <div class="set-section-label">글꼴</div>
+  <div class="font-grid" id="fontGrid">
+    <button class="font-btn on" data-font="system"   onclick="setFont('system',this)"  style="font-family:-apple-system,sans-serif">기본</button>
+    <button class="font-btn"    data-font="gothic"   onclick="setFont('gothic',this)"  style="font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif">고딕</button>
+    <button class="font-btn"    data-font="serif"    onclick="setFont('serif',this)"   style="font-family:'Nanum Myeongjo','Georgia',serif">명조</button>
+    <button class="font-btn"    data-font="mono"     onclick="setFont('mono',this)"    style="font-family:'Courier New',monospace">모노</button>
+  </div>
+
+  <!-- 섹션: 글자 크기 -->
+  <div class="set-section-label">글자 크기 <span class="set-val-badge" id="fValBadge">17px</span></div>
+  <div class="slider-row">
+    <span class="slider-min">작게</span>
+    <input type="range" class="ns-slider" id="fontSlider" min="13" max="26" value="17" oninput="chFontSlider(this.value)">
+    <span class="slider-max">크게</span>
+  </div>
+  <div class="prow" style="padding:6px 0">
+    <span class="plabel">빠른 조절</span>
+    <div class="fctrl">
+      <button class="fbtn" onclick="chFont(-1)">−</button>
+      <span class="fval" id="fVal">17</span>
+      <button class="fbtn" onclick="chFont(1)">＋</button>
+    </div>
+  </div>
+
+  <!-- 섹션: 줄 간격 -->
+  <div class="set-section-label">줄 간격 <span class="set-val-badge" id="lhValBadge">1.9</span></div>
+  <div class="slider-row">
+    <span class="slider-min">좁게</span>
+    <input type="range" class="ns-slider" id="lhSlider" min="140" max="260" step="10" value="190" oninput="chLineHeight(this.value)">
+    <span class="slider-max">넓게</span>
+  </div>
+
+  <!-- 섹션: 문단 간격 -->
+  <div class="set-section-label">문단 간격 <span class="set-val-badge" id="pgValBadge">1.5em</span></div>
+  <div class="slider-row">
+    <span class="slider-min">좁게</span>
+    <input type="range" class="ns-slider" id="pgSlider" min="50" max="300" step="25" value="150" oninput="chParaGap(this.value)">
+    <span class="slider-max">넓게</span>
+  </div>
+
+  <!-- 섹션: 본문 너비 -->
+  <div class="set-section-label">본문 최대 너비 <span class="set-val-badge" id="widthValBadge">680px</span></div>
+  <div class="width-btns">
+    <button class="width-btn" data-w="480"  onclick="setWidth(480,this)">좁음</button>
+    <button class="width-btn on" data-w="680" onclick="setWidth(680,this)">기본</button>
+    <button class="width-btn" data-w="860"  onclick="setWidth(860,this)">넓음</button>
+    <button class="width-btn" data-w="9999" onclick="setWidth(9999,this)">전체</button>
+  </div>
+
+  <!-- 섹션: 자동 숨김 -->
+  <div class="set-section-label">UI 자동 숨김</div>
+  <div class="prow" style="padding:8px 0">
+    <span class="plabel" style="font-size:12px">읽는 중 상/하단 바 자동 숨김</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoHideToggle" onchange="setAutoHide(this.checked)" checked>
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+  <div class="prow" id="autoHideDelayRow" style="padding:6px 0">
+    <span class="plabel" style="font-size:12px">숨김 대기 시간 <span class="set-val-badge" id="hideDelayBadge">4초</span></span>
+    <input type="range" class="ns-slider" style="width:100px" id="hideDelaySlider" min="2" max="10" step="1" value="4" oninput="setHideDelay(this.value)">
+  </div>
+
+  <!-- 섹션: 자동 스크롤 -->
+  <div class="set-section-label">자동 스크롤</div>
+  <div class="prow" style="padding:8px 0">
+    <span class="plabel" style="font-size:12px">자동으로 천천히 스크롤</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoScrollToggle" onchange="setAutoScroll(this.checked)">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+  </div>
+  <div class="prow" id="autoScrollSpeedRow" style="padding:6px 0;display:none">
+    <span class="plabel" style="font-size:12px">속도 <span class="set-val-badge" id="scrollSpeedBadge">보통</span></span>
+    <input type="range" class="ns-slider" style="width:100px" id="scrollSpeedSlider" min="1" max="5" step="1" value="3" oninput="setScrollSpeed(this.value)">
+  </div>
+</div>
+
+<!-- ── ADD MODAL ── -->
+<div class="modal-ov" id="addOv" onclick="closeAdd()"></div>
+<div class="modal" id="addModal">
+  <div class="mhandle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div class="mtitle" style="margin:0">소설 추가</div>
+    <button onclick="closeAdd()" style="width:32px;height:32px;border-radius:50%;border:none;background:var(--bg2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2)">×</button>
+  </div>
+  <div class="mfield">
+    <label class="mlabel">책 검색 (네이버)</label>
+    <div style="display:flex;gap:7px">
+      <input class="minput" id="sq" placeholder="책 제목 검색..." style="flex:1" onkeydown="if(event.key==='Enter')doSearch()" autocomplete="off">
+      <button onclick="doSearch()" id="sbtn" style="height:40px;padding:0 13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">검색</button>
+    </div>
+    <div class="sresults" id="sResults" style="display:none"></div>
+    <div class="spreview" id="sPreview" style="display:none">
+      <img id="sPrevImg" src="" alt="표지">
+      <div class="spreview-info"><div class="spreview-t" id="sPrevTitle"></div><div class="spreview-a" id="sPrevAuthor"></div></div>
+      <span class="spreview-clear" onclick="clearSearch()">지우기</span>
+    </div>
+  </div>
+  <div class="mfield">
+    <label class="mlabel">제목 *</label>
+    <input class="minput" id="iTitle" placeholder="소설 제목" oninput="clearFieldError('iTitle')">
+    <div class="minput-hint" id="iTitle-hint">제목을 입력해주세요</div>
+  </div>
+  <div class="mfield"><label class="mlabel">작가</label><input class="minput" id="iAuthor" placeholder="작가명"></div>
+  <div class="mfield">
+    <label class="mlabel">장르</label>
+    <div class="gchips">
+      <button class="gchip" data-g="romance" onclick="selGenre(this)">로맨스</button>
+      <button class="gchip" data-g="fantasy" onclick="selGenre(this)">판타지</button>
+      <button class="gchip" data-g="thriller" onclick="selGenre(this)">스릴러</button>
+      <button class="gchip" data-g="sf" onclick="selGenre(this)">SF</button>
+      <button class="gchip" data-g="historical" onclick="selGenre(this)">역사</button>
+      <button class="gchip" data-g="mystery" onclick="selGenre(this)">미스터리</button>
+    </div>
+  </div>
+  <div class="mfield">
+    <label class="mlabel">TXT 파일</label>
+    <label class="dropz" id="dropzLabel"
+      ondragover="event.preventDefault();this.classList.add('dragover')"
+      ondragleave="this.classList.remove('dragover')"
+      ondrop="onFileDrop(event)">
+      <input type="file" accept=".txt" id="fileInput" onchange="onFile(event)" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;z-index:1">
+      <div class="dropz-icon">📄</div>
+      <div class="dropz-t" id="fileLabel">클릭하거나 파일을 드래그하세요</div>
+      <div class="dropz-s">.txt 파일만 지원</div>
+    </label>
+  </div>
+  <div class="mfield"><label class="mlabel">줄거리</label><textarea class="mtarea" id="iSyn" placeholder="간단한 줄거리나 메모..."></textarea></div>
+  <div class="mfield"><label class="mlabel">태그 (쉼표 구분)</label><input class="minput" id="iTags" placeholder="판타지, 로맨스, 해피엔딩"></div>
+  <button class="msave" id="saveBtn" onclick="saveNovel()">서재에 추가</button>
+</div>
+
+<!-- ── CONFIRM ── -->
+<div class="confirm-ov" id="confirmOv">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">정말 삭제할까요?</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
+      <button class="confirm-ok" id="confirmOkBtn">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script type="module">
-// Full original script with v1.0.7 fixes
-// render() bug fixed (removed duplicate coverInner)
-console.log('%c✅ NovelShelf v1.0.7 FULL VERSION LOADED - 2519 lines - Bugs fixed', 'color:#00B894;font-weight:bold');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, getBlob, getBytes, deleteObject } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+import {
+  getAuth, onAuthStateChanged,
+  signOut,
+  GoogleAuthProvider, signInWithPopup
+  /* 이메일/비밀번호 필요시 추가:
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendPasswordResetEmail, updateProfile
+  */
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+// ⚠️ Firebase API 키가 클라이언트에 노출됩니다. Firebase 콘솔에서 도메인 제한 및 Security Rules를 반드시 설정하세요.
+const firebaseConfig = {
+  apiKey: "AIzaSyDhiJ80q4FtKUB5OLOoLpV4IYKrkU_cYTs",
+  authDomain: "novelshelf-a12bf.firebaseapp.com",
+  projectId: "novelshelf-a12bf",
+  storageBucket: "novelshelf-a12bf.firebasestorage.app",
+  messagingSenderId: "403423678374",
+  appId: "1:403423678374:web:7a66d3b9fad1ec4e3a8967"
+};
+const app = initializeApp(firebaseConfig);
+const db      = getFirestore(app);
+const storage = getStorage(app);
+const auth    = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+let currentUser = null;
+
+// ── CONSTANTS ──
+const LABELS = { romance:'로맨스', fantasy:'판타지', thriller:'스릴러', sf:'SF', historical:'역사', mystery:'미스터리' };
+const GENRE_ICON = { romance:'💕', fantasy:'🔮', thriller:'🔪', sf:'🚀', historical:'📜', mystery:'🕵️' };
+const SORTS = { recent:'최근 추가', lastRead:'최근 읽은', progress:'진행률 높은', progressAsc:'진행률 낮은', title:'제목순' };
+
+// ── STATE ──
+let novels = [], genre = 'all', sortKey = 'recent', tab = 'all', shelfTab = 'all';
+let curId = null, curCh = 0;
+let currentTab = 'home';
+let isAdmin = false;
+let fontSize   = parseInt(localStorage.getItem('ns_fontSize') || '17', 10);
+let lineHeight = parseFloat(localStorage.getItem('ns_lineHeight') || '1.9');
+let theme      = localStorage.getItem('ns_theme') || 'light';
+let fontFamily = localStorage.getItem('ns_font')      || 'system';
+let paraGap    = parseFloat(localStorage.getItem('ns_paraGap')   || '1.5');
+let maxWidth   = parseInt(localStorage.getItem('ns_maxWidth')    || '680', 10);
+let autoHide   = localStorage.getItem('ns_autoHide') !== 'false';
+let hideDelay  = parseInt(localStorage.getItem('ns_hideDelay')   || '4', 10);
+let scrollSpeed = parseInt(localStorage.getItem('ns_scrollSpeed')|| '3', 10);
+let viewMode   = localStorage.getItem('ns_viewMode') || 'grid'; // 'grid' | 'list'
+// statsOpen 제거됨 (프로필 탭으로 이동)
+let selG = '', coverUrl = '', curFile = null;
+let searchDebounce = null;
+// viewer UI state
+let uiHideTimer = null, uiVisible = true;
+
+// ── LOAD ──
+async function loadNovels() {
+  if (!currentUser) return;
+  renderSkeletons();
+  try {
+    // 1. 내 소설
+    const mySnap = await getDocs(collection(db,'users',currentUser.uid,'novels'));
+    const myNovels = mySnap.docs.map(d => ({ id:d.id, _mine:true, ...d.data() }));
+
+    // 2. 공유 소설
+    let sharedNovels = [];
+    try {
+      const sharedSnap = await getDocs(collection(db,'sharedNovels'));
+      sharedNovels = sharedSnap.docs.map(d => ({ id:'shared_'+d.id, _shared:true, ...d.data() }));
+    } catch(e2) { /* 권한 없거나 없으면 무시 */ }
+
+    // 클라이언트에서 최신순 정렬
+    novels = [...myNovels, ...sharedNovels]
+      .sort((a,b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
+
+    // 관리자만 소설 추가 버튼 표시
+    const addBtn = document.getElementById('navAddBtn');
+    if(addBtn) addBtn.style.display = isAdmin ? '' : 'none';
+    const banner = document.getElementById('homeBanner');
+    if(banner) banner.style.display = isAdmin ? 'flex' : 'none';
+
+    render(); renderHome(); renderProfile();
+  } catch(e) {
+    showToast('데이터 불러오기 실패: ' + e.message, 'error');
+    document.getElementById('grid').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-t">불러오기 실패</div><div class="empty-s">${escapeHtml(e.message)}</div><button onclick="loadNovels()" style="margin-top:14px;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">다시 시도</button></div>`;
+  }
+}
+
+function renderSkeletons() {
+  document.getElementById('grid').innerHTML = Array.from({length:6}).map(() =>
+    `<div class="skel-card"><div class="skeleton skel-cover"></div><div class="skeleton skel-line1"></div><div class="skeleton skel-line2"></div></div>`).join('');
+}
+
+// ── TAB NAVIGATION ──
+window.switchTab = function(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
+  document.getElementById('page-' + tabName).classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('on');
+  // nav 버튼 표시/숨김
+  document.getElementById('navAddBtn').style.display = tabName === 'shelf' ? '' : 'none';
+  // 탭별 타이틀
+  const titles = { home:'Novel S', shelf:'내 서재', profile:'프로필' };
+  document.getElementById('navLogo').innerHTML = `Novel<em>S</em><span>${tabName !== 'home' ? ' ' + (tabName === 'shelf' ? '서재' : '프로필') : ''}</span>`;
+};
+
+// ── SHELF TAB (즐겨찾기/읽는중/완독/전체) ──
+window.setShelfTab = function(t, el) {
+  shelfTab = t;
+  document.querySelectorAll('.shelf-tab').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  render();
+};
+
+// ── FAVORITES ──
+window.toggleFav = async function(id, e) {
+  e.stopPropagation();
+  const n = novels.find(x => x.id === id); if (!n) return;
+  const newFav = !n.favorite;
+  n.favorite = newFav;
+  try {
+    if (!n._shared) {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), { favorite: newFav });
+    }
+    render(); renderHome(); renderProfile();
+    showToast(newFav ? '❤️ 즐겨찾기 추가' : '🤍 즐겨찾기 해제');
+  } catch(e) { showToast('저장 실패', 'error'); n.favorite = !newFav; }
+};
+
+// ── RENDER HOME ──
+function renderHome() {
+  const user = currentUser;
+  if (!user) return;
+
+  // 인사말
+  const name = user.displayName || user.email?.split('@')[0] || '독자';
+  document.getElementById('homeUserName').textContent = name;
+  const now = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('homeDate').textContent =
+    `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+
+  // 통계
+  const total   = novels.length;
+  const reading = novels.filter(n => n.progress > 0 && n.progress < 100).length;
+  const done    = novels.filter(n => n.progress >= 100).length;
+  document.getElementById('hStatTotal').textContent   = total;
+  document.getElementById('hStatReading').textContent = reading;
+  document.getElementById('hStatDone').textContent    = done;
+
+  // 스트릭
+  const streak = calcStreak();
+  document.getElementById('hStreakText').textContent = streak > 0 ? `${streak}일 연속 독서 중! 🔥` : '오늘 독서를 시작해보세요';
+  document.getElementById('hStreakSub').textContent  = done > 0 ? `완독 ${done}권` : '';
+
+  // 빈 상태
+  document.getElementById('homeEmpty').style.display         = total === 0 ? 'block' : 'none';
+  const hb = document.getElementById('homeBanner'); if(hb) hb.style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('homeStatsRow').style.display      = total === 0 ? 'none' : '';
+  document.getElementById('homeStreakCard').style.display     = total === 0 ? 'none' : '';
+  document.getElementById('homeContinueSec').style.display   = total === 0 ? 'none' : '';
+  document.getElementById('homeRecentSec').style.display     = total === 0 ? 'none' : '';
+
+  // 이어 읽기
+  const inProg = [...novels].filter(n => n.progress > 0 && n.progress < 100 && n.lastReadAt)
+    .sort((a,b) => new Date(b.lastReadAt) - new Date(a.lastReadAt)).slice(0, 5);
+  document.getElementById('homeContinue').innerHTML = inProg.length ? inProg.map(n => {
+    const cc = genreCoverClass(n.genre);
+    return `<div class="home-con-card" onclick="openDetail('${n.id}')">
+      <div class="home-con-thumb ${cc}">
+        ${n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy">` : ''}
+      </div>
+      <div class="home-con-info">
+        <div>
+          <div class="home-con-title">${escapeHtml(n.title)}</div>
+          <div class="home-con-author">${escapeHtml(n.author||'작자 미상')}</div>
+        </div>
+        <div class="home-con-prog">
+          <div class="home-con-bar"><div class="home-con-fill" style="width:${n.progress}%"></div></div>
+          <div class="home-con-pct"><span>진행률</span><span>${n.progress}%</span></div>
+          <button class="home-con-btn" onclick="event.stopPropagation();openViewer('${n.id}')">이어 읽기</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:0 16px;font-size:13px;color:var(--ink3)">읽는 중인 소설이 없어요</div>';
+
+  // 최근 추가
+  const recent = [...novels].sort((a,b) => new Date(b.addedAt)-new Date(a.addedAt)).slice(0, 6);
+  document.getElementById('homeRecentGrid').innerHTML = recent.map(n => {
+    const cc = genreCoverClass(n.genre);
+    const icon = GENRE_ICON[n.genre] || '📖';
+    return `<div class="card" onclick="openDetail('${n.id}')">
+      <div class="cover-wrap ${cc}" style="aspect-ratio:2/3;width:100%">
+        ${n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">` : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`}
+        ${n.progress >= 100 ? '<div class="done-badge">완독</div>' : ''}
+        ${n.progress > 0 && n.progress < 100 ? `<div class="pct-badge">${n.progress}%</div>` : ''}
+        <div class="cover-grad"><div class="cover-title">${escapeHtml(n.title)}</div></div>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${n.progress}%"></div></div>
+      <div class="card-meta">
+        <div class="card-title">${escapeHtml(n.title)}</div>
+        <div class="card-sub"><span>${LABELS[n.genre]||'기타'}</span><span>${n.progress===100?'완독':n.progress>0?n.progress+'%':'미시작'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER PROFILE ──
+function renderProfile() {
+  const user = currentUser; if (!user) return;
+  const name = user.displayName || user.email?.split('@')[0] || '사용자';
+  document.getElementById('profileName').textContent  = name;
+  document.getElementById('profileEmail').textContent = user.email || '';
+  const av = document.getElementById('profileAvatar');
+  if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+  else av.textContent = name.charAt(0).toUpperCase();
+
+  const total = novels.length;
+  const done  = novels.filter(n => n.progress >= 100).length;
+  const fav   = novels.filter(n => n.favorite).length;
+  const pages = novels.reduce((s,n) => s + Math.round((n.totalChars||0)/500*(n.progress/100)), 0);
+
+  document.getElementById('pStatTotal').textContent = total;
+  document.getElementById('pStatDone').textContent  = done;
+  document.getElementById('pStatPages').textContent = pages > 999 ? (pages/1000).toFixed(1)+'k' : pages;
+  document.getElementById('pMenuShelfCount').textContent = total + '권';
+  document.getElementById('pMenuFavCount').textContent   = fav + '권';
+  document.getElementById('pMenuDoneCount').textContent  = done + '권';
+
+  const streak = calcStreak();
+  document.getElementById('pStreakText').textContent = streak > 0 ? `${streak}일 연속 독서 중!` : '오늘 독서를 시작해보세요';
+  document.getElementById('pStreakSub').textContent  = done > 0 ? `완독 ${done}권 · 총 ${pages}p 읽음` : '';
+
+  // 읽기 설정 현재값
+  const fontMap = { system:'기본', gothic:'고딕', serif:'명조', mono:'모노' };
+  document.getElementById('pMenuFont').textContent = fontMap[fontFamily] || '기본';
+
+  // 관리자 패널
+  if (isAdmin) loadAdminPanel();
+
+  // 서재 탭 배지 업데이트
+  document.getElementById('sbadge-all').textContent     = total;
+  document.getElementById('sbadge-fav').textContent     = fav;
+  document.getElementById('sbadge-reading').textContent = novels.filter(n=>n.progress>0&&n.progress<100).length;
+  document.getElementById('sbadge-done').textContent    = done;
+}
+
+function calcStreak() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const readDays = new Set(novels.filter(n=>n.lastReadAt).map(n=>{ const d=new Date(n.lastReadAt); d.setHours(0,0,0,0); return d.getTime(); }));
+  const startOffset = readDays.has(today.getTime()) ? 0 : 1;
+  let streak = 0;
+  for (let i = startOffset; i < 365; i++) {
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    if (readDays.has(d.getTime())) streak++;
+    else break;
+  }
+  return streak;
+}
+
+window.openReadingSettings = function() {
+  // 뷰어 설정 패널 열기 (뷰어 밖에서도 접근 가능하게)
+  document.getElementById('setPanel').classList.add('on');
+  document.getElementById('setOv').classList.add('on');
+  syncSettingsUI();
+};
+
+window.confirmLogout = function() {
+  document.getElementById('confirmMsg').textContent = '로그아웃 하시겠어요?';
+  document.getElementById('confirmOv').classList.add('on');
+  document.getElementById('confirmOkBtn').textContent = '로그아웃';
+  document.getElementById('confirmOkBtn').onclick = () => { closeConfirm(); doLogout(); };
+};
+
+// ── VIEW MODE (grid / list) ──
+window.toggleView = function() {
+  viewMode = viewMode === 'grid' ? 'list' : 'grid';
+  localStorage.setItem('ns_viewMode', viewMode);
+  document.getElementById('viewToggleBtn').textContent = viewMode === 'grid' ? '⊞' : '☰';
+  render();
+};
+
+// ── RENDER ──
+// Genre cover class helper
+function genreCoverClass(genre) {
+  const map = { romance:'cover-romance', fantasy:'cover-fantasy', thriller:'cover-thriller', sf:'cover-sf', historical:'cover-historical', mystery:'cover-mystery' };
+  return map[genre] || 'cover-default';
+}
+
+window.render = function() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  let list = novels.filter(n => {
+    if (shelfTab === 'fav')     return n.favorite;
+    if (shelfTab === 'reading') return n.progress > 0 && n.progress < 100;
+    if (shelfTab === 'done')    return n.progress >= 100;
+    return true;
+  }).filter(n =>
+    (genre === 'all' || n.genre === genre) &&
+    (!q || n.title.toLowerCase().includes(q) || (n.author||'').toLowerCase().includes(q) || (n.tags||[]).some(t=>t.toLowerCase().includes(q)) || (n.genre||'').toLowerCase().includes(q) || ({'romance':'로맨스','fantasy':'판타지','thriller':'스릴러','sf':'sf','historical':'역사','mystery':'미스터리'}[n.genre]||'').toLowerCase().includes(q) || (n.synopsis||'').toLowerCase().includes(q))
+  );
+  list.sort((a,b) => {
+    if (sortKey==='recent')      return new Date(b.addedAt)-new Date(a.addedAt);
+    if (sortKey==='lastRead')    return (b.lastReadAt?new Date(b.lastReadAt):0)-(a.lastReadAt?new Date(a.lastReadAt):0);
+    if (sortKey==='progress')    return b.progress-a.progress;
+    if (sortKey==='progressAsc') return a.progress-b.progress;
+    if (sortKey==='title')       return a.title.localeCompare(b.title,'ko');
+    return 0;
+  });
+
+  // 서재 탭 배지
+  document.getElementById('sbadge-all').textContent     = novels.length;
+  document.getElementById('sbadge-fav').textContent     = novels.filter(n=>n.favorite).length;
+  document.getElementById('sbadge-reading').textContent = novels.filter(n=>n.progress>0&&n.progress<100).length;
+  document.getElementById('sbadge-done').textContent    = novels.filter(n=>n.progress>=100).length;
+  document.getElementById('gridTitle').textContent      = genre==='all'?'전체 소설':(LABELS[genre]||genre);
+  document.getElementById('gridCount').textContent      = list.length+'권';
+
+  const grid = document.getElementById('grid');
+  grid.className = viewMode==='list' ? 'grid list-view' : 'grid';
+  if (!list.length) {
+    const emptyMsgs = {
+      fav: ['⭐', '즐겨찾기가 없어요', '소설 카드의 ★ 버튼으로 추가하세요'],
+      reading: ['📖', '읽는 중인 소설이 없어요', '서재에서 소설을 선택해 읽기 시작하세요'],
+      done: ['✅', '완독한 소설이 없어요', '열심히 읽어봐요!'],
+    };
+    const [icon, title, sub] = emptyMsgs[shelfTab] || [q?'🔍':'📖', q?`"${escapeHtml(q)}" 검색 결과가 없어요`:'소설이 없어요', q?'다른 검색어를 입력해보세요':'TXT 파일을 추가해보세요'];
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-t">${title}</div><div class="empty-s">${sub}</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(n => {
+    const cc = genreCoverClass(n.genre);
+    const icon = GENRE_ICON[n.genre] || '📖';
+    const coverInner = n.coverUrl
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="${escapeHtml(n.title)} 표지" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">`
+      : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`;
+    const favStar = n.favorite ? '❤️' : '🤍';
+    return `<div class="card" onclick="openDetail('${n.id}')">
+      <div class="cover-wrap ${cc}" style="aspect-ratio:2/3;width:100%;position:relative">
+        ${coverInner}
+        ${coverInner}
+        <button class="fav-btn" onclick="toggleFav('${n.id}',event)" title="즐겨찾기">${favStar}</button>
+        ${n.progress>=100?'<div class="done-badge">완독</div>':''}
+        ${n.progress>0&&n.progress<100?`<div class="pct-badge">${n.progress}%</div>`:''}
+        <div class="cover-grad"><div class="cover-title">${escapeHtml(n.title)}</div></div>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${n.progress}%"></div></div>
+      <div class="card-meta">
+        <div class="card-title">${escapeHtml(n.title)}</div>
+        <div class="card-sub"><span>${LABELS[n.genre]||'기타'}</span><span>${n.progress===100?'완독':n.progress>0?n.progress+'%':'미시작'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Sync view toggle icon
+  document.getElementById('viewToggleBtn').textContent = viewMode==='grid' ? '⊞' : '☰';
+};
+
+window.onSearch = function() { clearTimeout(searchDebounce); searchDebounce = setTimeout(render, 120); };
+window.setTab = function(t,el) { tab=t; document.querySelectorAll('.stat').forEach(s=>s.classList.remove('on')); el.classList.add('on'); render(); };
+window.setGenre = function(g,el) { genre=g; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); render(); };
+window.toggleSort = function(e) { e.stopPropagation(); document.getElementById('sortMenu').classList.toggle('open'); };
+window.setSort = function(key,el) {
+  sortKey=key;
+  document.querySelectorAll('.sort-item').forEach(i=>{i.classList.remove('on');i.querySelector('span').textContent='';});
+  el.classList.add('on'); el.querySelector('span').textContent='✓';
+  document.getElementById('sortLabel').textContent=SORTS[key];
+  document.getElementById('sortMenu').classList.remove('open');
+  render();
+};
+document.addEventListener('click', () => document.getElementById('sortMenu').classList.remove('open'));
+
+// ── DETAIL ──
+const GENRE_BG_CLASS = { romance:'dhero-romance', fantasy:'dhero-fantasy', thriller:'dhero-thriller', sf:'dhero-sf', historical:'dhero-historical', mystery:'dhero-mystery' };
+
+window.openDetail = function(id) {
+  const n = novels.find(x=>x.id===id); if(!n) return;
+  curId = id;
+
+  // Hero section genre class
+  const heroSec = document.getElementById('dHeroSection');
+  heroSec.className = 'dhero-section ' + (GENRE_BG_CLASS[n.genre] || 'dhero-default');
+
+  // Blurred background image (if cover exists)
+  const bgBlur = document.getElementById('dHeroBgBlur');
+  if (n.coverUrl) { bgBlur.style.backgroundImage = `url(${n.coverUrl})`; bgBlur.style.opacity = '.35'; }
+  else            { bgBlur.style.backgroundImage = 'none'; bgBlur.style.opacity = '0'; }
+
+  // Cover thumbnail
+  const wrap = document.getElementById('dCoverImgWrap');
+  const placeholder = document.getElementById('dCoverPlaceholder');
+  wrap.querySelectorAll('img').forEach(e=>e.remove());
+  if (n.coverUrl) {
+    const img = document.createElement('img'); img.src=n.coverUrl; img.alt=n.title;
+    wrap.insertBefore(img, placeholder);
+    placeholder.style.display = 'none';
+  } else {
+    placeholder.style.display = 'flex';
+    placeholder.textContent = GENRE_ICON[n.genre] || '📖';
+    // Set placeholder bg to genre color
+    const cc = genreCoverClass(n.genre);
+    placeholder.className = 'dcover-img-placeholder ' + cc;
+  }
+
+  // Title / author
+  document.getElementById('dTitle').textContent  = n.title;
+  document.getElementById('dAuthor').textContent = n.author || '작자 미상';
+
+  // Meta info
+  const pages = Math.round((n.totalChars||0)/500);
+  document.getElementById('dMeta').innerHTML =
+    `<span>${LABELS[n.genre]||'기타'}</span>` +
+    (pages ? `<span class="dh-meta-dot">·</span><span>${pages}p</span>` : '') +
+    (n.lastReadAt ? `<span class="dh-meta-dot">·</span><span>${ago(n.lastReadAt)} 읽음</span>` : '');
+
+  // Progress bar
+  const pct = n.progress || 0;
+  document.getElementById('dProgFill').style.width = pct + '%';
+  document.getElementById('dProgText').textContent = pct > 0 ? `${pct}% 진행` : '아직 읽지 않았어요';
+  document.getElementById('dProgressWrap').style.display = 'block';
+
+  // Stats — 2 items: 진행률 + 분량
+  document.getElementById('dStats').innerHTML = `
+    <div class="dstat">
+      <span class="dstat-v a">${pct}%</span>
+      <span class="dstat-k">진행률</span>
+    </div>
+    <div class="dstat">
+      <span class="dstat-v">${pages > 0 ? pages+'p' : '?p'}</span>
+      <span class="dstat-k">분량 (추정)</span>
+    </div>`;
+
+  // Synopsis (truncate to 100 chars with "더 보기")
+  const synFull = n.synopsis || '줄거리 없음';
+  const synEl = document.getElementById('dSyn');
+  if (synFull.length > 100) {
+    synEl.innerHTML = escapeHtml(synFull.slice(0,100)) + `...<span class="dsyn-more" onclick="expandSyn(this,'${encodeURIComponent(synFull)}')">더 보기</span>`;
+  } else {
+    synEl.textContent = synFull;
+  }
+
+  // Tags
+  document.getElementById('dTags').innerHTML = (n.tags||[]).map(t=>`<span class="dtag">${escapeHtml(t)}</span>`).join('') || '<span style="color:var(--ink3);font-size:12px">태그 없음</span>';
+
+  // Read button text
+  document.getElementById('dReadBtn').textContent = pct>0&&pct<100 ? '이어 읽기' : pct>=100 ? '다시 읽기' : '처음부터 읽기';
+
+  // Download
+  document.getElementById('dDlBtn').style.display = (n.filePath || n.inlineText) ? 'block' : 'none';
+
+  // Scroll to top
+  document.getElementById('detail').querySelector('.detail-scroll').scrollTop = 0;
+  document.getElementById('detail').classList.add('on');
+};
+
+window.expandSyn = function(el, encoded) {
+  const full = decodeURIComponent(encoded);
+  el.parentElement.textContent = full;
+};
+window.closeDetail = function() { document.getElementById('detail').classList.remove('on'); };
+window.readFromDetail = function() { closeDetail(); openViewer(curId); };
+window.deleteNovel = async function() {
+  const n = novels.find(x=>x.id===curId);
+  if(!n) return;
+
+  document.getElementById('confirmMsg').textContent = `"${n.title}"을(를) 삭제하면 되돌릴 수 없어요.`;
+  document.getElementById('confirmOv').classList.add('on');
+
+  document.getElementById('confirmOkBtn').onclick = async () => {
+    closeConfirm();
+    try {
+      if (n.filePath) await deleteObject(ref(storage, n.filePath));
+
+      if (n._shared) {
+        await deleteDoc(doc(db, 'sharedNovels', curId.replace('shared_', '')));
+      } else {
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'novels', curId));
+      }
+
+      novels = novels.filter(x => x.id !== curId);
+      closeDetail();
+      render(); renderHome(); renderProfile();
+      showToast('삭제했습니다');
+    } catch(e) {
+      showToast('삭제 실패: ' + e.message, 'error');
+    }
+  };
+};
+window.closeConfirm = function() { document.getElementById('confirmOv').classList.remove('on'); };
+window.downloadTxt = async function() {
+  const n = novels.find(x=>x.id===curId); if(!n?.filePath) return;
+  try {
+    const blob = await getBlob(ref(storage, n.filePath));
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = n.title + '.txt';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  catch(e) { showToast('다운로드 실패','error'); }
+};
+
+// ── VIEWER ──
+function splitCh(txt) {
+  const lines = txt.split('\n');
+  const chs = [];
+  let title = '';
+  let body = [];
+
+  const isChLine = l => {
+    const t = l.trim();
+    if (t.length > 80) return false;
+    return (
+      /^(제\s*\d+[장편화]|Chapter\s*\d+|챕터\s*\d+|프롤로그|에필로그|후기|작가의\s*말)/i.test(t) ||
+      /^[\s\-=━•]{5,}$/.test(t) ||
+      /^\d+\.\s/.test(t)
+    );
+  };
+
+  for (const line of lines) {
+    if (isChLine(line)) {
+      if (title || body.join('').trim()) {
+        chs.push({title: title || '본문', content: body.join('\n').trim()});
+      }
+      title = line.trim();
+      body = [];
+    } else {
+      body.push(line);
+    }
+  }
+
+  if (title || body.join('').trim()) {
+    chs.push({title: title || '본문', content: body.join('\n').trim()});
+  }
+
+  return chs.length ? chs : [{title:'본문', content: txt}];
+}
+
+window.openViewer = async function(id) {
+  const n = novels.find(x=>x.id===id); if(!n) return;
+  if(!n.filePath && !n.inlineText) { showToast('TXT 파일이 없어요'); return; }
+  curId = id;
+  try {
+    document.querySelector('.nav').style.display = 'none';
+    document.getElementById('tabBar').style.display = 'none';
+    document.getElementById('viewer').style.display = 'flex';
+    document.getElementById('vText').innerHTML='<div style="text-align:center;padding:48px;color:var(--ink3);font-size:13px">📖 불러오는 중...</div>';
+
+    let txt = '';
+    if (n.inlineText) {
+      txt = n.inlineText;
+    } else if (n.filePath) {
+      showToast('파일 불러오는 중...');
+
+      // getBytes: SDK가 직접 가져옴 (CORS 없음)
+      const bytes = await getBytes(ref(storage, n.filePath));
+
+      if (n.filePath.endsWith('.gz')) {
+        // gzip 압축 해제
+        const stream = new Response(
+          new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+        );
+        txt = await stream.text();
+      } else {
+        txt = new TextDecoder('utf-8').decode(bytes);
+      }
+    } else {
+      throw new Error('저장된 파일이 없어요.');
+    }
+
+    if (!txt.trim()) throw new Error('파일 내용이 비어있어요');
+
+    n._chs = splitCh(txt);
+    curCh = n._chs.length > 1
+      ? Math.min(Math.floor((n.progress / 100) * (n._chs.length - 1)), n._chs.length - 1)
+      : 0;
+
+    applyViewerSettings();
+
+    if (!n._shared) {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'novels', id), {
+        lastReadAt: new Date().toISOString()
+      });
+    }
+    n.lastReadAt = new Date().toISOString();
+    renderCh();
+  } catch(e) {
+    showToast('불러오기 실패: ' + (e.code || e.message), 'error');
+    document.getElementById('viewer').style.display = 'none';
+    document.querySelector('.nav').style.display = 'flex';
+    document.getElementById('tabBar').style.display = 'flex';
+  }
+};
+
+
+// ── 뷰어 팝업 (중앙 탭) ──
+function setViewerUI(visible) { uiVisible = visible; }
+window.openViewerPopup = function() {
+  const n = novels.find(x=>x.id===curId); if(!n) return;
+  document.getElementById('vpopupTitle').textContent = n.title;
+  document.getElementById('vpopupInfo').textContent =
+    (curCh+1) + ' / ' + (n._chs ? n._chs.length : 1) + ' 챕터  ·  ' + (n.progress||0) + '% 진행';
+  document.getElementById('vpopupOv').classList.add('on');
+};
+window.closeViewerPopup = function() {
+  document.getElementById('vpopupOv').classList.remove('on');
+};
+
+// ── CHAPTER LIST ──
+window.openChList = function() {
+  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
+  document.getElementById('chListTitle').textContent = n.title;
+  const list = document.getElementById('chList');
+  list.innerHTML = n._chs.map((ch,i) => `
+    <div class="ch-item ${i===curCh?'active':''}" onclick="jumpToCh(${i})">
+      <span class="ch-num">${i+1}</span>
+      <span class="ch-title">${escapeHtml(ch.title)}</span>
+      ${i<curCh ? '<span class="ch-check">✓</span>' : ''}
+    </div>`).join('');
+  document.getElementById('chListPanel').classList.add('on');
+  // Scroll to current chapter
+  setTimeout(() => {
+    const active = list.querySelector('.active');
+    if (active) active.scrollIntoView({block:'center'});
+  }, 100);
+};
+window.closeChList = function() { document.getElementById('chListPanel').classList.remove('on'); };
+window.jumpToCh = function(i) {
+  curCh = i; closeChList(); renderCh();
+};
+
+function renderCh() {
+  const n = novels.find(x=>x.id===curId);
+  if(!n?._chs) return;
+
+  const ch = n._chs[curCh];
+  document.getElementById('vChTitle').textContent = ch.title;
+  document.getElementById('vPageInfo').textContent = `${curCh+1} / ${n._chs.length} 챕터`;
+
+  const paras = ch.content.split(/\n{2,}/).filter(p=>p.trim());
+  const vText = document.getElementById('vText');
+  vText.innerHTML = paras.length
+    ? paras.map(p => `<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')
+    : `<p style="color:var(--ink3);font-style:italic">(내용 없음)</p>`;
+
+  // 스크롤 복원
+  const scrollKey = `ns_scroll_${curId}_${curCh}`;
+  const savedScroll = parseInt(localStorage.getItem(scrollKey) || '0', 10);
+  const vBody = document.getElementById('vBody');
+  requestAnimationFrame(() => {
+    vBody.scrollTop = savedScroll;
+  });
+
+  const pct = Math.round(((curCh + 1) / n._chs.length) * 100);
+  document.getElementById('vpFill').style.width = pct + '%';
+
+  n.progress = pct;
+  if (!n._shared) {
+    updateDoc(doc(db, 'users', currentUser.uid, 'novels', curId), {
+      progress: pct, lastReadAt: new Date().toISOString()
+    }).catch(()=>{});
+  }
+
+  setViewerUI(true);
+}
+
+// Save scroll position on scroll (throttled)
+let scrollSaveTimer = null;
+window.onVScroll = function() {
+  const vBody = document.getElementById('vBody');
+  if (!vBody) return;
+
+  const n = novels.find(x=>x.id===curId);
+  if(!n?._chs) return;
+
+  const progress = Math.round(((curCh + (vBody.scrollTop / (vBody.scrollHeight - vBody.clientHeight || 1))) / n._chs.length) * 100);
+  document.getElementById('vpFill').style.width = Math.min(100, progress) + '%';
+
+  clearTimeout(scrollSaveTimer);
+  scrollSaveTimer = setTimeout(() => {
+    localStorage.setItem(`ns_scroll_${curId}_${curCh}`, Math.round(vBody.scrollTop));
+  }, 400);
+};
+
+window.nextCh = function() {
+  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
+  if (curCh<n._chs.length-1) { curCh++; renderCh(); }
+  else {
+    updateDoc(doc(db,'users',currentUser.uid,'novels',curId),{progress:100}).catch(()=>{});
+    n.progress=100; renderHome(); renderProfile();
+    showToast('🎉 완독을 축하드려요!');
+    setTimeout(closeViewer,1800);
+  }
+};
+window.prevCh = function() { if(curCh>0){curCh--;renderCh();const vp=document.getElementById('vBody');if(vp)vp.scrollTop=0;} };
+window.closeViewer = function() {
+  document.getElementById('viewer').style.display = 'none';
+  document.querySelector('.nav').style.display = 'flex';
+  document.getElementById('tabBar').style.display = 'flex';
+  clearTimeout(uiHideTimer);
+  stopAutoScroll();
+  autoScroll = false;
+  render();
+};
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (document.getElementById('viewer').style.display!=='flex') return;
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') { e.preventDefault(); nextCh(); }
+  if (e.key==='ArrowLeft'||e.key==='ArrowUp')    { e.preventDefault(); prevCh(); }
+  if (e.key==='Escape') {
+    if (document.getElementById('chListPanel').classList.contains('on')) closeChList();
+    else closeViewer();
+  }
+});
+
+// Swipe gesture for chapter change
+let touchStartX = 0;
+document.getElementById('vBody').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+document.getElementById('vBody').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) { dx < 0 ? nextCh() : prevCh(); }
+}, {passive:true});
+
+// ── SETTINGS ──
+let autoScroll   = false;
+let autoScrollRAF = null;
+
+const FONTS = {
+  system:  "-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,sans-serif",
+  gothic:  "'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
+  serif:   "'Nanum Myeongjo','Georgia',serif",
+  mono:    "'Courier New',monospace"
+};
+const THEMES = {
+  light:  { bg:'#fff',       text:'#2A2A2A', navBg:'rgba(255,255,255,.97)' },
+  sepia:  { bg:'#F4ECD8',    text:'#3D2B1A', navBg:'rgba(244,236,216,.97)' },
+  dark:   { bg:'#1C1C28',    text:'#C8C8D8', navBg:'rgba(28,28,40,.97)'   },
+  amoled: { bg:'#000000',    text:'#E0E0E0', navBg:'rgba(0,0,0,.97)'       }
+};
+const SPEED_LABELS = { 1:'매우 느림', 2:'느림', 3:'보통', 4:'빠름', 5:'매우 빠름' };
+
+window.togglePanel = function() {
+  const open = document.getElementById('setPanel').classList.toggle('on');
+  document.getElementById('setOv').classList.toggle('on', open);
+  if (open) { syncSettingsUI(); clearTimeout(uiHideTimer); }
+  else       { if (autoHide) setViewerUI(true); }
+};
+window.closePanel = function() {
+  document.getElementById('setPanel').classList.remove('on');
+  document.getElementById('setOv').classList.remove('on');
+  if (autoHide) setViewerUI(true);
+};
+
+// Sync all UI controls to current state
+function syncSettingsUI() {
+  // Theme cards
+  document.querySelectorAll('.theme-card').forEach(c =>
+    c.classList.toggle('on', c.dataset.theme === theme));
+  // Font buttons
+  document.querySelectorAll('.font-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.font === fontFamily));
+  // Font size
+  document.getElementById('fVal').textContent  = fontSize;
+  document.getElementById('fValBadge').textContent = fontSize + 'px';
+  document.getElementById('fontSlider').value  = fontSize;
+  // Line height
+  document.getElementById('lhValBadge').textContent = lineHeight.toFixed(1);
+  document.getElementById('lhSlider').value    = Math.round(lineHeight * 100);
+  // Para gap
+  document.getElementById('pgValBadge').textContent = paraGap.toFixed(1) + 'em';
+  document.getElementById('pgSlider').value    = Math.round(paraGap * 100);
+  // Max width
+  document.querySelectorAll('.width-btn').forEach(b =>
+    b.classList.toggle('on', parseInt(b.dataset.w) === maxWidth));
+  document.getElementById('widthValBadge').textContent = maxWidth >= 9999 ? '제한없음' : maxWidth + 'px';
+  // Auto-hide
+  document.getElementById('autoHideToggle').checked = autoHide;
+  document.getElementById('autoHideDelayRow').style.opacity = autoHide ? '1' : '.4';
+  document.getElementById('hideDelaySlider').value = hideDelay;
+  document.getElementById('hideDelayBadge').textContent = hideDelay + '초';
+  // Auto-scroll
+  document.getElementById('autoScrollToggle').checked = autoScroll;
+  document.getElementById('autoScrollSpeedRow').style.display = autoScroll ? 'flex' : 'none';
+  document.getElementById('scrollSpeedSlider').value  = scrollSpeed;
+  document.getElementById('scrollSpeedBadge').textContent = SPEED_LABELS[scrollSpeed];
+  // Update preview
+  updatePreview();
+}
+
+function updatePreview() {
+  const t = THEMES[theme] || THEMES.light;
+  const box = document.getElementById('settingsPreview');
+  const txt = document.getElementById('previewText');
+  box.style.background = t.bg;
+  box.style.borderColor = theme === 'amoled' ? '#333' : '';
+  txt.style.color      = t.text;
+  txt.style.fontSize   = fontSize + 'px';
+  txt.style.lineHeight = lineHeight;
+  txt.style.fontFamily = FONTS[fontFamily];
+}
+
+// Apply all settings to viewer body
+function applyViewerSettings() {
+  const vBody = document.getElementById('vBody');
+  const vText = document.getElementById('vText');
+  const t = THEMES[theme] || THEMES.light;
+  vBody.style.background = t.bg;
+  vBody.style.color      = t.text;
+  vBody.style.maxWidth   = maxWidth >= 9999 ? 'none' : maxWidth + 'px';
+  vText.style.fontSize   = fontSize   + 'px';
+  vText.style.lineHeight = lineHeight;
+  vText.style.fontFamily = FONTS[fontFamily];
+  // Apply para gap via CSS var workaround (set on vText directly)
+  vText.style.setProperty('--para-gap', paraGap + 'em');
+  // Update vText p margin-bottom
+  document.querySelectorAll('#vText p').forEach(p => p.style.marginBottom = paraGap + 'em');
+  // Nav/foot bg
+  const vn = document.getElementById('vNav');
+  const vf = document.getElementById('vFoot');
+  if (vn) vn.style.background = t.navBg;
+  if (vf) vf.style.background = t.navBg;
+  // Sync UI
+  document.getElementById('fVal').textContent = fontSize;
+  document.getElementById('fontSlider').value = fontSize;
+  document.getElementById('lhSlider').value   = Math.round(lineHeight * 100);
+}
+
+// ── THEME ──
+window.setTheme = function(t) {
+  theme = t;
+  localStorage.setItem('ns_theme', t);
+  applyViewerSettings();
+  syncSettingsUI();
+};
+
+// ── FONT ──
+window.setFont = function(f, el) {
+  fontFamily = f;
+  localStorage.setItem('ns_font', f);
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  applyViewerSettings();
+  updatePreview();
+};
+
+// ── FONT SIZE ──
+window.chFont = function(d) {
+  fontSize = Math.max(13, Math.min(26, fontSize + d));
+  localStorage.setItem('ns_fontSize', fontSize);
+  applyViewerSettings();
+  syncSettingsUI();
+};
+window.chFontSlider = function(v) {
+  fontSize = parseInt(v, 10);
+  localStorage.setItem('ns_fontSize', fontSize);
+  document.getElementById('fVal').textContent = fontSize;
+  document.getElementById('fValBadge').textContent = fontSize + 'px';
+  applyViewerSettings();
+  updatePreview();
+};
+
+// ── LINE HEIGHT ──
+window.chLineHeight = function(v) {
+  lineHeight = v / 100;
+  localStorage.setItem('ns_lineHeight', lineHeight);
+  document.getElementById('lhValBadge').textContent = lineHeight.toFixed(1);
+  applyViewerSettings();
+  updatePreview();
+};
+
+// ── PARA GAP ──
+window.chParaGap = function(v) {
+  paraGap = v / 100;
+  localStorage.setItem('ns_paraGap', paraGap);
+  document.getElementById('pgValBadge').textContent = paraGap.toFixed(1) + 'em';
+  document.querySelectorAll('#vText p').forEach(p => p.style.marginBottom = paraGap + 'em');
+  updatePreview();
+};
+
+// ── MAX WIDTH ──
+window.setWidth = function(w, el) {
+  maxWidth = w;
+  localStorage.setItem('ns_maxWidth', w);
+  document.querySelectorAll('.width-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('widthValBadge').textContent = w >= 9999 ? '제한없음' : w + 'px';
+  document.getElementById('vBody').style.maxWidth = w >= 9999 ? 'none' : w + 'px';
+};
+
+// ── AUTO HIDE ──
+window.setAutoHide = function(on) {
+  autoHide = on;
+  localStorage.setItem('ns_autoHide', on);
+  document.getElementById('autoHideDelayRow').style.opacity = on ? '1' : '.4';
+  if (!on) clearTimeout(uiHideTimer);
+};
+window.setHideDelay = function(v) {
+  hideDelay = parseInt(v, 10);
+  localStorage.setItem('ns_hideDelay', hideDelay);
+  document.getElementById('hideDelayBadge').textContent = hideDelay + '초';
+};
+
+// ── AUTO SCROLL ──
+window.setAutoScroll = function(on) {
+  autoScroll = on;
+  document.getElementById('autoScrollSpeedRow').style.display = on ? 'flex' : 'none';
+  if (on) startAutoScroll(); else stopAutoScroll();
+};
+window.setScrollSpeed = function(v) {
+  scrollSpeed = parseInt(v, 10);
+  localStorage.setItem('ns_scrollSpeed', scrollSpeed);
+  document.getElementById('scrollSpeedBadge').textContent = SPEED_LABELS[scrollSpeed];
+  if (autoScroll) { stopAutoScroll(); startAutoScroll(); }
+};
+function startAutoScroll() {
+  stopAutoScroll();
+  const px = [0.3, 0.6, 1.0, 1.6, 2.4][scrollSpeed - 1]; // px per frame
+  function step() {
+    const el = document.getElementById('vBody');
+    if (!el || !autoScroll) return;
+    el.scrollTop += px;
+    // Auto advance chapter when reaching bottom
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+      const n = novels.find(x=>x.id===curId);
+      if (n?._chs && curCh < n._chs.length - 1) {
+        stopAutoScroll();
+        setTimeout(() => { nextCh(); if (autoScroll) startAutoScroll(); }, 1200);
+        return;
+      }
+    }
+    autoScrollRAF = requestAnimationFrame(step);
+  }
+  autoScrollRAF = requestAnimationFrame(step);
+}
+function stopAutoScroll() {
+  if (autoScrollRAF) { cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
+}
+
+// ── RESET ──
+window.resetSettings = function() {
+  fontSize = 17; lineHeight = 1.9; theme = 'light';
+  fontFamily = 'system'; paraGap = 1.5; maxWidth = 680;
+  autoHide = true; hideDelay = 4; scrollSpeed = 3;
+  ['ns_fontSize','ns_lineHeight','ns_theme','ns_font','ns_paraGap','ns_maxWidth','ns_autoHide','ns_hideDelay','ns_scrollSpeed'].forEach(k => localStorage.removeItem(k));
+  applyViewerSettings();
+  syncSettingsUI();
+  showToast('기본값으로 초기화했어요');
+};
+
+// ── ADD MODAL ──
+window.openAdd = function() {
+  document.getElementById('addModal').classList.add('on');
+  document.getElementById('addOv').classList.add('on');
+  setTimeout(()=>document.getElementById('sq').focus(),300);
+};
+window.closeAdd = function() {
+  document.getElementById('addModal').classList.remove('on');
+  document.getElementById('addOv').classList.remove('on');
+  ['iTitle','iAuthor','iSyn','iTags','sq'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fileLabel').textContent='클릭하거나 파일을 드래그하세요';
+  document.getElementById('sResults').style.display='none';
+  document.getElementById('sPreview').style.display='none';
+  document.querySelectorAll('.gchip').forEach(b=>b.classList.remove('on'));
+  document.getElementById('iTitle').classList.remove('error');
+  document.getElementById('iTitle-hint')?.classList.remove('visible');
+  document.getElementById('fileInput').value='';
+  selG=''; coverUrl=''; curFile=null; 
+};
+window.selGenre = function(btn) { document.querySelectorAll('.gchip').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); selG=btn.dataset.g; };
+window.clearFieldError = function(id) { document.getElementById(id)?.classList.remove('error'); document.getElementById(id+'-hint')?.classList.remove('visible'); };
+window.onFileDrop = function(e) {
+  e.preventDefault(); document.getElementById('dropzLabel').classList.remove('dragover');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith('.txt')) processFile(f); else showToast('.txt 파일만 지원해요','error');
+};
+window.onFile = function(e) { const f=e.target.files[0]; if(f) processFile(f); };
+function processFile(f) {
+  curFile = f;
+  document.getElementById('fileLabel').textContent =
+    `✓ ${f.name} (${Math.round(f.size/1024)}KB)`;
+  if (!document.getElementById('iTitle').value)
+    document.getElementById('iTitle').value = f.name.replace(/\.txt$/i, '');
+  showToast(`파일 선택됨: ${Math.round(f.size/1024)}KB`);
+}
+// ── 파일 압축 ──
+async function compressText(txt, originalFile) {
+  try {
+    const stream = new Blob([txt]).stream().pipeThrough(new CompressionStream('gzip'));
+    const compressed = await new Response(stream).arrayBuffer();
+    return new Blob([compressed], { type: 'application/gzip' });
+  } catch {
+    // CompressionStream 미지원 시 원본 파일 그대로
+    return originalFile;
+  }
+}
+
+window.saveNovel = async function() {
+  const title = document.getElementById('iTitle').value.trim();
+  if (!title) {
+    document.getElementById('iTitle').classList.add('error');
+    document.getElementById('iTitle-hint').classList.add('visible');
+    document.getElementById('iTitle').focus();
+    return;
+  }
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
+  try {
+    let filePath = null;
+
+    if (curFile) {
+      saveBtn.textContent = '파일 읽는 중...';
+
+      // 텍스트 읽기
+      const txt = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = () => rej(new Error('파일 읽기 실패'));
+        r.readAsText(curFile, 'UTF-8');
+      });
+
+      saveBtn.textContent = '압축 중...';
+
+      // 압축 (CompressionStream 미지원 시 원본 사용)
+      const uploadBlob = await compressText(txt, curFile);
+      const ratio = Math.round((1 - uploadBlob.size / curFile.size) * 100);
+      if (ratio > 0) showToast(`압축 완료 (${ratio}% 감소)`);
+
+      saveBtn.textContent = `업로드 중... (${Math.round(uploadBlob.size/1024)}KB)`;
+
+      const safe = curFile.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+      const ext  = uploadBlob.type === 'application/gzip' ? '.txt.gz' : '.txt';
+      filePath   = `users/${currentUser.uid}/novels/${Date.now()}_${safe}${ext}`;
+
+      // 진행률 표시하며 업로드
+      await new Promise((resolve, reject) => {
+        const uploadTask = uploadBytesResumable(ref(storage, filePath), uploadBlob);
+        uploadTask.on('state_changed',
+          snap => {
+            const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+            saveBtn.textContent = `업로드 중... ${pct}%`;
+          },
+          err => reject(err),
+          () => resolve()
+        );
+      });
+    }
+
+    saveBtn.textContent = '정보 저장 중...';
+
+    const tags = document.getElementById('iTags').value
+      .split(',').map(t => t.trim()).filter(Boolean);
+
+    const data = {
+      title,
+      author:     document.getElementById('iAuthor').value.trim() || '작자 미상',
+      genre:      selG || 'romance',
+      synopsis:   document.getElementById('iSyn').value.trim(),
+      tags,
+      progress:   0,
+      coverUrl:   coverUrl || null,
+      filePath:   filePath || null,
+      totalChars: curFile ? Math.round(curFile.size / 2) : 0,
+      addedAt:    new Date().toISOString(),
+      lastReadAt: null,
+      favorite:   false,
+    };
+
+    const col    = isAdmin ? collection(db, 'sharedNovels') : collection(db, 'users', currentUser.uid, 'novels');
+    const docRef = await addDoc(col, isAdmin ? { ...data, uploadedBy: currentUser.uid } : data);
+    const novelId = isAdmin ? 'shared_' + docRef.id : docRef.id;
+
+    novels.unshift({ id: novelId, _mine: !isAdmin, _shared: isAdmin, ...data });
+    closeAdd(); render(); renderHome(); renderProfile();
+    showToast('서재에 추가했습니다 📚');
+
+  } catch (e) {
+    showToast('저장 실패: ' + e.message, 'error');
+  } finally {
+    saveBtn.textContent = '서재에 추가';
+    saveBtn.disabled = false;
+  }
+};
+
+// ── BOOK SEARCH ──
+const NAVER_PROXY = "https://delicate-bird-dd5a.qudrnr84.workers.dev/";
+window.doSearch = async function() {
+  const q=document.getElementById('sq').value.trim(); if(!q) return;
+  const btn=document.getElementById('sbtn'); btn.textContent='검색중...'; btn.disabled=true;
+  try {
+    const res=await fetch(`${NAVER_PROXY}?query=${encodeURIComponent(q)}&display=30`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    if(data.error){showToast('검색 오류: '+data.error,'error');return;}
+    if(!data.items?.length){showToast('검색 결과가 없어요');return;}
+    window._books=data.items.map(item=>({volumeInfo:{title:(item.title||'').replace(/<[^>]+>/g,''),authors:[(item.author||'').replace(/<[^>]+>/g,'')],description:(item.description||'').replace(/<[^>]+>/g,''),imageLinks:{thumbnail:item.image||''}}}));
+    const el=document.getElementById('sResults'); el.style.display='block';
+    el.innerHTML=window._books.map((item,i)=>{const info=item.volumeInfo;const img=info.imageLinks?.thumbnail||'';return `<div class="sresult" onclick="pickBook(${i})">${img?`<img src="${escapeHtml(img)}" alt="" loading="lazy">`:''}  <div class="sresult-info"><div class="sresult-t">${escapeHtml(info.title)}</div><div class="sresult-a">${escapeHtml((info.authors||[]).join(', '))}</div></div><span class="sresult-sel">선택</span></div>`;}).join('');
+  } catch(e){showToast('검색 오류: '+e.message,'error');}
+  finally{btn.textContent='검색';btn.disabled=false;}
+};
+window.pickBook = function(i) {
+  const item=window._books[i]; if(!item) return;
+  const info=item.volumeInfo;
+  const title  = info.title||'';
+  const author = (info.authors||[]).join(', ');
+  const desc   = (info.description||'').slice(0,300);
+  const img    = (info.imageLinks?.thumbnail||'').replace('http://','https://');
+  const cats   = info.categories||[];
+
+  coverUrl = img;
+  document.getElementById('iTitle').value  = title;
+  document.getElementById('iAuthor').value = author;
+  document.getElementById('iSyn').value    = desc;
+
+  // 장르 자동 매핑
+  const catStr = cats.join(' ').toLowerCase() + ' ' + title.toLowerCase();
+  const genreMap = [
+    ['romance','로맨스','판타지로맨스','현대로맨스'],
+    ['fantasy','판타지','fantasy','무협','이세계'],
+    ['thriller','스릴러','thriller','공포','horror'],
+    ['sf','sf','과학','sci-fi'],
+    ['historical','역사','시대','사극'],
+    ['mystery','미스터리','mystery','추리','detective'],
+  ];
+  for (const [g, ...keywords] of genreMap) {
+    if (keywords.some(k => catStr.includes(k))) {
+      selG = g;
+      document.querySelectorAll('.gchip').forEach(b => {
+        b.classList.toggle('on', b.dataset.g === g);
+      });
+      break;
+    }
+  }
+
+  // 태그 자동 입력 (카테고리 → 태그)
+  if (cats.length) {
+    document.getElementById('iTags').value = cats.slice(0,5).join(', ');
+  }
+
+  document.getElementById('sResults').style.display='none';
+  const prev=document.getElementById('sPreview'); prev.style.display='flex';
+  document.getElementById('sPrevImg').src=img;
+  document.getElementById('sPrevTitle').textContent=title;
+  document.getElementById('sPrevAuthor').textContent=author;
+  showToast('✓ 메타정보 자동 입력됐어요');
+};
+window.clearSearch = function() { coverUrl=''; document.getElementById('sPreview').style.display='none'; document.getElementById('sPrevImg').src=''; };
+
+// ── UTILS ──
+function escapeHtml(str) {
+  if(str==null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function ago(d) {
+  const m=Math.floor((Date.now()-new Date(d))/60000);
+  if(m<1) return '방금'; if(m<60) return m+'분 전'; if(m<1440) return Math.floor(m/60)+'시간 전';
+  if(m<43200) return Math.floor(m/1440)+'일 전'; return Math.floor(m/43200)+'개월 전';
+}
+let toastTimer;
+function showToast(msg,type='') {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.className='toast on'+(type==='error'?' error':'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),2400);
+}
+window.toast = msg => showToast(msg);
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('waitScreen').style.display = 'none';
+    checkUserApproval(user);
+  } else {
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('waitScreen').style.display = 'none';
+    document.querySelector('.nav').style.display = 'none';
+    document.getElementById('tabBar').style.display = 'none';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    novels = []; isAdmin = false;
+  }
+});
+
+// ── 승인 확인 ──
+async function checkUserApproval(user) {
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'approvedUsers'),
+      where('email', '==', user.email)
+    ));
+
+    if (snap.empty) {
+      // 미등록 → 대기 등록 후 대기 화면
+      await registerPendingUser(user);
+      showWaitScreen(user);
+      return;
+    }
+
+    const userData = snap.docs[0].data();
+
+    if (userData.status === 'pending') {
+      showWaitScreen(user); return;
+    }
+    if (userData.status === 'rejected') {
+      await signOut(auth);
+      document.getElementById('authErr').textContent = '접근이 거절된 계정이에요. 관리자에게 문의하세요.';
+      return;
+    }
+
+    // 승인됨
+    isAdmin = userData.role === 'admin';
+    document.getElementById('waitScreen').style.display = 'none';
+    document.querySelector('.nav').style.display = 'flex';
+    document.getElementById('tabBar').style.display = 'flex';
+    updateNavAvatar(user);
+    loadNovels();
+
+  } catch(e) {
+    showToast('승인 확인 실패: ' + e.message, 'error');
+  }
+}
+
+async function registerPendingUser(user) {
+  const existing = await getDocs(query(collection(db,'approvedUsers'), where('email','==',user.email)));
+  if (existing.empty) {
+    await addDoc(collection(db,'approvedUsers'), {
+      email: user.email,
+      name: user.displayName || '',
+      photoURL: user.photoURL || '',
+      status: 'pending',
+      role: 'user',
+      requestedAt: new Date().toISOString()
+    });
+  }
+}
+
+function showWaitScreen(user) {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('waitScreen').style.display = 'flex';
+  document.getElementById('waitEmail').textContent = user.email;
+}
+
+// ── 관리자 패널 ──
+async function loadAdminPanel() {
+  if (!isAdmin) return;
+  document.getElementById('adminPanel').style.display = 'block';
+  try {
+    const snap = await getDocs(collection(db, 'approvedUsers'));
+    const all = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    const pending  = all.filter(u => u.status === 'pending');
+    const approved = all.filter(u => u.status === 'approved');
+
+    const badge = document.getElementById('pendingBadge');
+    badge.textContent = pending.length;
+    badge.style.display = pending.length > 0 ? '' : 'none';
+
+    document.getElementById('pendingList').innerHTML = pending.length ? pending.map(u => `
+      <div class="pending-item">
+        <div class="pending-avatar">${u.photoURL ? `<img src="${escapeHtml(u.photoURL)}" alt="">` : '👤'}</div>
+        <div class="pending-info">
+          <div class="pending-name">${escapeHtml(u.name || '이름 없음')}</div>
+          <div class="pending-email">${escapeHtml(u.email)}</div>
+          <div class="pending-time">${u.requestedAt ? ago(u.requestedAt) + ' 요청' : ''}</div>
+        </div>
+        <div class="pending-btns">
+          <button class="approve-btn" onclick="approveUser('${u._docId}','${escapeHtml(u.email)}')">승인</button>
+          <button class="reject-btn"  onclick="rejectUser('${u._docId}','${escapeHtml(u.email)}')">거절</button>
+        </div>
+      </div>`).join('') :
+      '<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">대기 중인 사용자가 없어요 ✓</div>';
+
+    document.getElementById('approvedList').innerHTML = approved.length ? approved.map(u => `
+      <div class="approved-item">
+        <div class="pending-avatar">${u.photoURL ? `<img src="${escapeHtml(u.photoURL)}" alt="">` : '👤'}</div>
+        <div class="pending-info">
+          <div class="pending-name">${escapeHtml(u.name || '이름 없음')}</div>
+          <div class="pending-email">${escapeHtml(u.email)}</div>
+        </div>
+        <span class="approved-role ${u.role}">${u.role === 'admin' ? '관리자' : '일반'}</span>
+        ${u.role !== 'admin' ? `<button class="revoke-btn" onclick="revokeUser('${u._docId}','${escapeHtml(u.email)}')">취소</button>` : ''}
+      </div>`).join('') :
+      '<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">승인된 사용자가 없어요</div>';
+
+  } catch(e) { showToast('목록 불러오기 실패', 'error'); }
+}
+
+window.approveUser = async function(docId, email) {
+  try {
+    await updateDoc(doc(db,'approvedUsers',docId), { status:'approved', approvedAt:new Date().toISOString() });
+    showToast('✓ ' + email + ' 승인했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('승인 실패', 'error'); }
+};
+window.rejectUser = async function(docId, email) {
+  if (!confirm(email + '\n이 사용자를 거절할까요?')) return;
+  try {
+    await updateDoc(doc(db,'approvedUsers',docId), { status:'rejected' });
+    showToast(email + ' 거절했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('거절 실패', 'error'); }
+};
+window.revokeUser = async function(docId, email) {
+  if (!confirm(email + '\n승인을 취소할까요?')) return;
+  try {
+    await updateDoc(doc(db,'approvedUsers',docId), { status:'pending' });
+    showToast(email + ' 승인 취소했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('취소 실패', 'error'); }
+};
+
+
+// ── AUTH UI (Google only) ──
+window.loginGoogle = async function() {
+  const errEl = document.getElementById('authErr'); errEl.textContent = '';
+  try { await signInWithPopup(auth, googleProvider); }
+  catch(e) { if (e.code !== 'auth/popup-closed-by-user') errEl.textContent = authErrorMsg(e.code); }
+};
+window.doLogout = async function() {
+  closeUserMenu();
+  await signOut(auth);
+  showToast('로그아웃 했어요');
+};
+function authErrorMsg(code) {
+  const map = {
+    'auth/popup-blocked':        '팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요',
+    'auth/network-request-failed':'네트워크 연결을 확인해주세요',
+    'auth/too-many-requests':    '잠시 후 다시 시도해주세요',
+  };
+  return map[code] || '로그인 오류: ' + code;
+}
+
+/* 이메일/비밀번호 함수(switchAuthTab, authSubmit, sendReset)는 비활성화 중입니다. */
+
+// ── NAV USER ──
+function updateNavAvatar(user) {
+  const name = user.displayName || user.email.split('@')[0];
+  const avatar = document.getElementById('navAvatar');
+  document.getElementById('menuName').textContent  = user.displayName || name;
+  document.getElementById('menuEmail').textContent = user.email;
+  if (user.photoURL) avatar.innerHTML = `<img src="${user.photoURL}" alt="프로필" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  else avatar.textContent = name.charAt(0).toUpperCase();
+  // 초기 탭 설정
+  switchTab('home');
+  document.getElementById('navAddBtn').style.display = 'none';
+}
+window.toggleUserMenu = function(e) { e.stopPropagation(); document.getElementById('userMenu').classList.toggle('open'); };
+window.closeUserMenu  = function()  { document.getElementById('userMenu').classList.remove('open'); };
+document.addEventListener('click', () => closeUserMenu());
 </script>
 </body>
 </html>
