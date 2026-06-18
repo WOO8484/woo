@@ -680,7 +680,7 @@ body {
 
 <nav class="nav" style="display:none">
   <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
-  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.0.7</div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.0.8</div>
   <div class="nav-user">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
@@ -1697,12 +1697,20 @@ window.deleteNovel = async function() {
     document.getElementById('adminDelFileBtn').onclick = async () => {
       closeAdminDelDialog();
       try {
-        if (n.filePath) await deleteObject(ref(storage, n.filePath));
+        if (n.filePath) {
+          try {
+            await deleteObject(ref(storage, n.filePath));
+          } catch(storageErr) {
+            // Storage 삭제 실패 시 경고만 하고 Firestore 삭제는 계속 진행
+            showToast('⚠️ 파일 삭제 실패 (Storage 권한 확인 필요)', 'error');
+            await new Promise(r => setTimeout(r, 1500));
+          }
+        }
         await deleteDoc(doc(db, 'sharedNovels', sharedDocId));
         novels = novels.filter(x => x.id !== curId);
         closeDetail(); render(); renderHome(); renderProfile();
-        showToast('파일까지 완전 삭제했어요');
-      } catch(e) { showToast('삭제 실패: ' + e.message, 'error'); }
+        showToast('삭제 완료 (목록에서 제거됨)');
+      } catch(e) { showToast('삭제 실패: Firestore 오류', 'error'); }
     };
 
     document.getElementById('adminDelListBtn').onclick = async () => {
@@ -1712,7 +1720,7 @@ window.deleteNovel = async function() {
         novels = novels.filter(x => x.id !== curId);
         closeDetail(); render(); renderHome(); renderProfile();
         showToast('목록에서 삭제했어요 (파일 유지)');
-      } catch(e) { showToast('삭제 실패: ' + e.message, 'error'); }
+      } catch(e) { showToast('삭제 실패: 권한을 확인해주세요', 'error'); }
     };
 
   } else {
@@ -1727,7 +1735,7 @@ window.deleteNovel = async function() {
         novels = novels.filter(x => x.id !== curId);
         closeDetail(); render(); renderHome(); renderProfile();
         showToast('서재에서 삭제했어요');
-      } catch(e) { showToast('삭제 실패: ' + e.message, 'error'); }
+      } catch(e) { showToast('삭제 실패: 권한을 확인해주세요', 'error'); }
     };
   }
 };
