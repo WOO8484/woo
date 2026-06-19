@@ -10,7 +10,7 @@
 
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
-  ║  NovelShelf v2.0.0  —  Firebase Auth + Firestore + Cloud Fn    ║
+  ║  NovelShelf v2.2.0  —  Firebase Auth + Firestore               ║
   ║                                                                  ║
   ║  [사전 준비]                                                      ║
   ║  1. Firebase 콘솔에서 프로젝트 생성                               ║
@@ -28,6 +28,10 @@
 
   userdata/{uid}/novels/{novelId}
     progress(0-100), favorite(bool), lastReadAt(Timestamp), ch(int)
+
+  pending_users/{docId}
+    name, email, pwHash, reason, status(pending|approved|rejected),
+    requestedAt(Timestamp), approvedAt(Timestamp)
   ──────────────────────────────────────────────────────────────────
 -->
 
@@ -69,6 +73,10 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 .auth-btn:disabled { opacity:.55; cursor:not-allowed; }
 .auth-msg { font-size:12px; text-align:center; min-height:16px; font-weight:600; }
 .auth-msg.err { color:var(--danger); }
+.auth-msg.ok  { color:var(--success); }
+.auth-tabs { display:flex; gap:0; margin-bottom:20px; width:100%; max-width:360px; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; }
+.auth-tab  { flex:1; height:42px; border:none; background:#fff; font-size:14px; font-weight:600; color:var(--ink3); cursor:pointer; transition:all .18s; }
+.auth-tab.on { background:var(--accent); color:#fff; }
 
 /* ── LOADING SCREEN ── */
 #loadingScreen { display:none; position:fixed; inset:0; z-index:1999; background:#fff; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
@@ -438,7 +446,15 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 <div id="authScreen" style="display:none">
   <div class="auth-logo">Novel<em>S</em></div>
   <div class="auth-sub">소설 서재에 오신 것을 환영해요</div>
-  <div class="auth-form">
+
+  <!-- 탭 전환 -->
+  <div class="auth-tabs">
+    <button class="auth-tab on" id="tabLogin"  onclick="switchAuthTab('login')">로그인</button>
+    <button class="auth-tab"    id="tabSignup" onclick="switchAuthTab('signup')">가입 신청</button>
+  </div>
+
+  <!-- 로그인 폼 -->
+  <div class="auth-form" id="loginForm">
     <div class="auth-msg" id="authMsg"></div>
     <div class="auth-field">
       <input class="auth-input" id="authEmail" type="email" placeholder="이메일" autocomplete="email">
@@ -450,8 +466,30 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
       </div>
     </div>
     <button class="auth-btn" id="authBtn" onclick="doLogin()">로그인</button>
-    <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.0.0</div>
   </div>
+
+  <!-- 가입 신청 폼 -->
+  <div class="auth-form" id="signupForm" style="display:none">
+    <div class="auth-msg" id="signupMsg"></div>
+    <div class="auth-field">
+      <input class="auth-input" id="signupName"  type="text"  placeholder="이름" autocomplete="name">
+    </div>
+    <div class="auth-field">
+      <input class="auth-input" id="signupEmail" type="email" placeholder="이메일" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <div class="auth-input-wrap">
+        <input class="auth-input" id="signupPw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
+        <button class="auth-pw-eye" onclick="toggleSignupEye()" tabindex="-1">🙈</button>
+      </div>
+    </div>
+    <div class="auth-field">
+      <textarea class="auth-input" id="signupReason" placeholder="가입 사유 (선택)" style="height:72px;padding:12px 14px;resize:none;line-height:1.5"></textarea>
+    </div>
+    <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
+  </div>
+
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.2.0</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -466,7 +504,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">Novel<em>S</em></div>
-  <div class="nav-version">v2.0.0</div>
+  <div class="nav-version">v2.2.0</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -552,14 +590,14 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   </div>
   <!-- 관리자 전용 패널 -->
   <div id="adminPanel" style="display:none">
+    <!-- 가입 대기 목록 -->
+    <div class="admin-section" id="pendingSection" style="display:none">
+      <div class="admin-section-title">가입 대기 <span class="admin-badge" id="pendingCountBadge">0</span></div>
+      <div class="user-list" id="pendingList"></div>
+    </div>
+    <!-- 사용자 목록 -->
     <div class="admin-section">
-      <div class="admin-section-title">사용자 관리 <span class="admin-badge" id="userCountBadge">0</span></div>
-      <div class="add-user-form">
-        <input class="add-user-input" id="newUserEmail" placeholder="이메일">
-        <input class="add-user-input" id="newUserPw"    placeholder="임시 비밀번호" type="password" style="max-width:140px">
-        <input class="add-user-input" id="newUserName"  placeholder="이름" style="max-width:100px">
-        <button class="add-user-btn" onclick="addUser()">+ 추가</button>
-      </div>
+      <div class="admin-section-title">사용자 목록 <span class="admin-badge" id="userCountBadge">0</span></div>
       <div class="user-list" id="userList"></div>
     </div>
   </div>
@@ -910,7 +948,7 @@ const functions = firebase.app().functions(FUNCTIONS_REGION);
 // db.enablePersistence().catch(() => {}); // 멀티탭에서 에러 무시
 
 // ── 앱 상태 ──────────────────────────────────────────────────
-const APP_VERSION  = 'v2.0.0';
+const APP_VERSION  = 'v2.2.0';
 let novels         = [];       // Firestore 실시간 스냅샷
 let userDataCache  = {};       // { [novelId]: { progress, favorite, lastReadAt, ch } }
 let currentUser    = null;     // Firebase auth user
@@ -1224,19 +1262,40 @@ async function renderUserList() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  네이버 책 검색 — Cloud Functions 프록시 (보안)
+//  네이버 책 검색 — 직접 호출 (임시 방식 / v2.2.0)
 //
-//  클라이언트 → Cloud Function → 네이버 오픈API
-//  API 키는 Cloud Function 환경변수에만 존재 (브라우저 노출 없음)
+//  ⚠️  API 키가 브라우저에 노출됩니다.
+//  GitHub 저장소를 반드시 Private으로 유지하세요.
 //
-//  [Cloud Functions 설정]
-//  firebase functions:config:set naver.client_id="XXX" naver.client_secret="YYY"
-//  또는 .env.local / Secret Manager 사용 (v2 Functions 권장)
+//  ▶ 아래 두 줄에 본인 네이버 API 키를 입력하세요
 // ═══════════════════════════════════════════════════════════════
+const NAVER_CLIENT_ID     = "여기에_Client_ID_입력";
+const NAVER_CLIENT_SECRET = "여기에_Client_Secret_입력";
+
 async function callNaverBookAPI(q) {
-  const naverBookSearch = functions.httpsCallable('naverBookSearch');
-  const result = await naverBookSearch({ q });
-  return result.data.items || [];
+  // CORS 우회 프록시 (allorigins) — 네이버 API는 브라우저 직접호출 차단
+  const apiUrl  = `https://openapi.naver.com/v1/search/book.json?query=${encodeURIComponent(q)}&display=10&start=1`;
+  const proxy   = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+
+  const res  = await fetch(proxy, {
+    headers: {
+      'X-Naver-Client-Id':     NAVER_CLIENT_ID,
+      'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+    },
+  });
+  if (!res.ok) throw new Error('네트워크 오류');
+
+  const data   = await res.json();
+  const parsed = JSON.parse(data.contents);
+
+  return (parsed.items || []).map(item => ({
+    title:       item.title,
+    author:      item.author,
+    description: item.description,
+    coverUrl:    item.image,
+    publisher:   item.publisher,
+    pubdate:     item.pubdate,
+  }));
 }
 
 async function searchNaverBook() {
@@ -1835,7 +1894,7 @@ function openDetail(id) {
   document.getElementById('dDlBtn').style.display      = n.inlineText ? '' : 'none';
   document.getElementById('dDelBtn').style.display     = isAdmin ? '' : 'none';
   document.getElementById('dEditBtn').style.display    = isAdmin ? '' : 'none';
-  document.getElementById('dShelfRemBtn').style.display = (!isAdmin && (n.progress>0||n.favorite)) ? '' : 'none';
+  document.getElementById('dShelfRemBtn').style.display = (n.progress>0||n.favorite) ? '' : 'none';
   document.getElementById('dReadBtn').textContent      = n.progress > 0 ? '이어 읽기' : '처음부터 읽기';
   document.getElementById('dFavBtn').textContent       = n.favorite ? '⭐' : '☆';
 }
@@ -1858,7 +1917,10 @@ async function renderProfile() {
   document.getElementById('pStatReading').textContent = reading;
   document.getElementById('pStatDone').textContent    = done;
   document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) await renderUserList();
+  if (isAdmin) {
+    await renderPendingList();
+    await renderUserList();
+  }
 }
 
 // ── USER MENU ─────────────────────────────────────────────────
@@ -2126,77 +2188,224 @@ function resetSettings() {
   showToast('설정 초기화했어요');
 }
 
-// ── KEYBOARD SHORTCUTS ────────────────────────────────────────
-document.getElementById('authPw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('authEmail').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
-</script>
 
-<!--
-═══════════════════════════════════════════════════════════════════
-  [별도 파일] CLOUD_FUNCTIONS.js — Firebase Functions 배포 코드
-  functions/index.js 로 저장 후 `firebase deploy --only functions`
-═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  AUTH 탭 전환
+// ═══════════════════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('loginForm').style.display  = isLogin ? '' : 'none';
+  document.getElementById('signupForm').style.display = isLogin ? 'none' : '';
+  document.getElementById('tabLogin').classList.toggle('on',  isLogin);
+  document.getElementById('tabSignup').classList.toggle('on', !isLogin);
+  document.getElementById('authMsg').textContent   = '';
+  document.getElementById('signupMsg').textContent = '';
+}
 
-const functions = require('firebase-functions');
-const admin     = require('firebase-admin');
-const axios     = require('axios');
-admin.initializeApp();
+function toggleSignupEye() {
+  const el = document.getElementById('signupPw');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
 
-// ── 관리자 권한 검증 헬퍼 ──────────────────────────────────────
-async function verifyAdmin(context) {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인이 필요해요');
-  const snap = await admin.firestore().collection('users').doc(context.auth.uid).get();
-  if (!snap.exists || snap.data().role !== 'admin') {
-    throw new functions.https.HttpsError('permission-denied', '관리자 권한이 필요해요');
+// ═══════════════════════════════════════════════════════════════
+//  가입 신청 — Firestore pending_users 컬렉션에 저장
+//  Cloud Functions 없이 동작 (관리자가 수동 승인 후 계정 생성)
+// ═══════════════════════════════════════════════════════════════
+async function doSignupRequest() {
+  const name   = document.getElementById('signupName').value.trim();
+  const email  = document.getElementById('signupEmail').value.trim();
+  const pw     = document.getElementById('signupPw').value;
+  const reason = document.getElementById('signupReason').value.trim();
+  const msg    = document.getElementById('signupMsg');
+  const btn    = document.getElementById('signupBtn');
+
+  // 입력값 검증
+  if (!name)  { msg.textContent='이름을 입력해주세요'; msg.className='auth-msg err'; return; }
+  if (!email) { msg.textContent='이메일을 입력해주세요'; msg.className='auth-msg err'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    msg.textContent='올바른 이메일 형식이 아니에요'; msg.className='auth-msg err'; return;
+  }
+  if (pw.length < 6) { msg.textContent='비밀번호는 6자 이상이어야 해요'; msg.className='auth-msg err'; return; }
+
+  btn.disabled = true; btn.textContent = '신청 중...';
+  msg.textContent = ''; msg.className = 'auth-msg';
+
+  try {
+    // 이미 신청했는지 확인
+    const existing = await db.collection('pending_users')
+      .where('email', '==', email).get();
+    if (!existing.empty) {
+      msg.textContent = '이미 가입 신청한 이메일이에요';
+      msg.className   = 'auth-msg err';
+      return;
+    }
+
+    // 비밀번호는 평문 저장하지 않음 — SHA-256 해시 후 저장
+    const pwHash = await hashPassword(pw);
+
+    await db.collection('pending_users').add({
+      name,
+      email,
+      pwHash,   // 관리자 승인 시 Cloud Functions에서 계정 생성에 사용
+      reason:   reason || '',
+      status:   'pending',  // pending | approved | rejected
+      requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    msg.textContent = '가입 신청이 완료됐어요! 관리자 승인 후 로그인할 수 있어요 😊';
+    msg.className   = 'auth-msg ok';
+    document.getElementById('signupName').value   = '';
+    document.getElementById('signupEmail').value  = '';
+    document.getElementById('signupPw').value     = '';
+    document.getElementById('signupReason').value = '';
+  } catch(e) {
+    console.error('signup error:', e);
+    msg.textContent = '신청 중 오류가 발생했어요. 다시 시도해주세요';
+    msg.className   = 'auth-msg err';
+  } finally {
+    btn.disabled = false; btn.textContent = '가입 신청하기';
   }
 }
 
-// ── 네이버 책 검색 프록시 ──────────────────────────────────────
-// API 키는 환경변수로만 관리 (클라이언트 노출 없음)
-// 배포 전: firebase functions:config:set naver.client_id="..." naver.client_secret="..."
-// 또는 Secret Manager: functions.config() 대신 defineSecret() 사용 권장 (v2)
-exports.naverBookSearch = functions
-  .region('asia-northeast3')
-  .https.onCall(async (data, context) => {
+// 비밀번호 SHA-256 해시 (브라우저 내장 crypto.subtle)
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  관리자 — 가입 대기 목록 렌더링 + 승인/거절
+// ═══════════════════════════════════════════════════════════════
+async function renderPendingList() {
+  if (!isAdmin) return;
+  try {
+    const snap = await db.collection('pending_users')
+      .where('status', '==', 'pending')
+      .orderBy('requestedAt', 'asc')
+      .get();
+
+    const pendingSection = document.getElementById('pendingSection');
+    const pendingList    = document.getElementById('pendingList');
+    const badge          = document.getElementById('pendingCountBadge');
+
+    if (snap.empty) {
+      pendingSection.style.display = 'none';
+      return;
+    }
+
+    pendingSection.style.display = '';
+    badge.textContent = snap.size;
+
+    pendingList.innerHTML = snap.docs.map(d => {
+      const u = d.data();
+      const date = u.requestedAt?.toDate
+        ? u.requestedAt.toDate().toLocaleDateString('ko-KR')
+        : '';
+      return `<div class="user-item">
+        <div class="user-avatar">${getAvatar(u.name)}</div>
+        <div class="user-info">
+          <div class="user-name">${escapeHtml(u.name)}</div>
+          <div class="user-email">${escapeHtml(u.email)}</div>
+          ${u.reason ? `<div class="user-time">사유: ${escapeHtml(u.reason)}</div>` : ''}
+          <div class="user-time">${date} 신청</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button class="add-user-btn" style="height:28px;font-size:11px;padding:0 10px" onclick="approvePending('${d.id}','${escapeHtml(u.email)}','${escapeHtml(u.name)}')">승인</button>
+          <button class="user-del-btn" onclick="rejectPending('${d.id}','${escapeHtml(u.name)}')">거절</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.error('renderPendingList error:', e);
+  }
+}
+
+async function approvePending(docId, email, name) {
+  if (!isAdmin) return;
+  // Cloud Functions 없는 현재: 대기 상태를 approved로만 변경
+  // 실제 Auth 계정 생성은 관리자가 Firebase 콘솔에서 직접 하거나
+  // 나중에 Cloud Functions 배포 후 자동화
+  try {
+    await db.collection('pending_users').doc(docId).update({
+      status: 'approved',
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast(`${name}님 승인됐어요. Firebase 콘솔에서 계정을 생성해주세요 👤`);
+    await renderPendingList();
+    await renderUserList();
+  } catch(e) {
+    showToast('승인 처리에 실패했어요', 'error');
+  }
+}
+
+async function rejectPending(docId, name) {
+  if (!isAdmin) return;
+  try {
+    await db.collection('pending_users').doc(docId).update({
+      status: 'rejected',
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast(`${name}님 가입 신청을 거절했어요`);
+    await renderPendingList();
+  } catch(e) {
+    showToast('거절 처리에 실패했어요', 'error');
+  }
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────
+document.getElementById('authPw').addEventListener('keydown',    e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('authEmail').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
+document.getElementById('signupPw').addEventListener('keydown',   e => { if (e.key === 'Enter') doSignupRequest(); });
+document.getElementById('signupEmail').addEventListener('keydown',e => { if (e.key === 'Enter') document.getElementById('signupPw').focus(); });
+document.getElementById('signupName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('signupEmail').focus(); });
+</script>
+
+<!--
+══════════════════════════════════════════════════════════════════
+  [참고] CLOUD_FUNCTIONS.js
+  functions/index.js 에 저장 후 firebase deploy --only functions
+══════════════════════════════════════════════════════════════════
+
+  const functions = require('firebase-functions');
+  const admin     = require('firebase-admin');
+  const axios     = require('axios');
+  admin.initializeApp();
+
+  // 관리자 권한 검증
+  async function verifyAdmin(context) {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인이 필요해요');
+    const snap = await admin.firestore().collection('users').doc(context.auth.uid).get();
+    if (!snap.exists || snap.data().role !== 'admin')
+      throw new functions.https.HttpsError('permission-denied', '관리자 권한이 필요해요');
+  }
+
+  // 네이버 책 검색 프록시
+  // firebase functions:config:set naver.client_id="..." naver.client_secret="..."
+  exports.naverBookSearch = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인이 필요해요');
     const q = (data.q || '').trim();
     if (!q) throw new functions.https.HttpsError('invalid-argument', '검색어를 입력해주세요');
-
-    const clientId     = functions.config().naver.client_id;
-    const clientSecret = functions.config().naver.client_secret;
-
     const res = await axios.get('https://openapi.naver.com/v1/search/book.json', {
       params: { query: q, display: 10, start: 1 },
       headers: {
-        'X-Naver-Client-Id':     clientId,
-        'X-Naver-Client-Secret': clientSecret,
+        'X-Naver-Client-Id':     functions.config().naver.client_id,
+        'X-Naver-Client-Secret': functions.config().naver.client_secret,
       },
       timeout: 8000,
     });
-
-    const items = (res.data.items || []).map(item => ({
-      title:       item.title,
-      author:      item.author,
-      description: item.description,
-      coverUrl:    item.image,
-      publisher:   item.publisher,
-      pubdate:     item.pubdate,
-    }));
-    return { items };
+    return { items: (res.data.items || []).map(item => ({
+      title: item.title, author: item.author, description: item.description,
+      coverUrl: item.image, publisher: item.publisher, pubdate: item.pubdate,
+    }))};
   });
 
-// ── 사용자 생성 (관리자 전용) ──────────────────────────────────
-exports.createUser = functions
-  .region('asia-northeast3')
-  .https.onCall(async (data, context) => {
+  // 사용자 생성 (관리자 전용)
+  exports.createUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     await verifyAdmin(context);
     const { email, password, displayName, role = 'reader' } = data;
-    if (!email || !password || !displayName) {
+    if (!email || !password || !displayName)
       throw new functions.https.HttpsError('invalid-argument', '모든 필드를 입력해주세요');
-    }
-    // Auth 계정 생성
     const userRecord = await admin.auth().createUser({ email, password, displayName });
-    // Firestore 사용자 문서 생성
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       email, displayName, role,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -2204,62 +2413,83 @@ exports.createUser = functions
     return { uid: userRecord.uid };
   });
 
-// ── 사용자 삭제 (관리자 전용) ──────────────────────────────────
-exports.deleteUser = functions
-  .region('asia-northeast3')
-  .https.onCall(async (data, context) => {
+  // 가입 승인 (pending_users → Auth 계정 생성)
+  exports.approveUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
+    await verifyAdmin(context);
+    const { docId } = data;
+    const doc = await admin.firestore().collection('pending_users').doc(docId).get();
+    if (!doc.exists) throw new functions.https.HttpsError('not-found', '신청 정보를 찾을 수 없어요');
+    const { email, displayName, name } = doc.data();
+    const userRecord = await admin.auth().createUser({ email, displayName: name || displayName });
+    await admin.firestore().collection('users').doc(userRecord.uid).set({
+      email, displayName: name || displayName, role: 'reader',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await admin.firestore().collection('pending_users').doc(docId).update({
+      status: 'approved', uid: userRecord.uid,
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { uid: userRecord.uid };
+  });
+
+  // 사용자 삭제 (관리자 전용)
+  exports.deleteUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     await verifyAdmin(context);
     const { uid } = data;
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid가 필요해요');
-    // 본인 계정 삭제 방지
-    if (uid === context.auth.uid) {
+    if (uid === context.auth.uid)
       throw new functions.https.HttpsError('failed-precondition', '본인 계정은 삭제할 수 없어요');
-    }
     await admin.auth().deleteUser(uid);
     await admin.firestore().collection('users').doc(uid).delete();
     return { success: true };
   });
 
-═══════════════════════════════════════════════════════════════════
-  [별도 파일] SECURITY_RULES.txt — Firestore 보안 규칙
-  Firebase 콘솔 → Firestore → 규칙 탭에 붙여넣기
-═══════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════
+  [참고] SECURITY_RULES — Firestore 보안 규칙
+  Firebase 콘솔 → Firestore → 규칙 탭에 전체 붙여넣기 후 게시
+══════════════════════════════════════════════════════════════════
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
 
-    // 관리자 판별 함수
-    function isAdmin() {
-      return request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
+      // 관리자 판별 함수
+      function isAdmin() {
+        return request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      }
 
-    // 소설 컬렉션: 읽기 = 로그인 유저, 쓰기 = 관리자만
-    match /novels/{novelId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin();
-    }
+      // 소설: 읽기 = 로그인 유저 / 쓰기 = 관리자만
+      match /novels/{novelId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if isAdmin();
+      }
 
-    // 유저 개인 데이터: 본인만 읽기/쓰기
-    match /userdata/{uid}/novels/{novelId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
+      // 유저 개인 데이터: 본인만 읽기/쓰기
+      match /userdata/{uid}/novels/{novelId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
 
-    // 유저 프로필: 읽기 = 관리자, 쓰기 = Cloud Functions(Admin SDK)만
-    match /users/{uid} {
-      allow read: if isAdmin() || request.auth.uid == uid;
-      allow write: if false; // Cloud Functions(Admin SDK)에서만 허용
+      // 유저 프로필: 본인+관리자 읽기 / 쓰기는 Admin SDK만
+      match /users/{uid} {
+        allow read: if isAdmin() || request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      // 가입 신청: 누구나 신청 가능(create) / 읽기·수정·삭제는 관리자만
+      match /pending_users/{docId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+      }
     }
   }
-}
 
-═══════════════════════════════════════════════════════════════════
-  [초기 설정] 첫 번째 관리자 계정 생성 방법
-  Firebase 콘솔 → Authentication → 사용자 추가로 계정 생성 후
-  Firestore → users 컬렉션 → 해당 UID 문서 수동 생성:
-  { email: "admin@...", displayName: "관리자", role: "admin" }
-═══════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════
+  [초기 설정] 첫 번째 관리자 계정 생성
+  1. Firebase 콘솔 → Authentication → 사용자 추가
+  2. Firestore → users 컬렉션 → 문서 ID = 위에서 생성된 UID
+     필드: role(string): "admin"
+══════════════════════════════════════════════════════════════════
 -->
 </body>
 </html>
