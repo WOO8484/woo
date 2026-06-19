@@ -699,12 +699,16 @@ function showApp(user) {
 
 async function checkApproval(user) {
   try {
+    console.log('checkApproval 시작:', user.email);
     const snap = await getDocs(query(
       collection(db, 'approvedUsers'),
       where('email', '==', user.email)
     ));
+    console.log('approvedUsers 결과:', snap.size, '개');
+    snap.docs.forEach(d => console.log('문서:', JSON.stringify(d.data())));
+
     if (snap.empty) {
-      // 미등록 → pending 자동 등록
+      console.log('미등록 → pending 등록');
       await addDoc(collection(db, 'approvedUsers'), {
         uid: user.uid, email: user.email,
         name: user.displayName || user.email.split('@')[0],
@@ -713,11 +717,12 @@ async function checkApproval(user) {
       });
       showWaitScreen(user); return;
     }
-    // 중복 pending 문서 정리 (같은 이메일로 여러 문서가 있을 경우 approved/admin 우선)
     const docs = snap.docs.map(d => ({ _id:d.id, ...d.data() }));
     const data = docs.find(d => d.status === 'approved') || docs[0];
+    console.log('사용할 문서:', JSON.stringify(data));
+    console.log('status 값:', JSON.stringify(data.status));
 
-    if (data.status === 'pending') { showWaitScreen(user); return; }
+    if (data.status === 'pending')  { showWaitScreen(user); return; }
     if (data.status === 'rejected') {
       _authProcessing = false;
       await signOut(auth);
@@ -725,11 +730,13 @@ async function checkApproval(user) {
       setTimeout(() => setMsg('접근이 거절된 계정이에요. 관리자에게 문의하세요.', 'err'), 100);
       return;
     }
-    // 승인됨
+    console.log('승인됨 → showApp');
     isAdmin = data.role === 'admin';
     showApp(user);
   } catch(e) {
+    console.error('checkApproval 오류:', e);
     showToast('승인 확인 실패: ' + e.message, 'error');
+    hideLoading();
   }
 }
 
