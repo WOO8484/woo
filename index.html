@@ -692,7 +692,7 @@ body {
 
 <nav class="nav" style="display:none">
   <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
-  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.2.7</div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.2.9</div>
   <div class="nav-user">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
@@ -1564,9 +1564,8 @@ window.render = function() {
   grid.innerHTML = list.map(n => {
     const cc = genreCoverClass(n.genre);
     const icon = GENRE_ICON[n.genre] || '📖';
-    const fallback = `this.onerror=null;this.parentElement.innerHTML='<div class=\\"cover-pat\\"></div><div class=\\"cover-stripe\\"></div><div class=\\"cover-icon\\">${icon}</div>'`;
     const coverInner = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="${escapeHtml(n.title)} 표지" loading="lazy" onerror="${fallback}" style="width:100%;height:100%;object-fit:cover;display:block">`
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="${escapeHtml(n.title)} 표지" loading="lazy" onerror="onCoverError(this,'${n.genre}')" style="width:100%;height:100%;object-fit:cover;display:block">`
       : `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`;
     const favStar = n.favorite ? '❤️' : '🤍';
     return `<div class="card" onclick="openDetail('${n.id}')">
@@ -2043,9 +2042,12 @@ function renderCh(restoreScroll = 0) {
 
   // 애니메이션
   const vPage = document.getElementById('vPage');
+  // 애니메이션 — reflow 없이 RAF로 처리
+  const vPage = document.getElementById('vPage');
   vPage.classList.remove('anim-next', 'anim-prev');
-  void vPage.offsetWidth;
-  vPage.classList.add(_animDir === 'next' ? 'anim-next' : 'anim-prev');
+  requestAnimationFrame(() => {
+    vPage.classList.add(_animDir === 'next' ? 'anim-next' : 'anim-prev');
+  });
 
   // 진행률 계산
   const total = n._chs.length;
@@ -2070,22 +2072,20 @@ function renderCh(restoreScroll = 0) {
   setViewerUI(true);
   if (autoHide) resetHideTimer();
 }
-// 스크롤 이벤트 — onVScroll 미사용
-window.onVScroll = function() {};
+// 표지 이미지 로드 실패 시 장르 커버로 폴백
+window.onCoverError = function(img, genre) {
+  img.onerror = null;
+  const icon = GENRE_ICON[genre] || '📖';
+  const wrap = img.parentElement;
+  if (wrap) wrap.innerHTML = `<div class="cover-pat"></div><div class="cover-stripe"></div><div class="cover-icon">${icon}</div>`;
+};
 
 let _animDir = 'next';
 window.nextCh = function() {
   const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
 
-  // 단일 챕터(구분자 없는 파일)는 완독 팝업만 — 탭으로 넘길 챕터 없음
-  if (n._chs.length === 1) {
-    if (!n._shared) updateDoc(doc(db,'users',currentUser.uid,'novels',curId),{progress:100}).catch(()=>{});
-    n.progress = 100; renderHome(); renderProfile();
-    localStorage.removeItem(`ns_pos_${curId}`);
-    document.getElementById('completeMsg').textContent = `"${n.title}"`;
-    document.getElementById('completeOv').classList.add('on');
-    return;
-  }
+  // 단일 챕터: 오른쪽 탭 무시 (완독은 별도 버튼 필요 시 추가)
+  if (n._chs.length === 1) return;
 
   if (curCh < n._chs.length - 1) {
     _animDir = 'next'; curCh++; renderCh();
