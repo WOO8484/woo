@@ -692,7 +692,7 @@ body {
 
 <nav class="nav" style="display:none">
   <div class="nav-logo" id="navLogo">Novel<em>S</em></div>
-  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.2.9</div>
+  <div style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:6px;font-weight:500">v1.3.0</div>
   <div class="nav-user">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
@@ -928,6 +928,21 @@ body {
   <div class="vpopup" onclick="event.stopPropagation()">
     <div class="vpopup-title" id="vpopupTitle"></div>
     <div class="vpopup-info"  id="vpopupInfo"></div>
+
+    <!-- 페이지 슬라이더 -->
+    <div id="vpopupSliderWrap" style="margin:0 0 18px;display:none">
+      <input type="range" id="vpopupSlider" class="ns-slider"
+        min="0" step="1" value="0"
+        style="width:100%;margin-bottom:6px"
+        oninput="onVPopupSlider(this.value)"
+        onchange="onVPopupSliderCommit(this.value)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span id="vpopupSliderLabel" style="font-size:12px;color:var(--ink3)">1 / 1 페이지</span>
+        <button onclick="onVPopupSliderCommit(document.getElementById('vpopupSlider').value)"
+          style="font-size:11px;padding:4px 12px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-weight:600">이동</button>
+      </div>
+    </div>
+
     <div class="vpopup-btns">
       <button class="vpopup-btn" onclick="closeViewerPopup();setTimeout(openChList,150)">
         <span>📋</span> 챕터 목록
@@ -1914,7 +1929,39 @@ window.openViewerPopup = function() {
   document.getElementById('vpopupTitle').textContent = n.title;
   document.getElementById('vpopupInfo').textContent =
     (curCh + 1) + ' / ' + total + ' 페이지  ·  ' + (n.progress || 0) + '% 진행';
+
+  // 슬라이더 — 챕터 2개 이상일 때만 표시
+  const sliderWrap = document.getElementById('vpopupSliderWrap');
+  const slider     = document.getElementById('vpopupSlider');
+  const label      = document.getElementById('vpopupSliderLabel');
+  if (total > 1) {
+    sliderWrap.style.display = 'block';
+    slider.max   = total - 1;
+    slider.value = curCh;
+    label.textContent = `${curCh + 1} / ${total} 페이지`;
+  } else {
+    sliderWrap.style.display = 'none';
+  }
+
   document.getElementById('vpopupOv').classList.add('on');
+};
+
+// 슬라이더 드래그 중 — 레이블만 업데이트
+window.onVPopupSlider = function(val) {
+  const n = novels.find(x=>x.id===curId); if(!n?._chs) return;
+  const idx = parseInt(val);
+  document.getElementById('vpopupSliderLabel').textContent =
+    `${idx + 1} / ${n._chs.length} 페이지`;
+};
+
+// 슬라이더 확정 — 해당 챕터로 이동
+window.onVPopupSliderCommit = function(val) {
+  const idx = parseInt(val);
+  if (isNaN(idx)) return;
+  curCh = idx;
+  _animDir = 'next';
+  closeViewerPopup();
+  setTimeout(renderCh, 150);
 };
 window.closeViewerPopup = function() {
   document.getElementById('vpopupOv').classList.remove('on');
