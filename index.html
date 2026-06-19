@@ -648,7 +648,10 @@ window.openViewer  = function(id) { showToast('뷰어 - 다음 단계 구현 예
 window.openAdd     = function()   { showToast('업로드 - 다음 단계 구현 예정'); };
 
 // ── AUTH STATE ──
+let _authProcessing = false;
 onAuthStateChanged(auth, async user => {
+  if (_authProcessing) return;
+  _authProcessing = true;
   currentUser = user;
   if (user) {
     document.getElementById('authScreen').style.display = 'none';
@@ -656,6 +659,7 @@ onAuthStateChanged(auth, async user => {
   } else {
     showAuth();
   }
+  _authProcessing = false;
 });
 
 function hideLoading() {
@@ -715,8 +719,10 @@ async function checkApproval(user) {
 
     if (data.status === 'pending') { showWaitScreen(user); return; }
     if (data.status === 'rejected') {
+      _authProcessing = false;
       await signOut(auth);
-      setMsg('접근이 거절된 계정이에요. 관리자에게 문의하세요.', 'err');
+      showAuth();
+      setTimeout(() => setMsg('접근이 거절된 계정이에요. 관리자에게 문의하세요.', 'err'), 100);
       return;
     }
     // 승인됨
