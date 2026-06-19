@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<title>NovelShelf</title>
+<style>
+/* ── DESIGN TOKENS ── */
+:root {
+  --accent:  #6C5CE7;
+  --accent2: #EEF0FF;
+  --danger:  #EF4444;
+  --danger-line: #FECACA;
+  --success: #22C55E;
+  --ink:     #1A1A2E;
+  --ink2:    #4A4A6A;
+  --ink3:    #9898B8;
+  --bg:      #F8F8FC;
+  --bg2:     #F0F0F8;
+  --line:    #E4E4F0;
+  --sh:      0 2px 12px rgba(108,92,231,.08);
+  --sh2:     0 4px 24px rgba(108,92,231,.14);
+  --r:       12px;
+  --tr:      .18s ease;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--ink); overscroll-behavior:none; }
+
+/* ── AUTH SCREEN ── */
+#authScreen {
+  display:none; position:fixed; inset:0; z-index:2000;
+  background:#fff; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 28px;
+}
+.auth-logo { font-size:32px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
+.auth-logo em { color:var(--accent); font-style:normal; }
+.auth-sub { font-size:13px; color:var(--ink3); margin-bottom:32px; }
+.auth-form { width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px; }
+.auth-tabs { display:flex; background:var(--bg2); border-radius:12px; padding:3px; margin-bottom:4px; }
+.auth-tab { flex:1; height:36px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:var(--ink3); cursor:pointer; transition:all .2s; }
+.auth-tab.on { background:#fff; color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+.auth-field { display:flex; flex-direction:column; gap:3px; }
+.auth-input-wrap { position:relative; }
+.auth-input { width:100%; height:48px; border:1.5px solid var(--line); border-radius:12px; padding:0 44px 0 14px; font-size:14px; color:var(--ink); outline:none; background:#fff; transition:border-color .2s; }
+.auth-input:focus { border-color:var(--accent); }
+.auth-input.err { border-color:var(--danger); }
+.auth-hint { font-size:11px; color:var(--danger); padding-left:4px; display:none; }
+.auth-hint.show { display:block; }
+.auth-pw-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--ink3); padding:4px; }
+.auth-pw-strength { height:3px; border-radius:2px; margin-top:4px; transition:all .3s; background:var(--line); }
+.auth-pw-strength-label { font-size:10px; color:var(--ink3); margin-top:2px; }
+.auth-btn { width:100%; height:50px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s; margin-top:2px; }
+.auth-btn:disabled { opacity:.5; cursor:not-allowed; }
+.auth-forgot { text-align:right; font-size:12px; color:var(--ink3); cursor:pointer; }
+.auth-forgot:hover { color:var(--accent); text-decoration:underline; }
+.auth-msg { font-size:12px; text-align:center; min-height:16px; font-weight:600; }
+.auth-msg.err { color:var(--danger); }
+.auth-msg.ok  { color:var(--success); }
+
+/* ── WAIT SCREEN ── */
+#waitScreen {
+  display:none; position:fixed; inset:0; z-index:1900;
+  background:#fff; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 28px; text-align:center;
+}
+.wait-icon  { font-size:56px; margin-bottom:20px; }
+.wait-title { font-size:20px; font-weight:800; margin-bottom:8px; }
+.wait-sub   { font-size:14px; color:var(--ink3); line-height:1.7; margin-bottom:20px; }
+.wait-email { display:inline-block; background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:6px 16px; font-size:13px; color:var(--ink2); margin-bottom:28px; }
+.wait-logout { font-size:13px; color:var(--ink3); background:none; border:1px solid var(--line); border-radius:20px; padding:8px 20px; cursor:pointer; }
+
+/* ── NAV ── */
+.nav {
+  display:none; position:fixed; top:0; left:0; right:0; height:54px;
+  background:rgba(255,255,255,.97); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line); z-index:100;
+  padding:0 16px; align-items:center; justify-content:space-between;
+}
+.nav-logo { font-size:20px; font-weight:900; letter-spacing:-.5px; }
+.nav-logo em { color:var(--accent); font-style:normal; }
+.nav-version { position:absolute; left:50%; transform:translateX(-50%); font-size:10px; color:var(--ink3); background:var(--bg2); padding:2px 8px; border-radius:6px; font-weight:500; }
+.nav-right { display:flex; align-items:center; gap:8px; }
+.nav-add { height:34px; padding:0 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; display:none; }
+.nav-avatar { width:34px; height:34px; border-radius:50%; background:var(--accent2); border:2px solid var(--accent); color:var(--accent); font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; }
+
+/* ── USER MENU ── */
+.user-menu { position:fixed; top:58px; right:12px; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh2); z-index:200; min-width:180px; overflow:hidden; opacity:0; pointer-events:none; transform:translateY(-8px); transition:all .18s; }
+.user-menu.open { opacity:1; pointer-events:all; transform:translateY(0); }
+.user-menu-info { padding:14px 16px 10px; border-bottom:1px solid var(--line); }
+.user-menu-name  { font-size:13px; font-weight:700; }
+.user-menu-email { font-size:11px; color:var(--ink3); margin-top:2px; }
+.user-menu-item { padding:12px 16px; font-size:13px; cursor:pointer; transition:background var(--tr); }
+.user-menu-item:hover { background:var(--bg2); }
+.user-menu-item.danger { color:var(--danger); }
+
+/* ── TAB BAR ── */
+.tab-bar {
+  display:none; position:fixed; bottom:0; left:0; right:0;
+  height:60px; padding-bottom:max(6px,env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.97); backdrop-filter:blur(12px);
+  border-top:1px solid var(--line); z-index:100;
+  display:none; align-items:center; justify-content:space-around;
+}
+.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:none; cursor:pointer; padding:6px 0; color:var(--ink3); transition:color var(--tr); }
+.tab-item.on { color:var(--accent); }
+.tab-icon  { font-size:22px; line-height:1; }
+.tab-label { font-size:10px; font-weight:600; }
+
+/* ── PAGES ── */
+.page { display:none; padding:70px 16px max(80px,calc(60px + env(safe-area-inset-bottom))); min-height:100vh; }
+.page.active { display:block; }
+
+/* ── HOME ── */
+.home-header { margin-bottom:20px; }
+.home-greeting { font-size:22px; font-weight:800; margin-bottom:4px; }
+.home-greeting em { color:var(--accent); font-style:normal; }
+.home-date { font-size:12px; color:var(--ink3); }
+
+.home-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.home-stat { background:#fff; border-radius:var(--r); padding:14px 12px; text-align:center; box-shadow:var(--sh); }
+.home-stat-val { font-size:22px; font-weight:800; color:var(--accent); display:block; }
+.home-stat-lbl { font-size:11px; color:var(--ink3); font-weight:500; }
+
+.home-streak { background:#fff; border-radius:var(--r); padding:14px 16px; margin-bottom:20px; box-shadow:var(--sh); display:flex; align-items:center; gap:12px; }
+.home-streak-icon { font-size:28px; }
+.home-streak-text { font-size:14px; font-weight:700; }
+.home-streak-sub  { font-size:11px; color:var(--ink3); margin-top:2px; }
+
+.home-section { margin-bottom:24px; }
+.home-sec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.home-sec-title { font-size:15px; font-weight:800; }
+.home-sec-more  { font-size:12px; color:var(--accent); cursor:pointer; font-weight:600; }
+
+/* 이어읽기 */
+.continue-list { display:flex; flex-direction:column; gap:10px; }
+.continue-card { background:#fff; border-radius:var(--r); padding:14px; box-shadow:var(--sh); display:flex; gap:12px; align-items:center; cursor:pointer; transition:transform var(--tr); }
+.continue-card:active { transform:scale(.98); }
+.continue-thumb { width:44px; height:60px; border-radius:6px; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.continue-thumb img { width:100%; height:100%; object-fit:cover; }
+.continue-info { flex:1; min-width:0; }
+.continue-title  { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.continue-author { font-size:11px; color:var(--ink3); margin-bottom:8px; }
+.continue-bar  { height:3px; background:var(--bg2); border-radius:2px; overflow:hidden; margin-bottom:4px; }
+.continue-fill { height:100%; background:var(--accent); border-radius:2px; transition:width .3s; }
+.continue-pct  { font-size:10px; color:var(--ink3); }
+.continue-btn  { height:30px; padding:0 12px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0; }
+
+/* 최근 추가 그리드 */
+.recent-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.recent-card { cursor:pointer; }
+.recent-cover { aspect-ratio:2/3; border-radius:8px; overflow:hidden; margin-bottom:6px; position:relative; display:flex; align-items:center; justify-content:center; }
+.recent-cover img { width:100%; height:100%; object-fit:cover; }
+.recent-cover-icon { font-size:28px; }
+.recent-title  { font-size:11px; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.recent-author { font-size:10px; color:var(--ink3); margin-top:2px; }
+.pct-badge  { position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,.6); color:#fff; font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; }
+.done-badge { position:absolute; bottom:4px; left:4px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; }
+
+/* 빈 상태 */
+.home-empty { text-align:center; padding:48px 20px; }
+.home-empty-icon { font-size:48px; margin-bottom:12px; }
+.home-empty-t { font-size:16px; font-weight:700; margin-bottom:6px; }
+.home-empty-s { font-size:13px; color:var(--ink3); }
+
+/* ── GENRE COVERS ── */
+.cover-romance    { background:linear-gradient(135deg,#FF6B9D,#C44569); }
+.cover-fantasy    { background:linear-gradient(135deg,#A855F7,#6C5CE7); }
+.cover-thriller   { background:linear-gradient(135deg,#374151,#1F2937); }
+.cover-sf         { background:linear-gradient(135deg,#0EA5E9,#0284C7); }
+.cover-historical { background:linear-gradient(135deg,#D97706,#B45309); }
+.cover-mystery    { background:linear-gradient(135deg,#7C3AED,#4C1D95); }
+.cover-etc        { background:linear-gradient(135deg,#6B7280,#4B5563); }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(8px); background:rgba(17,17,17,.88); color:#fff; padding:8px 18px; border-radius:20px; font-size:12px; font-weight:600; z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; white-space:nowrap; }
+.toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.error { background:rgba(239,68,68,.92); }
+
+/* ── PROFILE PAGE (기본) ── */
+.profile-hero { background:linear-gradient(135deg,var(--accent),#A855F7); border-radius:16px; padding:24px; margin-bottom:20px; color:#fff; display:flex; align-items:center; gap:16px; }
+.profile-avatar { width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; flex-shrink:0; }
+.profile-name  { font-size:18px; font-weight:800; margin-bottom:2px; }
+.profile-email { font-size:12px; opacity:.8; }
+.profile-role  { display:inline-block; background:rgba(255,255,255,.2); padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-top:6px; }
+
+.profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
+.profile-stat { background:#fff; border-radius:var(--r); padding:14px 12px; text-align:center; box-shadow:var(--sh); }
+.profile-stat-val { font-size:20px; font-weight:800; color:var(--accent); display:block; }
+.profile-stat-lbl { font-size:11px; color:var(--ink3); }
+
+/* ── 관리자 패널 ── */
+.admin-section { margin-bottom:24px; }
+.admin-section-title { font-size:14px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.admin-badge { background:var(--danger); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; }
+.pending-card { background:#fff; border-radius:var(--r); overflow:hidden; box-shadow:var(--sh); }
+.pending-item { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+.pending-item:last-child { border-bottom:none; }
+.pending-avatar { width:40px; height:40px; border-radius:50%; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.pending-info { flex:1; min-width:0; }
+.pending-name  { font-size:13px; font-weight:700; }
+.pending-email { font-size:11px; color:var(--ink3); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pending-time  { font-size:10px; color:var(--ink3); margin-top:1px; }
+.pending-btns  { display:flex; gap:6px; flex-shrink:0; }
+.approve-btn { height:30px; padding:0 12px; background:var(--success); color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+.reject-btn  { height:30px; padding:0 12px; background:var(--bg2); color:var(--danger); border:1px solid var(--danger-line); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+.approved-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); }
+.approved-item:last-child { border-bottom:none; }
+.role-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; }
+.role-badge.admin { background:var(--accent2); color:var(--accent); }
+.role-badge.user  { background:#DCFCE7; color:#166534; }
+.revoke-btn { margin-left:auto; height:26px; padding:0 10px; background:none; border:1px solid var(--line); border-radius:6px; font-size:11px; color:var(--ink3); cursor:pointer; }
+
+/* ── CONFIRM ── */
+.confirm-ov { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.confirm-ov.on { opacity:1; pointer-events:all; }
+.confirm-box { background:#fff; border-radius:16px; padding:28px 20px 18px; max-width:320px; width:100%; box-shadow:var(--sh2); }
+.confirm-icon  { font-size:48px; text-align:center; margin-bottom:12px; }
+.confirm-title { font-size:16px; font-weight:800; text-align:center; margin-bottom:8px; }
+.confirm-msg   { font-size:13px; color:var(--ink2); text-align:center; line-height:1.6; margin-bottom:20px; }
+.confirm-btns  { display:flex; gap:8px; }
+.confirm-cancel { flex:1; height:42px; border-radius:10px; border:1px solid var(--line); background:#fff; font-size:13px; font-weight:600; color:var(--ink2); cursor:pointer; }
+.confirm-ok     { flex:1; height:42px; border-radius:10px; border:none; background:var(--danger); font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
+
+/* ── SKELETON ── */
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+.skel { background:linear-gradient(90deg,var(--bg2) 25%,var(--line) 50%,var(--bg2) 75%); background-size:200% 100%; animation:shimmer 1.2s infinite; border-radius:6px; }
+
+/* ── SAFE AREA ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .tab-bar { padding-bottom:max(8px,env(safe-area-inset-bottom)); height:calc(60px + max(0px,env(safe-area-inset-bottom))); }
+}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen" style="display:none">
+  <div class="auth-logo">Novel<em>S</em></div>
+  <div class="auth-sub">소설 서재에 오신 것을 환영해요</div>
+  <div class="auth-form">
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchAuthTab('login')">로그인</button>
+      <button class="auth-tab"    onclick="switchAuthTab('signup')">회원가입</button>
+    </div>
+
+    <div class="auth-msg" id="authMsg"></div>
+
+    <!-- 이름 (회원가입) -->
+    <div class="auth-field" id="fieldName" style="display:none">
+      <input class="auth-input" id="authName" type="text" placeholder="이름" maxlength="20" oninput="clearMsg()">
+      <div class="auth-hint" id="hintName">이름을 입력해주세요</div>
+    </div>
+
+    <!-- 이메일 -->
+    <div class="auth-field">
+      <input class="auth-input" id="authEmail" type="email" placeholder="이메일" autocomplete="email" oninput="clearMsg()">
+      <div class="auth-hint" id="hintEmail">올바른 이메일을 입력해주세요</div>
+    </div>
+
+    <!-- 비밀번호 -->
+    <div class="auth-field">
+      <div class="auth-input-wrap">
+        <input class="auth-input" id="authPw" type="password" placeholder="비밀번호 (8자 이상)" autocomplete="current-password" oninput="onPwInput()">
+        <button class="auth-pw-eye" onclick="toggleEye('authPw',this)" tabindex="-1">🙈</button>
+      </div>
+      <div class="auth-hint" id="hintPw">비밀번호를 8자 이상 입력해주세요</div>
+      <div id="pwStrengthWrap" style="display:none">
+        <div class="auth-pw-strength" id="pwStrengthBar"></div>
+        <div class="auth-pw-strength-label" id="pwStrengthLabel"></div>
+      </div>
+    </div>
+
+    <!-- 비밀번호 확인 (회원가입) -->
+    <div class="auth-field" id="fieldPwConfirm" style="display:none">
+      <div class="auth-input-wrap">
+        <input class="auth-input" id="authPwConfirm" type="password" placeholder="비밀번호 확인" autocomplete="new-password" oninput="clearMsg()">
+        <button class="auth-pw-eye" onclick="toggleEye('authPwConfirm',this)" tabindex="-1">🙈</button>
+      </div>
+      <div class="auth-hint" id="hintPwConfirm">비밀번호가 일치하지 않아요</div>
+    </div>
+
+    <!-- 비밀번호 찾기 -->
+    <div id="fieldForgot">
+      <span class="auth-forgot" onclick="sendReset()">비밀번호를 잊으셨나요?</span>
+    </div>
+
+    <button class="auth-btn" id="authBtn" onclick="doAuth()">로그인</button>
+  </div>
+</div>
+
+<!-- ── WAIT SCREEN ── -->
+<div id="waitScreen" style="display:none">
+  <div class="wait-icon">⏳</div>
+  <div class="wait-title">승인 대기 중이에요</div>
+  <div class="wait-sub">관리자가 확인 후 승인하면<br>서재를 이용할 수 있어요</div>
+  <div class="wait-email" id="waitEmail"></div>
+  <button class="wait-logout" onclick="doLogout()">다른 계정으로 로그인</button>
+</div>
+
+<!-- ── USER MENU ── -->
+<div class="user-menu" id="userMenu" onclick="event.stopPropagation()">
+  <div class="user-menu-info">
+    <div class="user-menu-name"  id="menuName">사용자</div>
+    <div class="user-menu-email" id="menuEmail"></div>
+  </div>
+  <div class="user-menu-item danger" onclick="doLogout()">🚪 로그아웃</div>
+</div>
+
+<!-- ── NAV ── -->
+<nav class="nav" id="mainNav">
+  <div class="nav-logo">Novel<em>S</em></div>
+  <div class="nav-version">v2.0.0</div>
+  <div class="nav-right">
+    <button class="nav-add" id="navAddBtn" onclick="openAdd()">＋ 소설 추가</button>
+    <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)"></div>
+  </div>
+</nav>
+
+<!-- ── TAB BAR ── -->
+<div class="tab-bar" id="tabBar">
+  <button class="tab-item on" id="tab-home"    onclick="switchTab('home')">
+    <span class="tab-icon">🏠</span><span class="tab-label">홈</span>
+  </button>
+  <button class="tab-item"    id="tab-shelf"   onclick="switchTab('shelf')">
+    <span class="tab-icon">📚</span><span class="tab-label">서재</span>
+  </button>
+  <button class="tab-item"    id="tab-profile" onclick="switchTab('profile')">
+    <span class="tab-icon">👤</span><span class="tab-label">프로필</span>
+  </button>
+</div>
+
+<!-- ── HOME PAGE ── -->
+<div class="page active" id="page-home">
+  <div class="home-header">
+    <div class="home-greeting">안녕하세요, <em id="homeUserName">독자</em>님 👋</div>
+    <div class="home-date" id="homeDate"></div>
+  </div>
+
+  <div class="home-stats" id="homeStats">
+    <div class="home-stat"><span class="home-stat-val" id="statTotal">0</span><span class="home-stat-lbl">전체</span></div>
+    <div class="home-stat"><span class="home-stat-val" id="statReading">0</span><span class="home-stat-lbl">읽는 중</span></div>
+    <div class="home-stat"><span class="home-stat-val" id="statDone">0</span><span class="home-stat-lbl">완독</span></div>
+  </div>
+
+  <div class="home-streak" id="homeStreak">
+    <span class="home-streak-icon">🔥</span>
+    <div>
+      <div class="home-streak-text" id="streakText">오늘 독서를 시작해보세요</div>
+      <div class="home-streak-sub"  id="streakSub"></div>
+    </div>
+  </div>
+
+  <!-- 이어 읽기 -->
+  <div class="home-section" id="secContinue" style="display:none">
+    <div class="home-sec-header">
+      <span class="home-sec-title">📖 이어 읽기</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="continue-list" id="continueList"></div>
+  </div>
+
+  <!-- 최근 추가 -->
+  <div class="home-section" id="secRecent" style="display:none">
+    <div class="home-sec-header">
+      <span class="home-sec-title">🆕 최근 추가</span>
+      <span class="home-sec-more" onclick="switchTab('shelf')">전체 보기</span>
+    </div>
+    <div class="recent-grid" id="recentGrid"></div>
+  </div>
+
+  <!-- 빈 상태 -->
+  <div class="home-empty" id="homeEmpty" style="display:none">
+    <div class="home-empty-icon">📚</div>
+    <div class="home-empty-t">서재가 비어있어요</div>
+    <div class="home-empty-s" id="homeEmptyMsg">아직 추가된 소설이 없어요</div>
+  </div>
+</div>
+
+<!-- ── SHELF PAGE ── -->
+<div class="page" id="page-shelf">
+  <div style="text-align:center;padding:48px;color:var(--ink3)">서재 (다음 단계에서 구현)</div>
+</div>
+
+<!-- ── PROFILE PAGE ── -->
+<div class="page" id="page-profile">
+  <div class="profile-hero">
+    <div class="profile-avatar" id="profileAvatar"></div>
+    <div>
+      <div class="profile-name"  id="profileName">사용자</div>
+      <div class="profile-email" id="profileEmail"></div>
+      <div class="profile-role"  id="profileRole">독자</div>
+    </div>
+  </div>
+
+  <div class="profile-stats">
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatTotal">0</span><span class="profile-stat-lbl">전체</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatReading">0</span><span class="profile-stat-lbl">읽는 중</span></div>
+    <div class="profile-stat"><span class="profile-stat-val" id="pStatDone">0</span><span class="profile-stat-lbl">완독</span></div>
+  </div>
+
+  <!-- 관리자 패널 -->
+  <div id="adminPanel" style="display:none">
+    <div class="admin-section">
+      <div class="admin-section-title">
+        승인 대기
+        <span class="admin-badge" id="pendingBadge" style="display:none">0</span>
+      </div>
+      <div class="pending-card" id="pendingList">
+        <div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">대기 중인 사용자가 없어요</div>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">승인된 사용자</div>
+      <div class="pending-card" id="approvedList">
+        <div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
+import { getAuth, onAuthStateChanged, signOut,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendPasswordResetEmail, updateProfile }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+// ── Firebase 설정 ──
+const firebaseConfig = {
+  apiKey:            "AIzaSyDhiJ80q4FtKUB5OLOoLpV4IYKrkU_cYTs",
+  authDomain:        "novelshelf-a12bf.firebaseapp.com",
+  projectId:         "novelshelf-a12bf",
+  storageBucket:     "novelshelf-a12bf.firebasestorage.app",
+  messagingSenderId: "403423678374",
+  appId:             "1:403423678374:web:7a66d3b9fad1ec4e3a8967"
+};
+const app     = initializeApp(firebaseConfig);
+const db      = getFirestore(app);
+const storage = getStorage(app);
+const auth    = getAuth(app);
+
+// ── 상태 ──
+let currentUser = null;
+let isAdmin     = false;
+let novels      = [];
+let _authMode   = 'login';
+
+// ── UTILS ──
+let _toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (type === 'error' ? ' error' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('on'), 2400);
+}
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function ago(d) {
+  const m = Math.floor((Date.now() - new Date(d)) / 60000);
+  if (m < 1)     return '방금';
+  if (m < 60)    return m + '분 전';
+  if (m < 1440)  return Math.floor(m/60) + '시간 전';
+  return Math.floor(m/1440) + '일 전';
+}
+function genreCoverClass(g) {
+  return 'cover-' + (['romance','fantasy','thriller','sf','historical','mystery'].includes(g) ? g : 'etc');
+}
+const GENRE_ICON = { romance:'💕', fantasy:'🔮', thriller:'🔪', sf:'🚀', historical:'📜', mystery:'🕵️', etc:'📖' };
+
+// ── TAB 전환 ──
+window.switchTab = function(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
+  document.getElementById('page-' + name)?.classList.add('active');
+  document.getElementById('tab-' + name)?.classList.add('on');
+  document.getElementById('navAddBtn').style.display = (name === 'shelf' && isAdmin) ? '' : 'none';
+  if (name === 'home')    renderHome();
+  if (name === 'profile') renderProfile();
+};
+
+// ── HOME 렌더 ──
+function renderHome() {
+  const today = new Date();
+  document.getElementById('homeDate').textContent =
+    today.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+  const total   = novels.length;
+  const reading = novels.filter(n => n.progress > 0 && n.progress < 100).length;
+  const done    = novels.filter(n => n.progress >= 100).length;
+
+  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statReading').textContent = reading;
+  document.getElementById('statDone').textContent    = done;
+
+  // 스트릭
+  const streak = calcStreak();
+  document.getElementById('streakText').textContent =
+    streak > 0 ? streak + '일 연속 독서 중! 🔥' : '오늘 독서를 시작해보세요';
+  document.getElementById('streakSub').textContent =
+    done > 0 ? '완독 ' + done + '권' : '';
+
+  // 빈 상태
+  const isEmpty = total === 0;
+  document.getElementById('homeEmpty').style.display   = isEmpty ? 'block' : 'none';
+  document.getElementById('homeEmptyMsg').textContent  = isAdmin ? 'TXT 파일을 업로드해서 소설을 추가해보세요' : '아직 추가된 소설이 없어요';
+  document.getElementById('homeStats').style.display   = isEmpty ? 'none' : '';
+  document.getElementById('homeStreak').style.display  = isEmpty ? 'none' : '';
+
+  // 이어 읽기
+  const inProg = [...novels]
+    .filter(n => n.lastReadAt && n.progress < 100)
+    .sort((a,b) => new Date(b.lastReadAt) - new Date(a.lastReadAt))
+    .slice(0, 5);
+  document.getElementById('secContinue').style.display = inProg.length ? '' : 'none';
+  document.getElementById('continueList').innerHTML = inProg.map(n => {
+    const cc   = genreCoverClass(n.genre);
+    const icon = GENRE_ICON[n.genre] || '📖';
+    const coverHtml = n.coverUrl
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" onerror="this.parentElement.innerHTML='<span style=font-size:20px>${icon}</span>'">`
+      : `<span style="font-size:20px">${icon}</span>`;
+    return `<div class="continue-card" onclick="openDetail('${n.id}')">
+      <div class="continue-thumb ${cc}">${coverHtml}</div>
+      <div class="continue-info">
+        <div class="continue-title">${escapeHtml(n.title)}</div>
+        <div class="continue-author">${escapeHtml(n.author || '작자 미상')}</div>
+        <div class="continue-bar"><div class="continue-fill" style="width:${n.progress||0}%"></div></div>
+        <div class="continue-pct">${n.progress||0}% 진행</div>
+      </div>
+      <button class="continue-btn" onclick="event.stopPropagation();openViewer('${n.id}')">읽기</button>
+    </div>`;
+  }).join('');
+
+  // 최근 추가
+  const recent = [...novels]
+    .sort((a,b) => new Date(b.addedAt) - new Date(a.addedAt))
+    .slice(0, 6);
+  document.getElementById('secRecent').style.display = recent.length ? '' : 'none';
+  document.getElementById('recentGrid').innerHTML = recent.map(n => {
+    const cc   = genreCoverClass(n.genre);
+    const icon = GENRE_ICON[n.genre] || '📖';
+    const coverHtml = n.coverUrl
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span class=recent-cover-icon>${icon}</span>'">`
+      : `<span class="recent-cover-icon">${icon}</span>`;
+    return `<div class="recent-card" onclick="openDetail('${n.id}')">
+      <div class="recent-cover ${cc}">
+        ${coverHtml}
+        ${n.progress >= 100 ? '<div class="done-badge">완독</div>' : ''}
+        ${n.progress > 0 && n.progress < 100 ? `<div class="pct-badge">${n.progress}%</div>` : ''}
+      </div>
+      <div class="recent-title">${escapeHtml(n.title)}</div>
+      <div class="recent-author">${escapeHtml(n.author || '')}</div>
+    </div>`;
+  }).join('');
+}
+
+function calcStreak() {
+  const dates = novels
+    .filter(n => n.lastReadAt)
+    .map(n => new Date(n.lastReadAt).toDateString());
+  const unique = [...new Set(dates)].sort((a,b) => new Date(b)-new Date(a));
+  if (!unique.length) return 0;
+  let streak = 0;
+  let check = new Date();
+  for (const d of unique) {
+    const diff = Math.floor((check - new Date(d)) / 86400000);
+    if (diff > 1) break;
+    streak++;
+    check = new Date(d);
+  }
+  return streak;
+}
+
+// ── PROFILE 렌더 ──
+function renderProfile() {
+  if (!currentUser) return;
+  const name = currentUser.displayName || currentUser.email.split('@')[0];
+  document.getElementById('profileAvatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('profileName').textContent   = name;
+  document.getElementById('profileEmail').textContent  = currentUser.email;
+  document.getElementById('profileRole').textContent   = isAdmin ? '관리자' : '독자';
+
+  const total   = novels.length;
+  const reading = novels.filter(n => n.progress > 0 && n.progress < 100).length;
+  const done    = novels.filter(n => n.progress >= 100).length;
+  document.getElementById('pStatTotal').textContent   = total;
+  document.getElementById('pStatReading').textContent = reading;
+  document.getElementById('pStatDone').textContent    = done;
+
+  if (isAdmin) loadAdminPanel();
+}
+
+// ── 소설 로드 ──
+async function loadNovels() {
+  try {
+    novels = [];
+    // 공유 소설
+    const sharedSnap = await getDocs(collection(db, 'sharedNovels'));
+    sharedSnap.forEach(d => novels.push({ id:'shared_'+d.id, _shared:true, _mine:false, ...d.data() }));
+    // 개인 소설
+    if (currentUser) {
+      const mySnap = await getDocs(collection(db, 'users', currentUser.uid, 'novels'));
+      mySnap.forEach(d => novels.push({ id:d.id, _shared:false, _mine:true, ...d.data() }));
+    }
+    renderHome();
+  } catch(e) {
+    showToast('소설 불러오기 실패: ' + e.message, 'error');
+  }
+}
+
+// ── 임시 함수 (다음 단계에서 구현) ──
+window.openDetail  = function(id) { showToast('상세보기 - 다음 단계 구현 예정'); };
+window.openViewer  = function(id) { showToast('뷰어 - 다음 단계 구현 예정'); };
+window.openAdd     = function()   { showToast('업로드 - 다음 단계 구현 예정'); };
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('authScreen').style.display = 'none';
+    await checkApproval(user);
+  } else {
+    showAuth();
+  }
+});
+
+function showAuth() {
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('waitScreen').style.display = 'none';
+  document.getElementById('mainNav').style.display    = 'none';
+  document.getElementById('tabBar').style.display     = 'none';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  novels = []; isAdmin = false;
+}
+
+function showApp(user) {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('waitScreen').style.display = 'none';
+  document.getElementById('mainNav').style.display    = 'flex';
+  document.getElementById('tabBar').style.display     = 'flex';
+  // 네비 아바타
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('navAvatar').textContent   = name.charAt(0).toUpperCase();
+  document.getElementById('menuName').textContent    = user.displayName || name;
+  document.getElementById('menuEmail').textContent   = user.email;
+  document.getElementById('homeUserName').textContent = user.displayName || name;
+  switchTab('home');
+  loadNovels();
+}
+
+async function checkApproval(user) {
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'approvedUsers'),
+      where('email', '==', user.email)
+    ));
+    if (snap.empty) {
+      // 미등록 → pending 자동 등록
+      await addDoc(collection(db, 'approvedUsers'), {
+        uid: user.uid, email: user.email,
+        name: user.displayName || user.email.split('@')[0],
+        status: 'pending', role: 'user',
+        requestedAt: new Date().toISOString()
+      });
+      showWaitScreen(user); return;
+    }
+    const data = snap.docs[0].data();
+    if (data.status === 'pending') { showWaitScreen(user); return; }
+    if (data.status === 'rejected') {
+      await signOut(auth);
+      setMsg('접근이 거절된 계정이에요. 관리자에게 문의하세요.', 'err');
+      return;
+    }
+    // 승인됨
+    isAdmin = data.role === 'admin';
+    showApp(user);
+  } catch(e) {
+    showToast('승인 확인 실패: ' + e.message, 'error');
+  }
+}
+
+function showWaitScreen(user) {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('waitScreen').style.display = 'flex';
+  document.getElementById('mainNav').style.display    = 'none';
+  document.getElementById('tabBar').style.display     = 'none';
+  document.getElementById('waitEmail').textContent    = user.email;
+}
+
+// ── AUTH UI ──
+window.switchAuthTab = function(mode) {
+  _authMode = mode;
+  const isSignup = mode === 'signup';
+  document.querySelectorAll('.auth-tab').forEach((t,i) =>
+    t.classList.toggle('on', isSignup ? i===1 : i===0));
+  document.getElementById('fieldName').style.display       = isSignup ? '' : 'none';
+  document.getElementById('fieldPwConfirm').style.display  = isSignup ? '' : 'none';
+  document.getElementById('pwStrengthWrap').style.display  = isSignup ? '' : 'none';
+  document.getElementById('fieldForgot').style.display     = isSignup ? 'none' : '';
+  document.getElementById('authBtn').textContent           = isSignup ? '회원가입' : '로그인';
+  document.getElementById('authPw').autocomplete           = isSignup ? 'new-password' : 'current-password';
+  document.getElementById('authPw').placeholder            = isSignup ? '비밀번호 (8자 이상)' : '비밀번호';
+  clearMsg();
+};
+
+window.clearMsg = function() {
+  document.getElementById('authMsg').textContent = '';
+  document.getElementById('authMsg').className   = 'auth-msg';
+  ['authName','authEmail','authPw','authPwConfirm'].forEach(id =>
+    document.getElementById(id)?.classList.remove('err'));
+  ['hintName','hintEmail','hintPw','hintPwConfirm'].forEach(id =>
+    document.getElementById(id)?.classList.remove('show'));
+};
+
+function setMsg(text, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent = text;
+  el.className   = 'auth-msg ' + type;
+}
+function showHint(fieldId, hintId) {
+  document.getElementById(fieldId)?.classList.add('err');
+  document.getElementById(hintId)?.classList.add('show');
+}
+
+window.toggleEye = function(inputId, btn) {
+  const el = document.getElementById(inputId);
+  if (el.type === 'password') { el.type = 'text';     btn.textContent = '👁'; }
+  else                        { el.type = 'password'; btn.textContent = '🙈'; }
+};
+
+window.onPwInput = function() {
+  clearMsg();
+  if (_authMode !== 'signup') return;
+  const pw  = document.getElementById('authPw').value;
+  const bar = document.getElementById('pwStrengthBar');
+  const lbl = document.getElementById('pwStrengthLabel');
+  const s   = pwStrength(pw);
+  const colors = ['#EF4444','#F97316','#EAB308','#22C55E'];
+  const labels = ['매우 약함','약함','보통','강함'];
+  bar.style.cssText = `width:${(s+1)/4*100}%;background:${colors[s]}`;
+  lbl.textContent   = pw.length ? labels[s] : '';
+};
+
+function pwStrength(pw) {
+  let s = 0;
+  if (pw.length >= 8)  s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(3, Math.floor(s/1.25));
+}
+
+function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+window.doAuth = async function() {
+  clearMsg();
+  const btn   = document.getElementById('authBtn');
+  const email = document.getElementById('authEmail').value.trim();
+  const pw    = document.getElementById('authPw').value;
+
+  // 공통 검증
+  if (!isValidEmail(email)) { showHint('authEmail','hintEmail'); return; }
+  if (pw.length < 8)        { showHint('authPw','hintPw'); return; }
+
+  btn.disabled = true;
+
+  if (_authMode === 'signup') {
+    const name      = document.getElementById('authName').value.trim();
+    const pwConfirm = document.getElementById('authPwConfirm').value;
+    if (!name)        { showHint('authName','hintName'); btn.disabled=false; return; }
+    if (pw !== pwConfirm) { showHint('authPwConfirm','hintPwConfirm'); btn.disabled=false; return; }
+
+    btn.textContent = '가입 중...';
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: name });
+      // approvedUsers pending 등록
+      await addDoc(collection(db, 'approvedUsers'), {
+        uid: cred.user.uid, email, name,
+        status: 'pending', role: 'user',
+        requestedAt: new Date().toISOString()
+      });
+    } catch(e) { setMsg(authErrMsg(e.code), 'err'); }
+    btn.textContent = '회원가입';
+
+  } else {
+    btn.textContent = '로그인 중...';
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+    } catch(e) {
+      setMsg(authErrMsg(e.code), 'err');
+      btn.textContent = '로그인';
+    }
+  }
+  btn.disabled = false;
+};
+
+window.sendReset = async function() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!isValidEmail(email)) { showHint('authEmail','hintEmail'); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    setMsg('재설정 이메일을 보냈어요. 메일함을 확인해주세요.', 'ok');
+  } catch(e) { setMsg(authErrMsg(e.code), 'err'); }
+};
+
+window.doLogout = async function() {
+  closeUserMenu();
+  await signOut(auth);
+  showToast('로그아웃 했어요');
+};
+
+function authErrMsg(code) {
+  const map = {
+    'auth/email-already-in-use':   '이미 사용 중인 이메일이에요',
+    'auth/invalid-email':          '올바른 이메일 형식이 아니에요',
+    'auth/weak-password':          '비밀번호가 너무 약해요',
+    'auth/user-not-found':         '등록되지 않은 이메일이에요',
+    'auth/wrong-password':         '비밀번호가 틀렸어요',
+    'auth/invalid-credential':     '이메일 또는 비밀번호가 틀렸어요',
+    'auth/too-many-requests':      '시도 횟수 초과. 잠시 후 다시 시도해주세요',
+    'auth/network-request-failed': '네트워크 연결을 확인해주세요',
+    'auth/user-disabled':          '비활성화된 계정이에요',
+  };
+  return map[code] || '오류: ' + code;
+}
+
+// ── 관리자 패널 ──
+async function loadAdminPanel() {
+  document.getElementById('adminPanel').style.display = 'block';
+  try {
+    const snap = await getDocs(collection(db, 'approvedUsers'));
+    const all  = snap.docs.map(d => ({ _id:d.id, ...d.data() }));
+    const pending  = all.filter(u => u.status === 'pending');
+    const approved = all.filter(u => u.status === 'approved');
+
+    const badge = document.getElementById('pendingBadge');
+    badge.textContent    = pending.length;
+    badge.style.display  = pending.length ? '' : 'none';
+
+    document.getElementById('pendingList').innerHTML = pending.length
+      ? pending.map(u => `
+        <div class="pending-item">
+          <div class="pending-avatar">👤</div>
+          <div class="pending-info">
+            <div class="pending-name">${escapeHtml(u.name||'이름 없음')}</div>
+            <div class="pending-email">${escapeHtml(u.email)}</div>
+            <div class="pending-time">${u.requestedAt ? ago(u.requestedAt)+' 요청' : ''}</div>
+          </div>
+          <div class="pending-btns">
+            <button class="approve-btn" onclick="approveUser('${u._id}','${escapeHtml(u.email)}')">승인</button>
+            <button class="reject-btn"  onclick="rejectUser('${u._id}','${escapeHtml(u.email)}')">거절</button>
+          </div>
+        </div>`).join('')
+      : '<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">대기 중인 사용자가 없어요 ✓</div>';
+
+    document.getElementById('approvedList').innerHTML = approved.length
+      ? approved.map(u => `
+        <div class="approved-item">
+          <div class="pending-avatar">👤</div>
+          <div class="pending-info">
+            <div class="pending-name">${escapeHtml(u.name||'이름 없음')}</div>
+            <div class="pending-email">${escapeHtml(u.email)}</div>
+          </div>
+          <span class="role-badge ${u.role}">${u.role==='admin'?'관리자':'일반'}</span>
+          ${u.role!=='admin' ? `<button class="revoke-btn" onclick="revokeUser('${u._id}')">취소</button>` : ''}
+        </div>`).join('')
+      : '<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3)">승인된 사용자가 없어요</div>';
+  } catch(e) { showToast('목록 불러오기 실패', 'error'); }
+}
+
+window.approveUser = async function(id, email) {
+  try {
+    await updateDoc(doc(db,'approvedUsers',id), { status:'approved', approvedAt:new Date().toISOString() });
+    showToast('✓ ' + email + ' 승인했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('승인 실패', 'error'); }
+};
+window.rejectUser = async function(id, email) {
+  if (!confirm(email + '\n이 사용자를 거절할까요?')) return;
+  try {
+    await updateDoc(doc(db,'approvedUsers',id), { status:'rejected' });
+    showToast(email + ' 거절했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('거절 실패', 'error'); }
+};
+window.revokeUser = async function(id) {
+  if (!confirm('승인을 취소할까요?')) return;
+  try {
+    await updateDoc(doc(db,'approvedUsers',id), { status:'pending' });
+    showToast('승인 취소했어요');
+    loadAdminPanel();
+  } catch(e) { showToast('취소 실패', 'error'); }
+};
+
+// ── 유저 메뉴 ──
+window.toggleUserMenu = function(e) {
+  e.stopPropagation();
+  document.getElementById('userMenu').classList.toggle('open');
+};
+window.closeUserMenu = function() {
+  document.getElementById('userMenu').classList.remove('open');
+};
+document.addEventListener('click', closeUserMenu);
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
