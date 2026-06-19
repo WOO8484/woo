@@ -30,7 +30,16 @@
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--ink); overscroll-behavior:none; }
 
-/* ── AUTH SCREEN ── */
+/* ── LOADING ── */
+#loadingScreen {
+  position:fixed; inset:0; z-index:3000;
+  background:#fff; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:16px;
+}
+.loading-logo { font-size:36px; font-weight:900; letter-spacing:-.5px; }
+.loading-logo em { color:var(--accent); font-style:normal; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-spinner { width:32px; height:32px; border:3px solid var(--bg2); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
 #authScreen {
   display:none; position:fixed; inset:0; z-index:2000;
   background:#fff; flex-direction:column; align-items:center; justify-content:center;
@@ -236,6 +245,12 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 </style>
 </head>
 <body>
+
+<!-- ── LOADING SCREEN ── -->
+<div id="loadingScreen">
+  <div class="loading-logo">Novel<em>S</em></div>
+  <div class="loading-spinner"></div>
+</div>
 
 <!-- ── AUTH SCREEN ── -->
 <div id="authScreen" style="display:none">
@@ -643,7 +658,12 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
+function hideLoading() {
+  document.getElementById('loadingScreen').style.display = 'none';
+}
+
 function showAuth() {
+  hideLoading();
   document.getElementById('authScreen').style.display = 'flex';
   document.getElementById('waitScreen').style.display = 'none';
   document.getElementById('mainNav').style.display    = 'none';
@@ -653,6 +673,7 @@ function showAuth() {
 }
 
 function showApp(user) {
+  hideLoading();
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('waitScreen').style.display = 'none';
   document.getElementById('mainNav').style.display    = 'flex';
@@ -707,6 +728,7 @@ async function checkApproval(user) {
 }
 
 function showWaitScreen(user) {
+  hideLoading();
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('waitScreen').style.display = 'flex';
   document.getElementById('mainNav').style.display    = 'none';
