@@ -660,7 +660,7 @@ async function callNaverBookAPI(q) {
   const apiUrl = `https://openapi.naver.com/v1/search/book.json?query=${encodeURIComponent(q)}&display=10&start=1`;
   const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
   const ctrl   = new AbortController();
-  const timer  = setTimeout(() => ctrl.abort(), 20000);
+  const timer  = setTimeout(() => ctrl.abort(), 8000);
   let res;
   try {
     res = await fetch(proxy, {
