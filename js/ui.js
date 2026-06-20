@@ -120,7 +120,7 @@ function applyViewerSettings() {
     vb.style.background = t.bg;
     vb.style.color      = t.ink;
   }
-  // 본문 너비: vPage에 CSS 변수로 적용
+  // 본문 너비: vPage에 직접 적용
   const vp = document.getElementById('vPage');
   if (vp) {
     vp.style.maxWidth = vSettings.maxWidth === 9999 ? '100%' : vSettings.maxWidth + 'px';
@@ -130,7 +130,7 @@ function applyViewerSettings() {
     vt.style.fontSize   = vSettings.fontSize + 'px';
     vt.style.lineHeight = vSettings.lineHeight;
     vt.style.fontFamily = FONTS[vSettings.fontFamily] || FONTS.system;
-    vt.style.textAlign  = 'center';
+    vt.style.textAlign  = 'left';
   }
   const prev = document.getElementById('previewText');
   if (prev) {
@@ -146,9 +146,23 @@ function syncSettingsUI() {
   document.getElementById('fValBadge').textContent = vSettings.fontSize + 'px';
   document.getElementById('lhSlider').value        = vSettings.lineHeight * 100;
   document.getElementById('lhBadge').textContent   = vSettings.lineHeight;
+  document.getElementById('lhVal').textContent     = vSettings.lineHeight;
   document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('on', c.id === 'theme-' + vSettings.theme));
   document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('on', b.dataset.font === vSettings.fontFamily));
+  // 너비 버튼 동기화
+  document.querySelectorAll('.width-btn').forEach(b => {
+    const w = parseInt(b.getAttribute('onclick').match(/\d+/)[0]);
+    b.classList.toggle('on', w === vSettings.maxWidth);
+  });
   applyViewerSettings();
+}
+function chLh(d) {
+  const v = Math.max(1.4, Math.min(2.6, parseFloat((vSettings.lineHeight + d).toFixed(1))));
+  vSettings.lineHeight = v;
+  document.getElementById('lhSlider').value    = v * 100;
+  document.getElementById('lhBadge').textContent = v;
+  document.getElementById('lhVal').textContent   = v;
+  applyViewerSettings(); saveSettings();
 }
 function openSettings()  {
   syncSettingsUI();
@@ -182,6 +196,7 @@ function chFontApply(v) {
 function chLineHeight(v) {
   vSettings.lineHeight = parseFloat((v / 100).toFixed(1));
   document.getElementById('lhBadge').textContent = vSettings.lineHeight;
+  document.getElementById('lhVal').textContent   = vSettings.lineHeight;
   applyViewerSettings(); saveSettings();
 }
 function setWidth(w, el) {
