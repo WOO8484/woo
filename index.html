@@ -10,15 +10,15 @@
 
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
-  ║  NovelShelf v2.2.1  —  Firebase Auth + Firestore               ║
+  ║  NovelShelf v2.3.1  —  Firebase Auth + Firestore               ║
   ║                                                                  ║
   ║  [사전 준비]                                                      ║
   ║  1. Firebase 콘솔에서 프로젝트 생성                               ║
   ║  2. Authentication → 이메일/비밀번호 로그인 활성화                 ║
   ║  3. Firestore Database 생성 (프로덕션 모드)                       ║
-  ║  4. 아래 firebaseConfig 값을 본인 프로젝트 값으로 교체             ║
-  ║  5. Firestore 보안 규칙 → SECURITY_RULES.txt 참고                ║
-  ║  6. Cloud Functions 배포 → CLOUD_FUNCTIONS.js 참고               ║
+  ║  4. js/config.js → FIREBASE_CONFIG 값 교체                      ║
+  ║  5. Firestore 보안 규칙 → 아래 SECURITY_RULES 참고               ║
+  ║  6. Cloud Functions 배포 → 아래 CLOUD_FUNCTIONS 참고             ║
   ╚══════════════════════════════════════════════════════════════════╝
 
   ── Firestore 컬렉션 구조 ──────────────────────────────────────────
@@ -29,411 +29,28 @@
   userdata/{uid}/novels/{novelId}
     progress(0-100), favorite(bool), lastReadAt(Timestamp), ch(int)
 
+  users/{uid}
+    displayName, email, role(admin|reader), createdAt(Timestamp)
+
   pending_users/{docId}
     name, email, pwHash(승인 후 자동 삭제), reason,
     status(pending|approved|rejected),
     requestedAt(Timestamp), approvedAt(Timestamp)
   ──────────────────────────────────────────────────────────────────
+
+  ── 파일 구조 ──────────────────────────────────────────────────────
+  index.html       ← 진입점 (HTML 구조)
+  css/style.css    ← 전체 스타일
+  js/config.js     ← Firebase 설정 + 전역 상수/상태
+  js/ui.js         ← 공통 UI (toast, confirm, tab, 설정)
+  js/auth.js       ← 로그인, 로그아웃, 가입 신청
+  js/novels.js     ← 소설 CRUD, 홈/서재, 네이버 검색
+  js/viewer.js     ← 뷰어, 챕터 파싱
+  js/admin.js      ← 관리자 (사용자 관리, 가입 승인)
+  ──────────────────────────────────────────────────────────────────
 -->
 
-<style>
-/* ── DESIGN TOKENS ── */
-:root {
-  --accent:  #6C5CE7;
-  --accent2: #EEF0FF;
-  --danger:  #EF4444;
-  --danger-line: #FECACA;
-  --success: #22C55E;
-  --ink:     #1A1A2E;
-  --ink2:    #4A4A6A;
-  --ink3:    #9898B8;
-  --bg:      #F8F8FC;
-  --bg2:     #F0F0F8;
-  --line:    #E4E4F0;
-  --sh:      0 2px 12px rgba(108,92,231,.08);
-  --sh2:     0 4px 24px rgba(108,92,231,.14);
-  --r:       12px;
-  --tr:      .18s ease;
-}
-* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--ink); overscroll-behavior:none; }
-
-/* ── AUTH SCREEN ── */
-#authScreen { display:none; position:fixed; inset:0; z-index:2000; background:#fff; flex-direction:column; align-items:center; justify-content:center; padding:40px 28px; }
-.auth-logo { font-size:32px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
-.auth-logo em { color:var(--accent); font-style:normal; }
-.auth-sub { font-size:13px; color:var(--ink3); margin-bottom:32px; }
-.auth-form { width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px; }
-.auth-field { display:flex; flex-direction:column; gap:3px; }
-.auth-input-wrap { position:relative; }
-.auth-input { width:100%; height:48px; border:1.5px solid var(--line); border-radius:12px; padding:0 44px 0 14px; font-size:14px; color:var(--ink); outline:none; background:#fff; transition:border-color .2s; }
-.auth-input:focus { border-color:var(--accent); }
-.auth-input.err { border-color:var(--danger); }
-.auth-pw-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--ink3); padding:4px; }
-.auth-btn { width:100%; height:50px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s; margin-top:2px; }
-.auth-btn:disabled { opacity:.55; cursor:not-allowed; }
-.auth-msg { font-size:12px; text-align:center; min-height:16px; font-weight:600; }
-.auth-msg.err { color:var(--danger); }
-.auth-msg.ok  { color:var(--success); }
-.auth-tabs { display:flex; gap:0; margin-bottom:20px; width:100%; max-width:360px; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; }
-.auth-tab  { flex:1; height:42px; border:none; background:#fff; font-size:14px; font-weight:600; color:var(--ink3); cursor:pointer; transition:all .18s; }
-.auth-tab.on { background:var(--accent); color:#fff; }
-
-/* ── LOADING SCREEN ── */
-#loadingScreen { display:none; position:fixed; inset:0; z-index:1999; background:#fff; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
-.loading-logo { font-size:28px; font-weight:900; }
-.loading-logo em { color:var(--accent); font-style:normal; }
-.loading-spinner { width:32px; height:32px; border:3px solid var(--accent2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* ── NAV ── */
-.nav { display:none; position:fixed; top:0; left:0; right:0; height:54px; background:rgba(255,255,255,.97); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); z-index:100; padding:0 16px; align-items:center; justify-content:space-between; }
-.nav-logo { font-size:20px; font-weight:900; letter-spacing:-.5px; }
-.nav-logo em { color:var(--accent); font-style:normal; }
-.nav-version { position:absolute; left:50%; transform:translateX(-50%); font-size:10px; color:var(--ink3); background:var(--bg2); padding:2px 8px; border-radius:6px; font-weight:500; }
-.nav-right { display:flex; align-items:center; gap:8px; }
-.nav-add { width:36px; height:36px; background:var(--accent); color:#fff; border:none; border-radius:50%; font-size:20px; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; flex-shrink:0; box-shadow:0 2px 8px rgba(108,92,231,.35); transition:transform .15s,box-shadow .15s; }
-.nav-add:hover { transform:scale(1.08); box-shadow:0 4px 12px rgba(108,92,231,.45); }
-.nav-avatar { width:34px; height:34px; border-radius:50%; background:var(--accent2); border:2px solid var(--accent); color:var(--accent); font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; }
-
-/* ── USER MENU ── */
-.user-menu { position:fixed; top:58px; right:12px; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh2); z-index:200; min-width:180px; overflow:hidden; opacity:0; pointer-events:none; transform:translateY(-8px); transition:all .18s; }
-.user-menu.open { opacity:1; pointer-events:all; transform:translateY(0); }
-.user-menu-info { padding:14px 16px 10px; border-bottom:1px solid var(--line); }
-.user-menu-name  { font-size:13px; font-weight:700; }
-.user-menu-email { font-size:11px; color:var(--ink3); margin-top:2px; }
-.user-menu-item { padding:12px 16px; font-size:13px; cursor:pointer; transition:background var(--tr); }
-.user-menu-item:hover { background:var(--bg2); }
-.user-menu-item.danger { color:var(--danger); }
-
-/* ── TAB BAR ── */
-.tab-bar { position:fixed; bottom:0; left:0; right:0; height:60px; background:rgba(255,255,255,.97); backdrop-filter:blur(12px); border-top:1px solid var(--line); z-index:100; display:none; align-items:center; justify-content:space-around; padding-bottom:max(6px,env(safe-area-inset-bottom)); }
-.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; border:none; background:none; cursor:pointer; padding:6px 0; color:var(--ink3); transition:color var(--tr); }
-.tab-item.on { color:var(--accent); }
-.tab-icon  { font-size:22px; line-height:1; }
-.tab-label { font-size:10px; font-weight:600; }
-
-/* ── PAGES ── */
-.page { display:none; padding:70px 16px max(80px,calc(60px + env(safe-area-inset-bottom))); min-height:100vh; }
-.page.active { display:block; }
-
-/* ── HOME ── */
-.home-greeting { font-size:22px; font-weight:800; margin-bottom:4px; }
-.home-greeting em { color:var(--accent); font-style:normal; }
-.home-date { font-size:12px; color:var(--ink3); margin-bottom:20px; }
-.home-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
-.home-stat { background:#fff; border-radius:var(--r); padding:14px 12px; text-align:center; box-shadow:var(--sh); }
-.home-stat-val { font-size:22px; font-weight:800; color:var(--accent); display:block; }
-.home-stat-lbl { font-size:11px; color:var(--ink3); font-weight:500; }
-.home-streak { background:#fff; border-radius:var(--r); padding:14px 16px; margin-bottom:20px; box-shadow:var(--sh); display:flex; align-items:center; gap:12px; }
-.home-streak-icon { font-size:28px; }
-.home-streak-text { font-size:14px; font-weight:700; }
-.home-streak-sub  { font-size:11px; color:var(--ink3); margin-top:2px; }
-.home-section { margin-bottom:24px; }
-.home-sec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-.home-sec-title { font-size:15px; font-weight:800; }
-.home-sec-more  { font-size:12px; color:var(--accent); cursor:pointer; font-weight:600; }
-.continue-list { display:flex; flex-direction:column; gap:10px; }
-.continue-card { background:#fff; border-radius:var(--r); padding:14px; box-shadow:var(--sh); display:flex; gap:12px; align-items:center; cursor:pointer; transition:transform var(--tr); }
-.continue-card:active { transform:scale(.98); }
-.continue-thumb { width:48px; height:68px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; overflow:hidden; }
-.continue-info { flex:1; min-width:0; }
-.continue-title  { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.continue-author { font-size:11px; color:var(--ink3); margin:2px 0 6px; }
-.continue-bar  { height:4px; background:var(--bg2); border-radius:2px; }
-.continue-fill { height:100%; background:var(--accent); border-radius:2px; transition:width .3s; }
-.continue-pct  { font-size:11px; color:var(--ink3); margin-top:4px; }
-.continue-btn  { flex-shrink:0; height:32px; padding:0 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; }
-.recent-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.recent-card { cursor:pointer; }
-.recent-cover { border-radius:10px; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:6px; position:relative; overflow:hidden; }
-.recent-cover-icon { font-size:28px; }
-.recent-title  { font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.recent-author { font-size:10px; color:var(--ink3); }
-.home-empty { text-align:center; padding:60px 20px; }
-.home-empty-icon { font-size:48px; margin-bottom:12px; }
-.home-empty-t { font-size:16px; font-weight:700; margin-bottom:6px; }
-.home-empty-s { font-size:13px; color:var(--ink3); }
-
-/* ── SHELF ── */
-.shelf-search-row { display:flex; gap:8px; margin-bottom:12px; }
-.shelf-search { flex:1; height:42px; border:1.5px solid var(--line); border-radius:12px; padding:0 14px; font-size:13px; outline:none; background:#fff; }
-.shelf-search:focus { border-color:var(--accent); }
-.shelf-view-btn,.shelf-sort-btn { height:42px; padding:0 12px; border:1.5px solid var(--line); border-radius:12px; background:#fff; font-size:13px; cursor:pointer; white-space:nowrap; }
-.genre-tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; }
-.genre-tabs::-webkit-scrollbar { display:none; }
-.genre-tab { flex-shrink:0; height:30px; padding:0 12px; border-radius:20px; border:1.5px solid var(--line); background:#fff; font-size:12px; font-weight:600; cursor:pointer; }
-.genre-tab.on { background:var(--accent); color:#fff; border-color:var(--accent); }
-.filter-tabs { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none; }
-.filter-tabs::-webkit-scrollbar { display:none; }
-.filter-tab { flex-shrink:0; height:30px; padding:0 12px; border-radius:20px; border:1.5px solid var(--line); background:#fff; font-size:12px; font-weight:600; cursor:pointer; }
-.filter-tab.on { background:var(--accent2); color:var(--accent); border-color:var(--accent); }
-.shelf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.shelf-grid.list { grid-template-columns:1fr; }
-.card { cursor:pointer; }
-.card-cover { border-radius:10px; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; margin-bottom:6px; position:relative; overflow:hidden; }
-.card-cover-icon { font-size:28px; }
-.card-title  { font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.card-author { font-size:10px; color:var(--ink3); }
-.shelf-list-card { background:#fff; border-radius:var(--r); padding:12px 14px; box-shadow:var(--sh); display:flex; gap:10px; align-items:center; cursor:pointer; }
-.shelf-list-thumb { width:42px; height:60px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; overflow:hidden; }
-.shelf-list-info { flex:1; min-width:0; }
-.shelf-list-title  { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.shelf-list-author { font-size:11px; color:var(--ink3); margin:2px 0 5px; }
-.shelf-list-bar    { height:3px; background:var(--bg2); border-radius:2px; margin-bottom:3px; }
-.shelf-list-fill   { height:100%; background:var(--accent); border-radius:2px; }
-.shelf-list-pct    { font-size:10px; color:var(--ink3); }
-.shelf-empty { text-align:center; padding:40px 20px; grid-column:1/-1; color:var(--ink3); font-size:13px; line-height:1.8; }
-.done-badge { position:absolute; top:4px; right:4px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px; }
-.pct-badge  { position:absolute; top:4px; right:4px; background:rgba(0,0,0,.55); color:#fff; font-size:9px; font-weight:700; padding:2px 6px; border-radius:8px; }
-.fav-btn { position:absolute; bottom:4px; right:4px; background:rgba(255,255,255,.9); border:none; border-radius:50%; width:24px; height:24px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-
-/* ── GENRE COLORS ── */
-.cover-romance    { background:linear-gradient(135deg,#FF6B9D,#C44569); color:#fff; }
-.cover-fantasy    { background:linear-gradient(135deg,#A855F7,#6C5CE7); color:#fff; }
-.cover-thriller   { background:linear-gradient(135deg,#2D3748,#4A5568); color:#fff; }
-.cover-sf         { background:linear-gradient(135deg,#0EA5E9,#2563EB); color:#fff; }
-.cover-historical { background:linear-gradient(135deg,#D97706,#B45309); color:#fff; }
-.cover-mystery    { background:linear-gradient(135deg,#065F46,#047857); color:#fff; }
-.cover-etc        { background:linear-gradient(135deg,#6B7280,#4B5563); color:#fff; }
-
-/* ── DETAIL ── */
-#detail { display:none; position:fixed; inset:0; z-index:150; background:var(--bg); overflow-y:auto; }
-.dbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; position:sticky; top:0; background:rgba(248,248,252,.95); backdrop-filter:blur(8px); z-index:10; }
-.dbar-back { background:none; border:none; font-size:22px; cursor:pointer; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:background var(--tr); }
-.dbar-back:hover { background:var(--bg2); }
-.dbar-edit-btn { height:34px; padding:0 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; }
-.dhero { position:relative; padding:20px 20px 24px; min-height:220px; display:flex; align-items:flex-end; gap:16px; }
-.dhero-bg { position:absolute; inset:0; overflow:hidden; }
-.dhero-bg-color { position:absolute; inset:0; }
-.dhero-bg-grad { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,.2),rgba(0,0,0,.7)); }
-.dcover { width:90px; height:130px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:36px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.4); position:relative; z-index:1; }
-.dinfo { flex:1; min-width:0; position:relative; z-index:1; color:#fff; }
-.dtitle  { font-size:18px; font-weight:800; margin-bottom:4px; line-height:1.3; }
-.dauthor { font-size:13px; opacity:.85; margin-bottom:4px; }
-.dmeta   { font-size:11px; opacity:.7; margin-bottom:10px; }
-.dprog-bar  { height:4px; background:rgba(255,255,255,.3); border-radius:2px; margin-bottom:5px; }
-.dprog-fill { height:100%; background:#fff; border-radius:2px; transition:width .4s; }
-.dprog-text { font-size:11px; opacity:.85; }
-.dbody { padding:16px; }
-.dstat-row { display:flex; gap:10px; margin-bottom:16px; }
-.dstat { flex:1; background:#fff; border-radius:var(--r); padding:14px 12px; text-align:center; box-shadow:var(--sh); }
-.dstat-val { font-size:18px; font-weight:800; color:var(--accent); }
-.dstat-lbl { font-size:11px; color:var(--ink3); margin-top:2px; }
-.dsyn-card { background:#fff; border-radius:var(--r); padding:14px; box-shadow:var(--sh); font-size:13px; color:var(--ink2); line-height:1.7; margin-bottom:10px; }
-.dtag-card { background:#fff; border-radius:var(--r); padding:14px; box-shadow:var(--sh); margin-bottom:10px; }
-.dtag-title { font-size:11px; font-weight:700; color:var(--ink3); margin-bottom:8px; }
-.dtag { display:inline-block; background:var(--accent2); color:var(--accent); font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; margin:2px; }
-.dbtns { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
-.ddl-btn  { height:44px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font-size:13px; font-weight:600; cursor:pointer; }
-.ddel-btn { height:44px; border-radius:12px; border:1.5px solid var(--danger-line); background:#fff; font-size:13px; font-weight:600; color:var(--danger); cursor:pointer; }
-.dfoot { padding:0 16px 32px; display:flex; gap:10px; }
-.dread-btn { flex:1; height:52px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; }
-
-/* ── VIEWER ── */
-#viewer { display:none; position:fixed; inset:0; z-index:200; flex-direction:column; }
-.vbody  { flex:1; overflow-y:auto; padding:24px 20px 40px; display:flex; justify-content:center; }
-.vpage  { width:100%; }
-.vch-title { font-size:15px; font-weight:800; color:var(--ink3); margin-bottom:20px; text-align:center; }
-.vtext  { font-size:17px; line-height:1.9; }
-.vtext p { margin-bottom:1em; }
-@keyframes chIn  { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:none} }
-@keyframes chOut { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:none} }
-.vpage.anim-next { animation:chIn  .18s cubic-bezier(.25,.46,.45,.94) both; }
-.vpage.anim-prev { animation:chOut .18s cubic-bezier(.25,.46,.45,.94) both; }
-.vtap-left   { position:fixed; left:0;   top:0; width:25%; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
-.vtap-right  { position:fixed; right:0;  top:0; width:25%; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
-.vtap-center { position:fixed; left:25%; right:25%; top:0; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
-
-/* ── VIEWER POPUP ── */
-.vpopup-ov { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:520; display:none; align-items:center; justify-content:center; }
-.vpopup-ov.on { display:flex; }
-.vpopup { background:#fff; border-radius:20px; padding:24px 20px 20px; width:88%; max-width:360px; }
-.vpopup-title { font-size:16px; font-weight:800; margin-bottom:4px; }
-.vpopup-info  { font-size:12px; color:var(--ink3); margin-bottom:16px; }
-.vpopup-slider-wrap { margin-bottom:16px; }
-.vpopup-slider-row  { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
-.vpopup-slider-label { font-size:12px; color:var(--ink3); }
-.vpopup-move-btn { height:28px; padding:0 12px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-size:11px; font-weight:700; cursor:pointer; }
-.vpopup-btns { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
-.vpopup-btn { width:100%; height:52px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:14px; padding:0 18px; color:var(--ink); }
-.vpopup-btn span { font-size:22px; }
-.vpopup-btn.danger { color:var(--danger); border-color:var(--danger-line); }
-.vpopup-close { width:100%; height:48px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-size:14px; font-weight:700; cursor:pointer; }
-
-/* ── MODAL (챕터목록/읽기설정) ── */
-.modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:540; opacity:0; pointer-events:none; transition:opacity .2s; }
-.modal-ov.on { opacity:1; pointer-events:all; }
-.modal { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-radius:20px 20px 0 0; padding:14px 18px max(34px,env(safe-area-inset-bottom)); z-index:550; transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,0,1); }
-.modal.on { transform:translateY(0); }
-.mhandle { width:36px; height:4px; background:var(--line); border-radius:2px; margin:0 auto 16px; }
-.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.modal-title { font-size:15px; font-weight:800; }
-.modal-close { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg2); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink2); }
-.modal-scroll { max-height:60vh; overflow-y:auto; margin:0 -18px; padding:0 18px; }
-
-/* ── CHAPTER LIST ── */
-.ch-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); cursor:pointer; }
-.ch-item:last-child { border-bottom:none; }
-.ch-item.active .ch-title { color:var(--accent); font-weight:700; }
-.ch-num   { width:28px; font-size:11px; color:var(--ink3); flex-shrink:0; text-align:center; }
-.ch-check { font-size:11px; color:var(--success); }
-
-/* ── SETTINGS ── */
-.set-label { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px; }
-.preview-box { background:var(--bg2); border-radius:var(--r); padding:14px; text-align:center; font-size:15px; margin-bottom:4px; }
-.theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:4px; }
-.theme-card { border-radius:10px; border:2px solid var(--line); padding:8px 4px; text-align:center; cursor:pointer; transition:border-color var(--tr); }
-.theme-card.on { border-color:var(--accent); }
-.theme-preview { border-radius:6px; padding:8px 4px; font-size:13px; font-weight:700; margin-bottom:4px; }
-.theme-card span { font-size:10px; color:var(--ink3); }
-.font-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:4px; }
-.font-btn { height:40px; border-radius:10px; border:2px solid var(--line); background:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:all var(--tr); }
-.font-btn.on { border-color:var(--accent); color:var(--accent); background:var(--accent2); }
-.slider-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-.slider-min,.slider-max { font-size:10px; color:var(--ink3); white-space:nowrap; }
-.ns-slider { flex:1; height:4px; accent-color:var(--accent); cursor:pointer; }
-.set-val-badge { background:var(--accent2); color:var(--accent); font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px; }
-.prow { display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
-.plabel { font-size:12px; color:var(--ink2); }
-.fctrl { display:flex; align-items:center; gap:8px; }
-.fbtn  { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-size:18px; font-weight:300; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.fval  { font-size:14px; font-weight:700; min-width:28px; text-align:center; }
-.width-btns { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-.width-btn { height:36px; border-radius:10px; border:2px solid var(--line); background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all var(--tr); }
-.width-btn.on { border-color:var(--accent); color:var(--accent); background:var(--accent2); }
-
-/* ── PROFILE ── */
-.profile-hero { background:linear-gradient(135deg,var(--accent),#A855F7); border-radius:16px; padding:24px; margin-bottom:20px; color:#fff; display:flex; align-items:center; gap:16px; }
-.profile-avatar { width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; }
-.profile-name  { font-size:18px; font-weight:800; margin-bottom:2px; }
-.profile-email { font-size:12px; opacity:.8; }
-.profile-role  { display:inline-block; background:rgba(255,255,255,.2); padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-top:6px; }
-.profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
-.profile-stat { background:#fff; border-radius:var(--r); padding:14px 12px; text-align:center; box-shadow:var(--sh); }
-.profile-stat-val { font-size:20px; font-weight:800; color:var(--accent); display:block; }
-.profile-stat-lbl { font-size:11px; color:var(--ink3); }
-.admin-section { margin-bottom:24px; }
-.admin-section-title { font-size:14px; font-weight:800; margin-bottom:10px; }
-.user-list { background:#fff; border-radius:var(--r); overflow:hidden; box-shadow:var(--sh); }
-.user-item { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
-.user-item:last-child { border-bottom:none; }
-.user-avatar { width:40px; height:40px; border-radius:50%; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-.user-info { flex:1; min-width:0; }
-.user-name  { font-size:13px; font-weight:700; }
-.user-email { font-size:11px; color:var(--ink3); margin-top:2px; }
-.user-time  { font-size:10px; color:var(--ink3); margin-top:2px; }
-.admin-badge { background:var(--danger); color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; margin-left:6px; }
-.user-role-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px; }
-.user-role-admin  { background:var(--accent2); color:var(--accent); }
-.user-role-reader { background:var(--bg2); color:var(--ink3); }
-.user-del-btn { height:28px; padding:0 10px; background:none; border:1px solid var(--danger-line); border-radius:8px; font-size:11px; font-weight:700; color:var(--danger); cursor:pointer; flex-shrink:0; }
-.user-del-btn:hover { background:#FEF2F2; }
-.shelf-list-remove-btn { flex-shrink:0; height:28px; padding:0 10px; background:none; border:1px solid var(--line); border-radius:8px; font-size:11px; color:var(--ink3); cursor:pointer; }
-.shelf-remove-btn { position:absolute; top:4px; left:4px; background:rgba(0,0,0,.45); border:none; border-radius:50%; width:22px; height:22px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; line-height:1; }
-.add-user-form { background:#fff; border-radius:var(--r); padding:14px 16px; box-shadow:var(--sh); margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
-.add-user-input { flex:1; min-width:120px; height:38px; border:1.5px solid var(--line); border-radius:10px; padding:0 12px; font-size:13px; outline:none; background:#fff; }
-.add-user-input:focus { border-color:var(--accent); }
-.add-user-btn { height:38px; padding:0 14px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
-
-/* ── NAVER SEARCH ── */
-.naver-search-row { display:flex; gap:8px; margin-bottom:8px; }
-.naver-search-input { flex:1; height:42px; border:1.5px solid var(--line); border-radius:10px; padding:0 14px; font-size:13px; outline:none; background:#fff; transition:border-color .2s; }
-.naver-search-input:focus { border-color:var(--accent); }
-.naver-search-btn { height:42px; padding:0 16px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
-.naver-search-btn:disabled { opacity:.5; cursor:not-allowed; }
-.naver-result-item { display:flex; gap:10px; padding:10px; border:1.5px solid var(--line); border-radius:10px; cursor:pointer; transition:all var(--tr); align-items:flex-start; margin-bottom:6px; }
-.naver-result-item:hover { border-color:var(--accent); background:var(--accent2); }
-.naver-result-item.selected { border-color:var(--accent); background:var(--accent2); }
-.naver-result-cover { width:44px; height:62px; border-radius:6px; object-fit:cover; flex-shrink:0; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:18px; overflow:hidden; }
-.naver-result-cover img { width:100%; height:100%; object-fit:cover; }
-.naver-result-info { flex:1; min-width:0; }
-.naver-result-title  { font-size:13px; font-weight:700; margin-bottom:3px; line-height:1.3; }
-.naver-result-author { font-size:11px; color:var(--ink3); margin-bottom:3px; }
-.naver-result-desc   { font-size:11px; color:var(--ink2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.naver-status { font-size:12px; color:var(--ink3); text-align:center; padding:16px; }
-.naver-status.err { color:var(--danger); }
-.naver-filled-badge { display:inline-flex; align-items:center; gap:4px; background:#ECFDF5; color:#059669; font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; margin-left:6px; }
-.add-section-divider { display:flex; align-items:center; gap:8px; margin:16px 0 12px; }
-.add-section-divider span { font-size:11px; font-weight:700; color:var(--ink3); white-space:nowrap; }
-.add-section-divider::before,.add-section-divider::after { content:''; flex:1; height:1px; background:var(--line); }
-.cover-upload-row { display:flex; gap:10px; align-items:flex-start; margin-top:6px; }
-.cover-upload-preview { width:60px; height:84px; border-radius:8px; border:1.5px dashed var(--line); background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; cursor:pointer; transition:border-color var(--tr); }
-.cover-upload-preview:hover { border-color:var(--accent); }
-.cover-upload-preview img { width:100%; height:100%; object-fit:cover; }
-.cover-upload-btns { display:flex; flex-direction:column; gap:6px; justify-content:center; }
-.cover-upload-btn { height:34px; padding:0 12px; background:var(--bg2); border:1.5px solid var(--line); border-radius:8px; font-size:12px; font-weight:600; color:var(--ink2); cursor:pointer; white-space:nowrap; }
-.cover-upload-btn:hover { border-color:var(--accent); color:var(--accent); }
-.cover-upload-hint { font-size:10px; color:var(--ink3); margin-top:2px; }
-
-/* ── EDIT MODAL ── */
-.edit-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:600; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
-.edit-modal.on { opacity:1; pointer-events:all; }
-.edit-sheet { background:#fff; border-radius:20px 20px 0 0; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; padding:20px 20px 40px; }
-.edit-sheet-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
-.edit-sheet-title { font-size:17px; font-weight:800; }
-.edit-close { width:30px; height:30px; border-radius:50%; border:none; background:var(--bg2); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink2); }
-.edit-save-btn { width:100%; height:50px; border-radius:14px; border:none; background:var(--accent); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:16px; }
-.edit-save-btn:disabled { opacity:.55; cursor:not-allowed; }
-
-/* ── ADD MODAL ── */
-.add-modal { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,.4); display:none; align-items:flex-end; justify-content:center; }
-.add-modal.on { display:flex; }
-.add-sheet { background:#fff; border-radius:20px 20px 0 0; width:100%; max-height:92vh; overflow-y:auto; padding:14px 18px max(34px,env(safe-area-inset-bottom)); }
-.add-sheet-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-.add-sheet-title { font-size:16px; font-weight:800; }
-.add-close { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg2); font-size:18px; cursor:pointer; }
-.add-field { margin-bottom:12px; }
-.add-label { font-size:12px; font-weight:700; color:var(--ink2); margin-bottom:6px; display:block; }
-.add-input { width:100%; height:46px; border:1.5px solid var(--line); border-radius:12px; padding:0 14px; font-size:14px; outline:none; background:#fff; transition:border-color .2s; }
-.add-input:focus { border-color:var(--accent); }
-.add-textarea { width:100%; height:80px; border:1.5px solid var(--line); border-radius:12px; padding:10px 14px; font-size:14px; outline:none; background:#fff; resize:none; font-family:inherit; }
-.genre-sel { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-.genre-sel-btn { height:36px; border-radius:10px; border:2px solid var(--line); background:#fff; font-size:11px; font-weight:600; cursor:pointer; transition:all var(--tr); }
-.genre-sel-btn.on { border-color:var(--accent); background:var(--accent2); color:var(--accent); }
-.file-drop { border:2px dashed var(--line); border-radius:12px; padding:24px; text-align:center; cursor:pointer; transition:border-color var(--tr); }
-.file-drop.has-file { border-color:var(--success); background:#F0FDF4; }
-.file-drop.drag-over { border-color:var(--accent); background:var(--accent2); }
-.file-drop-icon { font-size:28px; margin-bottom:8px; }
-.file-drop-text { font-size:13px; color:var(--ink3); }
-.file-drop-name { font-size:12px; font-weight:700; color:var(--success); margin-top:4px; }
-.add-save-btn { width:100%; height:50px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; }
-.add-save-btn:disabled { opacity:.55; cursor:not-allowed; }
-
-/* ── CONFIRM ── */
-.confirm-ov { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
-.confirm-ov.on { opacity:1; pointer-events:all; }
-.confirm-box { background:#fff; border-radius:16px; padding:28px 20px 18px; max-width:320px; width:100%; box-shadow:var(--sh2); }
-.confirm-icon  { font-size:56px; text-align:center; margin-bottom:12px; }
-.confirm-title { font-size:16px; font-weight:800; text-align:center; margin-bottom:8px; }
-.confirm-msg   { font-size:13px; color:var(--ink2); text-align:center; line-height:1.6; margin-bottom:20px; }
-.confirm-btns  { display:flex; gap:8px; }
-.confirm-cancel { flex:1; height:42px; border-radius:10px; border:1px solid var(--line); background:#fff; font-size:13px; font-weight:600; color:var(--ink2); cursor:pointer; }
-.confirm-ok     { flex:1; height:42px; border-radius:10px; border:none; background:var(--danger); font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
-
-/* ── TOAST ── */
-.toast { position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(8px); background:rgba(17,17,17,.88); color:#fff; padding:8px 18px; border-radius:20px; font-size:12px; font-weight:600; z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; white-space:nowrap; }
-.toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
-.toast.error { background:rgba(239,68,68,.92); }
-
-/* ── COMPLETE POPUP ── */
-.complete-ov { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
-.complete-ov.on { opacity:1; pointer-events:all; }
-.complete-box { background:#fff; border-radius:16px; padding:28px 20px 18px; max-width:320px; width:100%; text-align:center; box-shadow:var(--sh2); }
-
-/* ── PW MODAL (관리자 비밀번호) ── */
-.pw-modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:700; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
-.pw-modal-ov.on { opacity:1; pointer-events:all; }
-.pw-modal { background:#fff; border-radius:16px; padding:28px 22px 20px; max-width:320px; width:100%; box-shadow:0 8px 32px rgba(0,0,0,.18); }
-.pw-modal-title { font-size:16px; font-weight:800; margin-bottom:4px; }
-.pw-modal-sub   { font-size:12px; color:var(--ink3); margin-bottom:16px; }
-.pw-modal-input { width:100%; height:44px; border:1.5px solid var(--line); border-radius:10px; padding:0 14px; font-size:14px; outline:none; margin-bottom:8px; }
-.pw-modal-input:focus { border-color:var(--accent); }
-.pw-modal-msg { font-size:12px; color:var(--danger); min-height:16px; margin-bottom:12px; }
-.pw-modal-btns { display:flex; gap:8px; }
-.pw-modal-cancel { flex:1; height:42px; border-radius:10px; border:1px solid var(--line); background:#fff; font-size:13px; font-weight:600; color:var(--ink2); cursor:pointer; }
-.pw-modal-ok { flex:1; height:42px; border-radius:10px; border:none; background:var(--danger); font-size:13px; font-weight:700; color:#fff; cursor:pointer; }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -448,7 +65,6 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   <div class="auth-logo">Novel<em>S</em></div>
   <div class="auth-sub">소설 서재에 오신 것을 환영해요</div>
 
-  <!-- 탭 전환 -->
   <div class="auth-tabs">
     <button class="auth-tab on" id="tabLogin"  onclick="switchAuthTab('login')">로그인</button>
     <button class="auth-tab"    id="tabSignup" onclick="switchAuthTab('signup')">가입 신청</button>
@@ -473,10 +89,10 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   <div class="auth-form" id="signupForm" style="display:none">
     <div class="auth-msg" id="signupMsg"></div>
     <div class="auth-field">
-      <input class="auth-input" id="signupName"  type="text"  placeholder="이름" autocomplete="name">
+      <input class="auth-input" id="signupName"  type="text"     placeholder="이름" autocomplete="name">
     </div>
     <div class="auth-field">
-      <input class="auth-input" id="signupEmail" type="email" placeholder="이메일" autocomplete="email">
+      <input class="auth-input" id="signupEmail" type="email"    placeholder="이메일" autocomplete="email">
     </div>
     <div class="auth-field">
       <div class="auth-input-wrap">
@@ -490,7 +106,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
     <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
   </div>
 
-  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.2.1</div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.3.1</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -505,7 +121,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">Novel<em>S</em></div>
-  <div class="nav-version">v2.2.1</div>
+  <div class="nav-version">v2.3.1</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -514,21 +130,29 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 
 <!-- ── TAB BAR ── -->
 <div class="tab-bar" id="tabBar">
-  <button class="tab-item on" id="tab-home"    onclick="switchTab('home')">    <span class="tab-icon">🏠</span><span class="tab-label">홈</span></button>
-  <button class="tab-item"    id="tab-shelf"   onclick="switchTab('shelf')">   <span class="tab-icon">📚</span><span class="tab-label">서재</span></button>
-  <button class="tab-item"    id="tab-profile" onclick="switchTab('profile')"> <span class="tab-icon">👤</span><span class="tab-label">프로필</span></button>
+  <button class="tab-item on" id="tab-home"    onclick="switchTab('home')">
+    <span class="tab-icon">🏠</span><span class="tab-label">홈</span>
+  </button>
+  <button class="tab-item"    id="tab-shelf"   onclick="switchTab('shelf')">
+    <span class="tab-icon">📚</span><span class="tab-label">서재</span>
+  </button>
+  <button class="tab-item"    id="tab-profile" onclick="switchTab('profile')">
+    <span class="tab-icon">👤</span><span class="tab-label">프로필</span>
+  </button>
 </div>
 
-<!-- ── HOME PAGE ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     HOME PAGE
+     ══════════════════════════════════════════════════════════════ -->
 <div class="page active" id="page-home">
   <div class="home-greeting">안녕하세요, <em id="homeUserName">독자</em>님 👋</div>
   <div class="home-date" id="homeDate"></div>
-  <div class="home-stats" id="homeStats" style="display:none">
+  <div class="home-stats" id="homeStats">
     <div class="home-stat"><span class="home-stat-val" id="statTotal">0</span><span class="home-stat-lbl">전체</span></div>
     <div class="home-stat"><span class="home-stat-val" id="statReading">0</span><span class="home-stat-lbl">읽는 중</span></div>
     <div class="home-stat"><span class="home-stat-val" id="statDone">0</span><span class="home-stat-lbl">완독</span></div>
   </div>
-  <div class="home-streak" id="homeStreak" style="display:none">
+  <div class="home-streak" id="homeStreak">
     <span class="home-streak-icon">🔥</span>
     <div>
       <div class="home-streak-text" id="streakText">오늘 독서를 시작해보세요</div>
@@ -542,7 +166,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
     </div>
     <div class="continue-list" id="continueList"></div>
   </div>
-  <div class="home-section" id="secRecent" style="display:none">
+  <div class="home-section" id="secRecent">
     <div class="home-sec-header">
       <span class="home-sec-title">🆕 최근 추가</span>
     </div>
@@ -555,7 +179,9 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   </div>
 </div>
 
-<!-- ── SHELF PAGE ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     SHELF PAGE
+     ══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-shelf">
   <div class="shelf-search-row">
     <input class="shelf-search" id="shelfSearch" placeholder="제목, 작가, 태그 검색..." oninput="debounceShelf()">
@@ -567,14 +193,16 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   <div class="genre-tabs" id="genreTabs"></div>
   <div class="filter-tabs">
     <button class="filter-tab on" onclick="setFilter('all',this)">전체</button>
-    <button class="filter-tab" onclick="setFilter('favorite',this)">⭐ 즐겨찾기</button>
-    <button class="filter-tab" onclick="setFilter('inprog',this)">읽는 중</button>
-    <button class="filter-tab" onclick="setFilter('done',this)">완독</button>
+    <button class="filter-tab"    onclick="setFilter('favorite',this)">⭐ 즐겨찾기</button>
+    <button class="filter-tab"    onclick="setFilter('inprog',this)">읽는 중</button>
+    <button class="filter-tab"    onclick="setFilter('done',this)">완독</button>
   </div>
   <div class="shelf-grid" id="shelfGrid"></div>
 </div>
 
-<!-- ── PROFILE PAGE ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     PROFILE PAGE
+     ══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-profile">
   <div class="profile-hero">
     <div class="profile-avatar" id="profileAvatar">🐱</div>
@@ -593,18 +221,20 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   <div id="adminPanel" style="display:none">
     <!-- 가입 대기 목록 -->
     <div class="admin-section" id="pendingSection" style="display:none">
-      <div class="admin-section-title">가입 대기 <span class="admin-badge" id="pendingCountBadge">0</span></div>
+      <div class="admin-section-title">⏳ 가입 대기 <span class="admin-badge" id="pendingCountBadge">0</span></div>
       <div class="user-list" id="pendingList"></div>
     </div>
     <!-- 사용자 목록 -->
     <div class="admin-section">
-      <div class="admin-section-title">사용자 목록 <span class="admin-badge" id="userCountBadge">0</span></div>
+      <div class="admin-section-title">👥 사용자 목록 <span class="admin-badge" id="userCountBadge">0</span></div>
       <div class="user-list" id="userList"></div>
     </div>
   </div>
 </div>
 
-<!-- ── DETAIL ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     DETAIL
+     ══════════════════════════════════════════════════════════════ -->
 <div id="detail" style="display:none; position:fixed; inset:0; z-index:150; background:var(--bg); overflow-y:auto;">
   <div class="dbar">
     <button class="dbar-back" onclick="closeDetail()">←</button>
@@ -641,12 +271,15 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
     </div>
   </div>
   <div class="dfoot">
-    <button class="dread-btn" id="dReadBtn" onclick="readFromDetail()" style="flex:1">처음부터 읽기</button>
-    <button id="dFavBtn" onclick="toggleFavDetail()" style="width:52px;height:52px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:22px;cursor:pointer;flex-shrink:0">☆</button>
+    <button class="dread-btn" id="dReadBtn" onclick="readFromDetail()">처음부터 읽기</button>
+    <button id="dFavBtn" onclick="toggleFavDetail()"
+      style="width:52px;height:52px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:22px;cursor:pointer;flex-shrink:0">☆</button>
   </div>
 </div>
 
-<!-- ── VIEWER ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     VIEWER
+     ══════════════════════════════════════════════════════════════ -->
 <div id="viewer" style="display:none; position:fixed; inset:0; z-index:200; flex-direction:column;">
   <div class="vbody" id="vBody">
     <div class="vpage" id="vPage">
@@ -665,7 +298,9 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
     <div class="vpopup-title" id="vpopupTitle"></div>
     <div class="vpopup-info"  id="vpopupInfo"></div>
     <div class="vpopup-slider-wrap" id="vpopupSliderWrap" style="display:none">
-      <input type="range" class="ns-slider" id="vpopupSlider" min="0" step="1" value="0" style="width:100%;margin-bottom:6px" oninput="onSliderInput(this.value)" onchange="onSliderChange(this.value)">
+      <input type="range" class="ns-slider" id="vpopupSlider" min="0" step="1" value="0"
+        style="width:100%;margin-bottom:6px"
+        oninput="onSliderInput(this.value)" onchange="onSliderChange(this.value)">
       <div class="vpopup-slider-row">
         <span class="vpopup-slider-label" id="vpopupSliderLabel">1 / 1 페이지</span>
         <button class="vpopup-move-btn" onclick="onSliderChange(document.getElementById('vpopupSlider').value)">이동</button>
@@ -681,7 +316,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 </div>
 
 <!-- ── CHAPTER LIST ── -->
-<div class="modal-ov" id="chListOv"  onclick="closeChList()"></div>
+<div class="modal-ov" id="chListOv"    onclick="closeChList()"></div>
 <div class="modal"    id="chListModal">
   <div class="mhandle"></div>
   <div class="modal-header">
@@ -748,15 +383,15 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
   </div>
 </div>
 
-<!-- ── ADD MODAL ── -->
+<!-- ══════════════════════════════════════════════════════════════
+     ADD MODAL
+     ══════════════════════════════════════════════════════════════ -->
 <div class="add-modal" id="addModal">
   <div class="add-sheet">
     <div class="add-sheet-header">
       <div class="add-sheet-title">새 소설 추가</div>
       <button class="add-close" onclick="closeAdd()">×</button>
     </div>
-
-    <!-- 네이버 책 검색 -->
     <div class="add-field">
       <label class="add-label">📚 네이버 책 검색 <span style="font-size:10px;color:var(--ink3);font-weight:400">제목으로 메타정보 자동 입력</span></label>
       <div class="naver-search-row">
@@ -765,9 +400,7 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
       </div>
       <div id="naverResults"></div>
     </div>
-
     <div class="add-section-divider"><span>메타정보</span></div>
-
     <div class="add-field">
       <label class="add-label">제목 * <span id="titleFilledBadge" style="display:none" class="naver-filled-badge">✓ 자동입력</span></label>
       <input class="add-input" id="addTitle" placeholder="소설 제목">
@@ -811,16 +444,14 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
       </div>
       <input type="file" id="coverImgInput" accept="image/*" style="display:none" onchange="onCoverImgSelect(this)">
     </div>
-
     <div class="add-section-divider"><span>소설 파일</span></div>
-
     <div class="add-field">
       <label class="add-label">TXT 파일 <span style="font-size:10px;color:var(--ink3);font-weight:400">.txt · 드래그&드롭 가능</span></label>
       <div class="file-drop" id="fileDrop"
-           onclick="document.getElementById('fileInput').click()"
-           ondragover="event.preventDefault();this.classList.add('drag-over')"
-           ondragleave="this.classList.remove('drag-over')"
-           ondrop="event.preventDefault();this.classList.remove('drag-over');onFileDrop(event)">
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="event.preventDefault();this.classList.remove('drag-over');onFileDrop(event)">
         <div class="file-drop-icon" id="fileDropIcon">📄</div>
         <div class="file-drop-text" id="fileDropText">탭하거나 파일을 여기에 끌어다 놓으세요</div>
         <div class="file-drop-name" id="fileName" style="display:none"></div>
@@ -888,11 +519,11 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 <div class="confirm-ov" id="confirmOv">
   <div class="confirm-box">
     <div class="confirm-icon">🗑️</div>
-    <div class="confirm-title">서재에서 삭제할까요?</div>
+    <div class="confirm-title">확인해주세요</div>
     <div class="confirm-msg" id="confirmMsg"></div>
     <div class="confirm-btns">
       <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
-      <button class="confirm-ok" id="confirmOkBtn">삭제</button>
+      <button class="confirm-ok"     id="confirmOkBtn">확인</button>
     </div>
   </div>
 </div>
@@ -914,1457 +545,25 @@ html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',BlinkMa
 <div class="toast" id="toast"></div>
 
 <!-- ══════════════════════════════════════════════════════════════
-     Firebase SDK  (compat v9)
-     ▶ 아래 firebaseConfig 를 본인 프로젝트 설정으로 교체하세요
+     Firebase SDK (compat v9)
      ══════════════════════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 
-<script>
-'use strict';
-
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyDhiJ80q4FtKUB5OLOoLpV4IYKrkU_cYTs",
-  authDomain:        "novelshelf-a12bf.firebaseapp.com",
-  projectId:         "novelshelf-a12bf",
-  storageBucket:     "novelshelf-a12bf.firebasestorage.app",
-  messagingSenderId: "403423678374",
-  appId:             "1:403423678374:web:a3fadb7cbdfc7f763a8967",
-};
-/* ══════════════════════════════════════════════════════════════
-   Functions 리전 (Seoul: asia-northeast3 / 기본값: us-central1)
-   Cloud Functions 배포 리전과 반드시 일치시킬 것
-   ══════════════════════════════════════════════════════════════ */
-const FUNCTIONS_REGION = 'asia-northeast3';
-
-// ── Firebase 초기화 ──────────────────────────────────────────
-firebase.initializeApp(FIREBASE_CONFIG);
-const auth      = firebase.auth();
-const db        = firebase.firestore();
-const functions = firebase.app().functions(FUNCTIONS_REGION);
-
-// ── Firestore 오프라인 퍼시스턴스 (선택사항) ──────────────────
-// db.enablePersistence().catch(() => {}); // 멀티탭에서 에러 무시
-
-// ── 앱 상태 ──────────────────────────────────────────────────
-const APP_VERSION  = 'v2.2.1';
-let novels         = [];       // Firestore 실시간 스냅샷
-let userDataCache  = {};       // { [novelId]: { progress, favorite, lastReadAt, ch } }
-let currentUser    = null;     // Firebase auth user
-let isAdmin        = false;
-let curId          = null;
-let curCh          = 0;
-let _animDir       = 'next';
-let _idleHandle    = null;
-let _renderGen     = 0;
-let _progressTimer = null;
-let _novelsUnsub   = null;    // Firestore 실시간 구독 해제 함수
-
-const _chsCache = new Map(); // novelId → chapters
-let selG         = null;
-let selEditG     = null;
-let curFile      = null;
-let shelfView    = 'grid';
-let sortMode     = 'recent';
-let filterMode   = 'all';
-let selGenreFilter = 'all';
-let naverSelectedBook = null;
-let addCoverBase64    = '';
-let editCoverBase64   = '';
-
-const GENRE_ICON  = { romance:'💕', fantasy:'🔮', thriller:'🔪', sf:'🚀', historical:'📜', mystery:'🕵️', etc:'📖' };
-const GENRE_LABEL = { romance:'로맨스', fantasy:'판타지', thriller:'스릴러', sf:'SF', historical:'역사', mystery:'미스터리', etc:'기타' };
-const FONTS = {
-  system: "-apple-system,'Apple SD Gothic Neo',sans-serif",
-  gothic: "'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
-  serif:  "'Nanum Myeongjo','Georgia',serif",
-  mono:   "'Courier New',monospace",
-};
-const THEMES = {
-  light:  { bg:'#ffffff', ink:'#2A2A2A', bg2:'#F8F8FC' },
-  sepia:  { bg:'#F4ECD8', ink:'#3D2B1A', bg2:'#EDE0C4' },
-  dark:   { bg:'#1C1C28', ink:'#C8C8D8', bg2:'#252535' },
-  amoled: { bg:'#000000', ink:'#E0E0E0', bg2:'#111111' },
-};
-let vSettings = { fontSize:17, lineHeight:1.9, fontFamily:'system', theme:'light', maxWidth:680 };
-
-const AVATARS = ['🐱','🐶','🐰','🐻','🦊','🐼','🐨','🐸','🐙','🦄','🐧','🦋','🐬','🦁','🐮','🐯'];
-
-// ── 유틸 ──────────────────────────────────────────────────────
-function getAvatar(name) { return AVATARS[(name||'A').charCodeAt(0) % AVATARS.length]; }
-function genreCoverClass(g) { return 'cover-' + (['romance','fantasy','thriller','sf','historical','mystery'].includes(g) ? g : 'etc'); }
-function escapeHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function stripHtmlTags(str) {
-  return str.replace(/<[^>]*>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"');
-}
-
-// ── TOAST ──────────────────────────────────────────────────────
-let _toastTimer;
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast on' + (type === 'error' ? ' error' : '');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('on'), 2400);
-}
-
-// ── 뷰어 설정 → localStorage (개인 기기 설정) ─────────────────
-// 읽기 환경(테마·폰트·크기)은 기기별 설정이므로 localStorage가 적절합니다.
-(function loadSettings() {
-  try {
-    const s = localStorage.getItem('ns_settings');
-    if (s) vSettings = { ...vSettings, ...JSON.parse(s) };
-  } catch(e) {}
-})();
-
-// ═══════════════════════════════════════════════════════════════
-//  Firebase Auth
-// ═══════════════════════════════════════════════════════════════
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    currentUser = user;
-    // Firestore에서 role 확인
-    try {
-      const snap = await db.collection('users').doc(user.uid).get();
-      isAdmin = snap.exists && snap.data().role === 'admin';
-    } catch(e) {
-      isAdmin = false;
-    }
-    await loadUserData();
-    subscribeNovels();
-    showApp();
-  } else {
-    currentUser = null;
-    isAdmin = false;
-    if (_novelsUnsub) { _novelsUnsub(); _novelsUnsub = null; }
-    showAuthScreen();
-  }
-});
-
-function showLoadingScreen() {
-  document.getElementById('loadingScreen').style.display = 'flex';
-  document.getElementById('authScreen').style.display    = 'none';
-  document.getElementById('mainNav').style.display       = 'none';
-  document.getElementById('tabBar').style.display        = 'none';
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-}
-function showAuthScreen() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('authScreen').style.display    = 'flex';
-  document.getElementById('mainNav').style.display       = 'none';
-  document.getElementById('tabBar').style.display        = 'none';
-}
-function showApp() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('authScreen').style.display    = 'none';
-  document.getElementById('mainNav').style.display       = 'flex';
-  document.getElementById('tabBar').style.display        = 'flex';
-  const name   = currentUser.displayName || currentUser.email.split('@')[0];
-  const avatar = getAvatar(name);
-  document.getElementById('navAvatar').textContent    = avatar;
-  document.getElementById('menuName').textContent     = name;
-  document.getElementById('menuEmail').textContent    = currentUser.email;
-  document.getElementById('homeUserName').textContent = name;
-  renderGenreTabs();
-  switchTab('home');
-}
-
-// ── LOGIN / LOGOUT ────────────────────────────────────────────
-function toggleEye() {
-  const el = document.getElementById('authPw');
-  el.type = el.type === 'password' ? 'text' : 'password';
-}
-
-async function doLogin() {
-  const email = document.getElementById('authEmail').value.trim();
-  const pw    = document.getElementById('authPw').value;
-  const msg   = document.getElementById('authMsg');
-  const btn   = document.getElementById('authBtn');
-
-  if (!email || !pw) {
-    msg.textContent = '이메일과 비밀번호를 입력해주세요';
-    msg.className   = 'auth-msg err';
-    return;
-  }
-
-  btn.disabled = true; btn.textContent = '로그인 중...';
-  msg.textContent = ''; msg.className = 'auth-msg';
-
-  try {
-    await auth.signInWithEmailAndPassword(email, pw);
-    // onAuthStateChanged가 showApp()을 호출합니다
-  } catch(e) {
-    const MAP = {
-      'auth/user-not-found':   '등록되지 않은 이메일이에요',
-      'auth/wrong-password':   '비밀번호가 올바르지 않아요',
-      'auth/invalid-email':    '이메일 형식이 올바르지 않아요',
-      'auth/too-many-requests':'로그인 시도가 너무 많아요. 잠시 후 다시 시도해주세요',
-      'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요',
-    };
-    msg.textContent = MAP[e.code] || '로그인에 실패했어요';
-    msg.className   = 'auth-msg err';
-  } finally {
-    btn.disabled = false; btn.textContent = '로그인';
-  }
-}
-
-async function doLogout() {
-  closeUserMenu();
-  if (_novelsUnsub) { _novelsUnsub(); _novelsUnsub = null; }
-  await auth.signOut();
-  novels = []; userDataCache = {};
-  showToast('로그아웃 했어요');
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  Firestore — 소설 목록 실시간 구독
-// ═══════════════════════════════════════════════════════════════
-function subscribeNovels() {
-  if (_novelsUnsub) _novelsUnsub();
-  _novelsUnsub = db.collection('novels')
-    .orderBy('addedAt', 'desc')
-    .onSnapshot(
-      snap => {
-        novels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Timestamp → ISO 변환
-        novels.forEach(n => {
-          if (n.addedAt?.toDate)  n.addedAt  = n.addedAt.toDate().toISOString();
-          if (n.lastReadAt?.toDate) n.lastReadAt = n.lastReadAt.toDate().toISOString();
-        });
-        _chsCache.clear(); // 데이터 변경 시 챕터 캐시 초기화
-        batchRender();
-      },
-      err => {
-        console.error('novels subscription error:', err);
-        showToast('소설 목록을 불러오는 데 실패했어요', 'error');
-      }
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  Firestore — 유저 데이터 (진행률·즐겨찾기)
-// ═══════════════════════════════════════════════════════════════
-async function loadUserData() {
-  if (!currentUser) return;
-  try {
-    const snap = await db.collection('userdata').doc(currentUser.uid)
-      .collection('novels').get();
-    userDataCache = {};
-    snap.forEach(d => {
-      const data = d.data();
-      if (data.lastReadAt?.toDate) data.lastReadAt = data.lastReadAt.toDate().toISOString();
-      userDataCache[d.id] = data;
-    });
-  } catch(e) {
-    console.error('loadUserData error:', e);
-  }
-}
-
-function getNovelUserData(id) {
-  return userDataCache[id] || { progress:0, favorite:false, lastReadAt:null, ch:0 };
-}
-
-async function setNovelUserData(id, patch) {
-  if (!currentUser) return;
-  const prev = getNovelUserData(id);
-  userDataCache[id] = { ...prev, ...patch };
-  // Firestore 비동기 저장 (UI 블로킹 없음)
-  try {
-    const payload = { ...patch };
-    if (payload.lastReadAt) {
-      payload.lastReadAt = firebase.firestore.Timestamp.fromDate(new Date(payload.lastReadAt));
-    }
-    await db.collection('userdata').doc(currentUser.uid)
-      .collection('novels').doc(id)
-      .set(payload, { merge: true });
-  } catch(e) {
-    console.error('setNovelUserData error:', e);
-  }
-}
-
-function getNovelsWithUserData() {
-  return novels.map(n => ({ ...n, ...getNovelUserData(n.id) }));
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  관리자 — 사용자 관리
-// ═══════════════════════════════════════════════════════════════
-
-/*
-  보안: 사용자 생성은 Firebase Admin SDK(Cloud Function)를 통해서만 수행합니다.
-  클라이언트에서 직접 createUserWithEmailAndPassword를 호출하면
-  누구나 계정을 만들 수 있으므로 절대 사용하지 않습니다.
-
-  Cloud Function: createUser (callable)
-  → 관리자 UID 검증 후 Auth 계정 + Firestore users 문서 생성
-*/
-async function addUser() {
-  if (!isAdmin) { showToast('관리자만 사용자를 추가할 수 있어요', 'error'); return; }
-  const email = document.getElementById('newUserEmail').value.trim();
-  const pw    = document.getElementById('newUserPw').value;
-  const name  = document.getElementById('newUserName').value.trim();
-  if (!email || !pw || !name) { showToast('이메일, 비밀번호, 이름을 모두 입력해주세요', 'error'); return; }
-  if (pw.length < 6) { showToast('비밀번호는 6자 이상이어야 해요', 'error'); return; }
-
-  const btn = document.querySelector('.add-user-btn');
-  btn.disabled = true; btn.textContent = '추가 중...';
-  try {
-    const createUser = functions.httpsCallable('createUser');
-    await createUser({ email, password: pw, displayName: name, role: 'reader' });
-    document.getElementById('newUserEmail').value = '';
-    document.getElementById('newUserPw').value    = '';
-    document.getElementById('newUserName').value  = '';
-    showToast('사용자를 추가했어요 👤');
-    await renderUserList();
-  } catch(e) {
-    const MSG = {
-      'functions/already-exists':     '이미 등록된 이메일이에요',
-      'functions/invalid-argument':   '입력값을 확인해주세요',
-      'functions/permission-denied':  '관리자 권한이 필요해요',
-    };
-    showToast(MSG[e.code] || '사용자 추가에 실패했어요', 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '+ 추가';
-  }
-}
-
-async function deleteUser(uid) {
-  if (!isAdmin) return;
-  try {
-    const deleteUserFn = functions.httpsCallable('deleteUser');
-    await deleteUserFn({ uid });
-    showToast('사용자를 삭제했어요');
-    await renderUserList();
-  } catch(e) {
-    showToast('사용자 삭제에 실패했어요', 'error');
-  }
-}
-
-async function renderUserList() {
-  if (!isAdmin) return;
-  const snap = await db.collection('users').get();
-  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  document.getElementById('userCountBadge').textContent = users.length;
-  document.getElementById('userList').innerHTML = users.map(u => `
-    <div class="user-item">
-      <div class="user-avatar">${getAvatar(u.displayName || u.email || '')}</div>
-      <div class="user-info">
-        <div class="user-name">${escapeHtml(u.displayName || '이름 없음')}
-          <span class="user-role-badge ${u.role==='admin'?'user-role-admin':'user-role-reader'}">${u.role==='admin'?'관리자':'독자'}</span>
-        </div>
-        <div class="user-email">${escapeHtml(u.email || '')}</div>
-      </div>
-      ${u.role !== 'admin' ? `<button class="user-del-btn" onclick="deleteUser('${u.id}')">삭제</button>` : ''}
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  네이버 책 검색 — 직접 호출 (임시 방식 / v2.2.1)
-//
-//  ⚠️  API 키가 브라우저에 노출됩니다.
-//  GitHub 저장소를 반드시 Private으로 유지하세요.
-//
-//  ▶ 아래 두 줄에 본인 네이버 API 키를 입력하세요
-// ═══════════════════════════════════════════════════════════════
-const NAVER_CLIENT_ID     = "여기에_Client_ID_입력";
-const NAVER_CLIENT_SECRET = "여기에_Client_Secret_입력";
-
-async function callNaverBookAPI(q) {
-  // CORS 우회 프록시 (allorigins) — 네이버 API는 브라우저 직접호출 차단
-  const apiUrl  = `https://openapi.naver.com/v1/search/book.json?query=${encodeURIComponent(q)}&display=10&start=1`;
-  const proxy   = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-
-  const res  = await fetch(proxy, {
-    headers: {
-      'X-Naver-Client-Id':     NAVER_CLIENT_ID,
-      'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
-    },
-  });
-  if (!res.ok) throw new Error('네트워크 오류');
-
-  const data   = await res.json();
-  const parsed = JSON.parse(data.contents);
-
-  return (parsed.items || []).map(item => ({
-    title:       item.title,
-    author:      item.author,
-    description: item.description,
-    coverUrl:    item.image,
-    publisher:   item.publisher,
-    pubdate:     item.pubdate,
-  }));
-}
-
-async function searchNaverBook() {
-  const q   = document.getElementById('naverSearchInput').value.trim();
-  if (!q) { showToast('검색어를 입력해주세요', 'error'); return; }
-
-  const btn = document.getElementById('naverSearchBtn');
-  btn.disabled = true; btn.textContent = '검색 중...';
-  document.getElementById('naverResults').innerHTML = '<div class="naver-status">🔍 검색 중...</div>';
-
-  try {
-    const items = await callNaverBookAPI(q);
-    renderNaverResults(items);
-  } catch(e) {
-    document.getElementById('naverResults').innerHTML =
-      '<div class="naver-status err">검색 실패. 잠시 후 다시 시도해주세요.</div>';
-    showToast('검색 중 오류가 발생했어요', 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '검색';
-  }
-}
-
-function renderNaverResults(items) {
-  const el = document.getElementById('naverResults');
-  if (!items || !items.length) {
-    el.innerHTML = '<div class="naver-status err">검색 결과가 없어요</div>';
-    return;
-  }
-  // JSON.stringify를 onclick에 직접 넣지 않고 dataset을 활용합니다 (XSS 방지)
-  el.innerHTML = items.map((item, i) => `
-    <div class="naver-result-item" id="naverItem_${i}" data-idx="${i}">
-      <div class="naver-result-cover">
-        ${item.coverUrl ? `<img src="${escapeHtml(item.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='📚'">` : '📚'}
-      </div>
-      <div class="naver-result-info">
-        <div class="naver-result-title">${escapeHtml(item.title)}</div>
-        <div class="naver-result-author">${escapeHtml(item.author)} · ${escapeHtml(item.publisher||'')}</div>
-        <div class="naver-result-desc">${escapeHtml(item.description||'')}</div>
-      </div>
-    </div>`).join('');
-
-  // 클릭 이벤트는 data 속성 + 클로저로 처리 (onclick 인라인 JSON 제거)
-  items.forEach((item, i) => {
-    const el2 = document.getElementById(`naverItem_${i}`);
-    if (el2) el2.addEventListener('click', () => selectNaverBook(i, item));
-  });
-}
-
-function selectNaverBook(idx, item) {
-  naverSelectedBook = item;
-  document.querySelectorAll('.naver-result-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById(`naverItem_${idx}`)?.classList.add('selected');
-
-  document.getElementById('addTitle').value  = stripHtmlTags(item.title  || '');
-  document.getElementById('addAuthor').value = stripHtmlTags(item.author || '');
-  document.getElementById('addSyn').value    = stripHtmlTags(item.description || '');
-
-  document.getElementById('titleFilledBadge').style.display  = item.title       ? '' : 'none';
-  document.getElementById('authorFilledBadge').style.display = item.author      ? '' : 'none';
-  document.getElementById('synFilledBadge').style.display    = item.description ? '' : 'none';
-
-  if (item.coverUrl) {
-    addCoverBase64 = item.coverUrl;
-    const img = document.getElementById('coverPreviewImg');
-    img.src = item.coverUrl; img.style.display = '';
-    document.getElementById('coverPreviewEmpty').style.display = 'none';
-    document.getElementById('coverClearBtn').style.display = '';
-    document.getElementById('coverAutoBadge').style.display = '';
-  }
-  showToast('메타정보를 불러왔어요 ✓');
-}
-
-// ── 표지 업로드 ──────────────────────────────────────────────
-function onCoverImgSelect(input) {
-  const file = input.files[0]; if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('이미지 파일만 업로드할 수 있어요', 'error'); input.value=''; return; }
-  if (file.size > 5 * 1024 * 1024) { showToast('이미지는 5MB 이하만 가능해요', 'error'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    addCoverBase64 = e.target.result;
-    const img = document.getElementById('coverPreviewImg');
-    img.src = addCoverBase64; img.style.display = '';
-    document.getElementById('coverPreviewEmpty').style.display = 'none';
-    document.getElementById('coverClearBtn').style.display = '';
-    document.getElementById('coverAutoBadge').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-function clearCoverPreview() {
-  addCoverBase64 = '';
-  if (naverSelectedBook) naverSelectedBook = { ...naverSelectedBook, coverUrl:'' };
-  const img = document.getElementById('coverPreviewImg');
-  img.src = ''; img.style.display = 'none';
-  document.getElementById('coverPreviewEmpty').style.display = '';
-  document.getElementById('coverClearBtn').style.display     = 'none';
-  document.getElementById('coverAutoBadge').style.display    = 'none';
-  document.getElementById('coverImgInput').value = '';
-}
-
-// ── 소설 추가 ──────────────────────────────────────────────────
-function openAdd() {
-  if (!isAdmin) { showToast('관리자만 소설을 추가할 수 있어요', 'error'); return; }
-  document.getElementById('addModal').classList.add('on');
-}
-function closeAdd() {
-  document.getElementById('addModal').classList.remove('on');
-  ['addTitle','addAuthor','addSyn','addTags','naverSearchInput'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('fileName').style.display  = 'none';
-  document.getElementById('fileDropIcon').textContent = '📄';
-  document.getElementById('fileDropText').textContent = '탭하거나 파일을 여기에 끌어다 놓으세요';
-  document.getElementById('fileDrop').classList.remove('has-file');
-  document.getElementById('fileInput').value = '';
-  document.getElementById('naverResults').innerHTML = '';
-  ['titleFilledBadge','authorFilledBadge','synFilledBadge','coverAutoBadge','coverClearBtn']
-    .forEach(id => { document.getElementById(id).style.display = 'none'; });
-  const img = document.getElementById('coverPreviewImg');
-  img.src = ''; img.style.display = 'none';
-  document.getElementById('coverPreviewEmpty').style.display = '';
-  document.getElementById('coverImgInput').value = '';
-  document.querySelectorAll('#genreSel .genre-sel-btn').forEach(b => b.classList.remove('on'));
-  selG = null; curFile = null; naverSelectedBook = null; addCoverBase64 = '';
-  const btn = document.getElementById('addSaveBtn');
-  btn.disabled = false; btn.textContent = '서재에 추가';
-}
-
-function selGenre(el) {
-  selG = el.dataset.g;
-  document.querySelectorAll('#genreSel .genre-sel-btn').forEach(b => b.classList.remove('on'));
-  el.classList.add('on');
-}
-
-function onFileDrop(e) {
-  const file = e.dataTransfer.files[0]; if (!file) return;
-  applySelectedFile(file);
-}
-function onFileSelect(input) {
-  const file = input.files[0]; if (!file) return;
-  applySelectedFile(file);
-}
-function applySelectedFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (!['txt','text'].includes(ext) || (!file.type.startsWith('text/') && file.type !== '')) {
-    showToast('TXT 파일만 업로드할 수 있어요', 'error'); return;
-  }
-  if (file.size > 20 * 1024 * 1024) {
-    showToast('파일이 너무 커요 (최대 20MB)', 'error'); return;
-  }
-  curFile = file;
-  const sizeStr = file.size > 1024*1024
-    ? (file.size/1024/1024).toFixed(1)+'MB'
-    : Math.round(file.size/1024)+'KB';
-  document.getElementById('fileDropIcon').textContent = '✅';
-  document.getElementById('fileDropText').textContent = '파일 선택됨';
-  document.getElementById('fileName').textContent     = `${file.name}  (${sizeStr})`;
-  document.getElementById('fileName').style.display   = 'block';
-  document.getElementById('fileDrop').classList.add('has-file');
-  const titleEl = document.getElementById('addTitle');
-  if (!titleEl.value) titleEl.value = file.name.replace(/\.(txt|text)$/i,'').trim();
-}
-
-async function saveNovel() {
-  if (!isAdmin) { showToast('관리자만 소설을 추가할 수 있어요', 'error'); return; }
-  const title = document.getElementById('addTitle').value.trim();
-  if (!title) { showToast('제목을 입력해주세요', 'error'); return; }
-
-  const btn = document.getElementById('addSaveBtn');
-  btn.disabled = true; btn.textContent = curFile ? '파일 읽는 중...' : '저장 중...';
-
-  try {
-    let inlineText = '';
-    let totalChars = 0;
-    if (curFile) {
-      inlineText = await readTextFileAsync(curFile, pct => {
-        btn.textContent = `읽는 중... ${pct}%`;
-      });
-      totalChars = inlineText.length;
-    }
-
-    const novelData = {
-      title,
-      author:    document.getElementById('addAuthor').value.trim() || '작자 미상',
-      genre:     selG || 'etc',
-      synopsis:  document.getElementById('addSyn').value.trim(),
-      tags:      document.getElementById('addTags').value.split(',').map(t => t.trim()).filter(Boolean),
-      coverUrl:  addCoverBase64,
-      totalChars,
-      inlineText,
-      addedAt:   firebase.firestore.FieldValue.serverTimestamp(),
-      addedBy:   currentUser.uid,
-    };
-
-    btn.textContent = '저장 중...';
-    const ref = await db.collection('novels').add(novelData);
-
-    const chCount = splitCh(inlineText).length;
-    closeAdd();
-    showToast(`서재에 추가했어요 📚  총 ${chCount}화`);
-  } catch(e) {
-    console.error('saveNovel error:', e);
-    showToast('저장에 실패했어요: ' + e.message, 'error');
-    btn.disabled = false; btn.textContent = '서재에 추가';
-  }
-}
-
-// UTF-8 → EUC-KR 폴백 파일 읽기 (Promise 버전)
-function readTextFileAsync(file, onProgress) {
-  return new Promise((resolve, reject) => {
-    const tryRead = (encoding, fallback) => {
-      const reader = new FileReader();
-      if (onProgress) {
-        reader.onprogress = e => {
-          if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
-        };
-      }
-      reader.onload = e => {
-        const text    = e.target.result || '';
-        const garbled = (text.match(/\uFFFD/g)||[]).length / Math.max(text.length, 1);
-        if (garbled > 0.005 && fallback) {
-          tryRead(fallback, null);
-        } else {
-          resolve(text);
-        }
-      };
-      reader.onerror = () => reject(new Error('파일을 읽을 수 없어요'));
-      reader.readAsText(file, encoding);
-    };
-    tryRead('UTF-8', 'EUC-KR');
-  });
-}
-
-// ── 소설 삭제 (관리자) ────────────────────────────────────────
-async function deleteNovel() {
-  const n = novels.find(x => x.id === curId); if (!n) return;
-  document.getElementById('confirmMsg').textContent =
-    `"${n.title}"을(를) 전체 삭제할까요? 모든 유저에게서 사라져요.`;
-  document.getElementById('confirmOv').classList.add('on');
-  document.getElementById('confirmOkBtn').onclick = async () => {
-    closeConfirm();
-    try {
-      await db.collection('novels').doc(curId).delete();
-      closeDetail();
-      showToast('삭제했어요');
-    } catch(e) {
-      showToast('삭제에 실패했어요', 'error');
-    }
-  };
-}
-function closeConfirm() { document.getElementById('confirmOv').classList.remove('on'); }
-
-// ── 서재에서 제거 (개인) ──────────────────────────────────────
-async function removeFromShelf() {
-  await setNovelUserData(curId, { progress:0, favorite:false, lastReadAt:null, ch:0 });
-  delete userDataCache[curId];
-  closeDetail();
-  batchRender();
-  showToast('내 서재에서 제거했어요');
-}
-function confirmShelfRemove(id) {
-  const n = novels.find(x => x.id === id); if (!n) return;
-  curId = id;
-  document.getElementById('confirmMsg').textContent =
-    `"${n.title}"을(를) 내 서재에서 제거할까요? (읽기 기록도 초기화돼요)`;
-  document.getElementById('confirmOv').classList.add('on');
-  document.getElementById('confirmOkBtn').onclick = () => {
-    closeConfirm(); removeFromShelf();
-  };
-}
-
-// ── 소설 다운로드 ─────────────────────────────────────────────
-function downloadNovel() {
-  const n = novels.find(x => x.id === curId); if (!n || !n.inlineText) {
-    showToast('다운로드할 텍스트가 없어요', 'error'); return;
-  }
-  const blob = new Blob([n.inlineText], { type:'text/plain;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = (n.title || 'novel') + '.txt';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-  showToast('다운로드 완료 📄');
-}
-
-// ── 소설 수정 (관리자) ────────────────────────────────────────
-function openEdit() {
-  if (!isAdmin) { showToast('관리자만 수정할 수 있어요', 'error'); return; }
-  const n = novels.find(x => x.id === curId); if (!n) return;
-  document.getElementById('editTitle').value  = n.title   || '';
-  document.getElementById('editAuthor').value = n.author  || '';
-  document.getElementById('editSyn').value    = n.synopsis || '';
-  document.getElementById('editTags').value   = (n.tags||[]).join(', ');
-  selEditG = n.genre || null;
-  document.querySelectorAll('#editGenreSel .genre-sel-btn').forEach(btn => {
-    btn.classList.toggle('on', btn.dataset.g === selEditG);
-  });
-  editCoverBase64 = n.coverUrl || '';
-  const img = document.getElementById('editCoverImg');
-  if (editCoverBase64) {
-    img.src = editCoverBase64; img.style.display = '';
-    document.getElementById('editCoverEmpty').style.display    = 'none';
-    document.getElementById('editCoverClearBtn').style.display = '';
-  } else {
-    img.src = ''; img.style.display = 'none';
-    document.getElementById('editCoverEmpty').style.display    = '';
-    document.getElementById('editCoverClearBtn').style.display = 'none';
-  }
-  document.getElementById('editModal').classList.add('on');
-}
-function closeEdit() { document.getElementById('editModal').classList.remove('on'); }
-
-function selEditGenre(btn) {
-  selEditG = btn.dataset.g;
-  document.querySelectorAll('#editGenreSel .genre-sel-btn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-}
-function onEditCoverSelect(input) {
-  const file = input.files[0]; if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast('이미지 파일만 업로드할 수 있어요', 'error'); input.value=''; return; }
-  if (file.size > 5 * 1024 * 1024) { showToast('이미지는 5MB 이하만 가능해요', 'error'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    editCoverBase64 = e.target.result;
-    const img = document.getElementById('editCoverImg');
-    img.src = editCoverBase64; img.style.display = '';
-    document.getElementById('editCoverEmpty').style.display    = 'none';
-    document.getElementById('editCoverClearBtn').style.display = '';
-  };
-  reader.readAsDataURL(file);
-}
-function clearEditCover() {
-  editCoverBase64 = '';
-  const img = document.getElementById('editCoverImg');
-  img.src = ''; img.style.display = 'none';
-  document.getElementById('editCoverEmpty').style.display    = '';
-  document.getElementById('editCoverClearBtn').style.display = 'none';
-  document.getElementById('editCoverInput').value = '';
-}
-
-async function saveEdit() {
-  if (!isAdmin) { showToast('관리자만 수정할 수 있어요', 'error'); return; }
-  const title = document.getElementById('editTitle').value.trim();
-  if (!title) { showToast('제목을 입력해주세요', 'error'); return; }
-
-  const btn = document.getElementById('editSaveBtn');
-  btn.disabled = true; btn.textContent = '저장 중...';
-
-  try {
-    await db.collection('novels').doc(curId).update({
-      title,
-      author:   document.getElementById('editAuthor').value.trim() || '작자 미상',
-      genre:    selEditG || 'etc',
-      synopsis: document.getElementById('editSyn').value.trim(),
-      tags:     document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(Boolean),
-      coverUrl: editCoverBase64,
-    });
-    _chsCache.delete(curId);
-    closeEdit();
-    openDetail(curId);
-    showToast('수정했어요 ✓');
-  } catch(e) {
-    showToast('수정에 실패했어요', 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '수정 완료';
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  TAB / RENDER
-// ═══════════════════════════════════════════════════════════════
-function switchTab(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
-  document.getElementById('page-' + name)?.classList.add('active');
-  document.getElementById('tab-'  + name)?.classList.add('on');
-  document.getElementById('navAddBtn').style.display = (name === 'home' && isAdmin) ? 'flex' : 'none';
-  if (name === 'home')    renderHome();
-  if (name === 'shelf')   { renderGenreTabs(); renderShelf(); }
-  if (name === 'profile') renderProfile();
-}
-
-let _rafPending = false;
-function batchRender() {
-  if (_rafPending) return;
-  _rafPending = true;
-  requestAnimationFrame(() => {
-    _rafPending = false;
-    renderHome();
-    if (document.getElementById('page-shelf').classList.contains('active')) renderShelf();
-  });
-}
-
-// ── HOME ──────────────────────────────────────────────────────
-function renderHome() {
-  const today = new Date();
-  document.getElementById('homeDate').textContent =
-    today.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
-
-  const nlist   = getNovelsWithUserData();
-  const total   = nlist.length;
-  const reading = nlist.filter(n => n.progress > 0 && n.progress < 100).length;
-  const done    = nlist.filter(n => n.progress >= 100).length;
-
-  document.getElementById('homeEmpty').style.display  = 'none';
-  document.getElementById('homeStats').style.display  = '';
-  document.getElementById('homeStreak').style.display = '';
-  document.getElementById('statTotal').textContent     = total;
-  document.getElementById('statReading').textContent   = reading;
-  document.getElementById('statDone').textContent      = done;
-  document.getElementById('streakText').textContent    = done > 0 ? `완독 ${done}권 달성! 🔥` : '오늘 독서를 시작해보세요';
-  document.getElementById('streakSub').textContent     = reading > 0 ? `${reading}권 읽는 중` : '';
-
-  const inProg = [...nlist]
-    .filter(n => n.lastReadAt && n.progress < 100)
-    .sort((a,b) => new Date(b.lastReadAt) - new Date(a.lastReadAt))
-    .slice(0, 5);
-  document.getElementById('secContinue').style.display = inProg.length ? '' : 'none';
-  document.getElementById('continueList').innerHTML = inProg.map(n => {
-    const cc   = genreCoverClass(n.genre);
-    const icon = GENRE_ICON[n.genre] || '📖';
-    const cover = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='continue-thumb ${cc}';this.parentElement.innerHTML='<span style=font-size:20px>${icon}</span>'">`
-      : `<span style="font-size:20px">${icon}</span>`;
-    return `<div class="continue-card" onclick="openDetail('${n.id}')">
-      <div class="continue-thumb ${n.coverUrl ? '' : cc}">${cover}</div>
-      <div class="continue-info">
-        <div class="continue-title">${escapeHtml(n.title)}</div>
-        <div class="continue-author">${escapeHtml(n.author || '작자 미상')}</div>
-        <div class="continue-bar"><div class="continue-fill" style="width:${n.progress}%"></div></div>
-        <div class="continue-pct">${n.progress}% 진행</div>
-      </div>
-      <button class="continue-btn" onclick="event.stopPropagation();openViewer('${n.id}')">읽기</button>
-    </div>`;
-  }).join('');
-
-  const recent = [...nlist].sort((a,b) => new Date(b.addedAt) - new Date(a.addedAt)).slice(0, 6);
-  document.getElementById('secRecent').style.display = '';
-  document.getElementById('recentGrid').innerHTML = recent.map(n => {
-    const cc   = genreCoverClass(n.genre);
-    const icon = GENRE_ICON[n.genre] || '📖';
-    const cover = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='recent-cover ${cc}';this.parentElement.innerHTML='<span class=recent-cover-icon>${icon}</span>'">`
-      : `<span class="recent-cover-icon">${icon}</span>`;
-    return `<div class="recent-card" onclick="openDetail('${n.id}')">
-      <div class="recent-cover ${n.coverUrl ? '' : cc}">${cover}
-        ${n.progress >= 100 ? '<div class="done-badge">완독</div>' : ''}
-        ${n.progress > 0 && n.progress < 100 ? `<div class="pct-badge">${n.progress}%</div>` : ''}
-        <button class="fav-btn" onclick="event.stopPropagation();toggleFav('${n.id}')">${n.favorite ? '⭐' : '☆'}</button>
-      </div>
-      <div class="recent-title">${escapeHtml(n.title)}</div>
-      <div class="recent-author">${escapeHtml(n.author || '')}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── SHELF ─────────────────────────────────────────────────────
-function renderGenreTabs() {
-  const genres = ['all','romance','fantasy','thriller','sf','historical','mystery','etc'];
-  const labels = { all:'전체', romance:'로맨스', fantasy:'판타지', thriller:'스릴러', sf:'SF', historical:'역사', mystery:'미스터리', etc:'기타' };
-  document.getElementById('genreTabs').innerHTML = genres.map(g =>
-    `<button class="genre-tab${g === selGenreFilter ? ' on' : ''}" onclick="setGenreFilter('${g}')">${labels[g]}</button>`
-  ).join('');
-}
-function setGenreFilter(g) {
-  selGenreFilter = g;
-  document.querySelectorAll('.genre-tab').forEach(t => t.classList.remove('on'));
-  document.querySelectorAll('.genre-tab')[['all','romance','fantasy','thriller','sf','historical','mystery','etc'].indexOf(g)]?.classList.add('on');
-  renderShelf();
-}
-function setFilter(mode, el) {
-  filterMode = mode;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('on'));
-  el.classList.add('on');
-  renderShelf();
-}
-function toggleShelfView() {
-  shelfView = shelfView === 'grid' ? 'list' : 'grid';
-  document.getElementById('viewBtn').textContent = shelfView === 'grid' ? '⊞' : '☰';
-  renderShelf();
-}
-function toggleSort() {
-  const modes  = ['recent','title','progress','done'];
-  const labels = { recent:'최근 추가', title:'제목순', progress:'진행률', done:'완독순' };
-  sortMode = modes[(modes.indexOf(sortMode)+1) % modes.length];
-  document.getElementById('sortLabel').textContent = labels[sortMode];
-  renderShelf();
-}
-let _shelfTimer = null;
-function debounceShelf() {
-  clearTimeout(_shelfTimer);
-  _shelfTimer = setTimeout(renderShelf, 180);
-}
-
-function renderShelf() {
-  const q = document.getElementById('shelfSearch').value.toLowerCase();
-  let list = getNovelsWithUserData().filter(n => n.progress > 0 || n.favorite);
-  if (selGenreFilter !== 'all') list = list.filter(n => n.genre === selGenreFilter);
-  if (filterMode === 'favorite') list = list.filter(n => n.favorite);
-  if (filterMode === 'inprog')   list = list.filter(n => n.progress > 0 && n.progress < 100);
-  if (filterMode === 'done')     list = list.filter(n => n.progress >= 100);
-  if (q) list = list.filter(n => (n.title + n.author + (n.tags||[]).join('')).toLowerCase().includes(q));
-  if (sortMode === 'title')    list.sort((a,b) => a.title.localeCompare(b.title));
-  if (sortMode === 'progress') list.sort((a,b) => b.progress - a.progress);
-  if (sortMode === 'done')     list.sort((a,b) => (b.progress>=100?1:0) - (a.progress>=100?1:0));
-  if (sortMode === 'recent')   list.sort((a,b) => new Date(b.addedAt) - new Date(a.addedAt));
-
-  const grid = document.getElementById('shelfGrid');
-  grid.className = shelfView === 'grid' ? 'shelf-grid' : 'shelf-grid list';
-  if (!list.length) {
-    grid.innerHTML = '<div class="shelf-empty">📭 아직 서재가 비어있어요<br><span style="font-size:11px">홈에서 책을 읽거나 즐겨찾기하면 여기에 추가돼요</span></div>';
-    return;
-  }
-  const CHUNK = 30;
-  const renderItem = n => {
-    const cc   = genreCoverClass(n.genre);
-    const icon = GENRE_ICON[n.genre] || '📖';
-    if (shelfView === 'list') {
-      const cover = n.coverUrl ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` : '';
-      return `<div class="shelf-list-card" onclick="openDetail('${n.id}')">
-        <div class="shelf-list-thumb ${n.coverUrl ? '' : cc}">${cover || icon}</div>
-        <div class="shelf-list-info">
-          <div class="shelf-list-title">${escapeHtml(n.title)}</div>
-          <div class="shelf-list-author">${escapeHtml(n.author||'작자 미상')} · ${GENRE_LABEL[n.genre]||'기타'}</div>
-          <div class="shelf-list-bar"><div class="shelf-list-fill" style="width:${n.progress}%"></div></div>
-          <div class="shelf-list-pct">${n.progress}%${n.progress>=100?' · 완독':''}</div>
-        </div>
-        <button class="shelf-list-remove-btn" onclick="event.stopPropagation();confirmShelfRemove('${n.id}')">제거</button>
-      </div>`;
-    }
-    const cover = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='card-cover ${cc}';this.remove()">`
-      : `<span class="card-cover-icon">${icon}</span>`;
-    return `<div class="card" onclick="openDetail('${n.id}')">
-      <div class="card-cover ${n.coverUrl ? '' : cc}">${cover}
-        ${n.progress>=100?'<div class="done-badge">완독</div>':''}
-        ${n.progress>0&&n.progress<100?`<div class="pct-badge">${n.progress}%</div>`:''}
-        <button class="fav-btn" onclick="event.stopPropagation();toggleFav('${n.id}')">${n.favorite?'⭐':'☆'}</button>
-        <button class="shelf-remove-btn" onclick="event.stopPropagation();confirmShelfRemove('${n.id}')" title="제거">✕</button>
-      </div>
-      <div class="card-title">${escapeHtml(n.title)}</div>
-      <div class="card-author">${escapeHtml(n.author||'')}</div>
-    </div>`;
-  };
-
-  grid.innerHTML = list.slice(0, CHUNK).map(renderItem).join('');
-  if (list.length > CHUNK) {
-    const rest = list.slice(CHUNK);
-    const loadMore = () => grid.insertAdjacentHTML('beforeend', rest.map(renderItem).join(''));
-    'requestIdleCallback' in window
-      ? requestIdleCallback(loadMore, { timeout:300 })
-      : setTimeout(loadMore, 50);
-  }
-}
-
-// ── 즐겨찾기 ─────────────────────────────────────────────────
-async function toggleFav(id) {
-  const ud     = getNovelUserData(id);
-  const newFav = !ud.favorite;
-  await setNovelUserData(id, { favorite: newFav });
-  batchRender();
-  showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
-}
-async function toggleFavDetail() {
-  if (!curId) return;
-  const ud     = getNovelUserData(curId);
-  const newFav = !ud.favorite;
-  await setNovelUserData(curId, { favorite: newFav });
-  document.getElementById('dFavBtn').textContent = newFav ? '⭐' : '☆';
-  batchRender();
-  showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
-}
-
-// ── DETAIL ───────────────────────────────────────────────────
-function openDetail(id) {
-  const _n = novels.find(x => x.id === id); if (!_n) return;
-  const n  = { ..._n, ...getNovelUserData(id) };
-  curId = id;
-  document.getElementById('detail').style.display = 'block';
-  const cc = genreCoverClass(n.genre);
-  document.getElementById('dHeroBgColor').className = 'dhero-bg-color ' + cc;
-  const coverEl = document.getElementById('dCover');
-  coverEl.className = 'dcover ' + (n.coverUrl ? '' : cc);
-  coverEl.innerHTML = n.coverUrl
-    ? `<img src="${escapeHtml(n.coverUrl)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='dcover ${cc}';this.parentElement.textContent='${GENRE_ICON[n.genre]||'📖'}'">` 
-    : GENRE_ICON[n.genre] || '📖';
-  document.getElementById('dTitle').textContent  = n.title;
-  document.getElementById('dAuthor').textContent = n.author || '작자 미상';
-  document.getElementById('dMeta').textContent   = (GENRE_LABEL[n.genre]||'기타') + ' · ' + Math.round((n.totalChars||0)/500) + 'p';
-  document.getElementById('dProgFill').style.width = n.progress + '%';
-  document.getElementById('dProgText').textContent = n.progress > 0 ? n.progress + '% 진행 중' : '아직 읽지 않았어요';
-  document.getElementById('dStatProg').textContent  = n.progress + '%';
-  document.getElementById('dStatPages').textContent = Math.round((n.totalChars||0)/500) + 'p';
-  document.getElementById('dSyn').textContent  = n.synopsis || '줄거리 없음';
-  document.getElementById('dTags').innerHTML   = (n.tags&&n.tags.length)
-    ? n.tags.map(t => `<span class="dtag">#${escapeHtml(t)}</span>`).join('') : '태그 없음';
-  document.getElementById('dDlBtn').style.display      = n.inlineText ? '' : 'none';
-  document.getElementById('dDelBtn').style.display     = isAdmin ? '' : 'none';
-  document.getElementById('dEditBtn').style.display    = isAdmin ? '' : 'none';
-  document.getElementById('dShelfRemBtn').style.display = (n.progress>0||n.favorite) ? '' : 'none';
-  document.getElementById('dReadBtn').textContent      = n.progress > 0 ? '이어 읽기' : '처음부터 읽기';
-  document.getElementById('dFavBtn').textContent       = n.favorite ? '⭐' : '☆';
-}
-function closeDetail() { document.getElementById('detail').style.display = 'none'; }
-function readFromDetail() { openViewer(curId); }
-
-// ── PROFILE ──────────────────────────────────────────────────
-async function renderProfile() {
-  if (!currentUser) return;
-  const name   = currentUser.displayName || currentUser.email.split('@')[0];
-  document.getElementById('profileAvatar').textContent = getAvatar(name);
-  document.getElementById('profileName').textContent   = name;
-  document.getElementById('profileEmail').textContent  = currentUser.email;
-  document.getElementById('profileRole').textContent   = isAdmin ? '관리자' : '독자';
-  const plist   = getNovelsWithUserData();
-  const total   = plist.length;
-  const reading = plist.filter(n => n.progress > 0 && n.progress < 100).length;
-  const done    = plist.filter(n => n.progress >= 100).length;
-  document.getElementById('pStatTotal').textContent   = total;
-  document.getElementById('pStatReading').textContent = reading;
-  document.getElementById('pStatDone').textContent    = done;
-  document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) {
-    await renderPendingList();
-    await renderUserList();
-  }
-}
-
-// ── USER MENU ─────────────────────────────────────────────────
-function toggleUserMenu(e) { e.stopPropagation(); document.getElementById('userMenu').classList.toggle('open'); }
-function closeUserMenu()    { document.getElementById('userMenu').classList.remove('open'); }
-document.addEventListener('click', closeUserMenu);
-
-// ═══════════════════════════════════════════════════════════════
-//  VIEWER
-// ═══════════════════════════════════════════════════════════════
-function getChs(nov) {
-  if (!_chsCache.has(nov.id)) _chsCache.set(nov.id, splitCh(nov.inlineText || ''));
-  return _chsCache.get(nov.id);
-}
-
-function splitCh(txt) {
-  const lines = txt.split('\n');
-  const chs = []; let title = '', body = [];
-  const isChLine = l => {
-    const t = l.trim();
-    if (!t || t.length > 80) return false;
-    if (/^[\*\-=─━\s·.]{3,}$/.test(t)) return false;
-    return /^(\d{1,4}[화장편권]|제\s*\d+\s*[화장편권]|\d{1,4}\.\s+\S|\[?\(?\d{1,4}\)?\]?\s*$)/.test(t) ||
-           /^chapter\s*\d+/i.test(t) ||
-           /^(프롤로그|에필로그|후기|작가의\s*말|외전|번외|챕터\s*\d+)/.test(t) ||
-           /^[★◆■◇◈▶●○※]\s*.{1,20}$/.test(t);
-  };
-  for (const line of lines) {
-    if (isChLine(line)) {
-      if (title || body.join('').trim()) chs.push({ title: title || '본문', content: body.join('\n').trim() });
-      title = line.trim(); body = [];
-    } else body.push(line);
-  }
-  if (title || body.join('').trim()) chs.push({ title: title || '본문', content: body.join('\n').trim() });
-  return chs.length ? chs : [{ title:'본문', content:txt }];
-}
-
-function openViewer(id) {
-  const _nov = novels.find(x => x.id === id); if (!_nov) return;
-  if (!_nov.inlineText) { showToast('읽기 가능한 파일이 없어요'); return; }
-  curId = id;
-  _nov._chs = getChs(_nov);
-  const saved = getNovelUserData(id);
-  curCh = saved.ch || 0;
-  if (curCh >= _nov._chs.length) curCh = 0;
-
-  document.getElementById('viewer').style.display  = 'flex';
-  document.getElementById('mainNav').style.display  = 'none';
-  document.getElementById('tabBar').style.display   = 'none';
-  applyViewerSettings();
-  _animDir = 'next';
-  renderCh();
-}
-function closeViewer() {
-  clearTimeout(_progressTimer);
-  setNovelUserData(curId, { ch: curCh });
-  document.getElementById('viewer').style.display  = 'none';
-  document.getElementById('mainNav').style.display = 'flex';
-  document.getElementById('tabBar').style.display  = 'flex';
-  renderHome();
-}
-
-function renderCh() {
-  const _nov2 = novels.find(x => x.id === curId); if (!_nov2) return;
-  const _chs  = getChs(_nov2); if (!_chs?.length) return;
-
-  if (_idleHandle) {
-    'cancelIdleCallback' in window ? cancelIdleCallback(_idleHandle) : clearTimeout(_idleHandle);
-    _idleHandle = null;
-  }
-  const gen = ++_renderGen;
-  const ch  = _chs[curCh];
-
-  const vChTitle = document.getElementById('vChTitle');
-  vChTitle.textContent   = ch.title;
-  vChTitle.style.display = _chs.length === 1 ? 'none' : '';
-
-  const vText = document.getElementById('vText');
-  const paras = ch.content.split(/\n{2,}/).filter(p => p.trim());
-  const FIRST = 12;
-  const frag  = document.createDocumentFragment();
-  if (paras.length) {
-    paras.slice(0, FIRST).forEach(p => {
-      const el = document.createElement('p');
-      el.textContent = p; frag.appendChild(el);
-    });
-  } else {
-    const el = document.createElement('p');
-    el.style.cssText = 'color:var(--ink3);font-style:italic';
-    el.textContent = '(내용 없음)'; frag.appendChild(el);
-  }
-  vText.innerHTML = ''; vText.appendChild(frag);
-
-  if (paras.length > FIRST) {
-    const rest = paras.slice(FIRST);
-    const renderRest = () => {
-      if (gen !== _renderGen) return;
-      const rf = document.createDocumentFragment();
-      rest.forEach(p => { const el = document.createElement('p'); el.textContent = p; rf.appendChild(el); });
-      vText.appendChild(rf); _idleHandle = null;
-    };
-    _idleHandle = 'requestIdleCallback' in window
-      ? requestIdleCallback(renderRest, { timeout:400 })
-      : setTimeout(renderRest, 50);
-  }
-
-  const vPage = document.getElementById('vPage');
-  vPage.classList.remove('anim-next','anim-prev');
-  requestAnimationFrame(() => vPage.classList.add(_animDir === 'next' ? 'anim-next' : 'anim-prev'));
-
-  const total = _chs.length;
-  const pct   = total > 1 ? Math.min(99, Math.round((curCh / (total-1)) * 100)) : (getNovelUserData(curId).progress || 1);
-  clearTimeout(_progressTimer);
-  _progressTimer = setTimeout(() => {
-    setNovelUserData(curId, { progress:pct, lastReadAt:new Date().toISOString(), ch:curCh });
-  }, 800);
-}
-
-function nextCh() {
-  const _nov = novels.find(x => x.id === curId); if (!_nov?._chs) return;
-  if (_nov._chs.length === 1) return;
-  if (curCh < _nov._chs.length - 1) { _animDir = 'next'; curCh++; renderCh(); }
-  else {
-    setNovelUserData(curId, { progress:100, lastReadAt:new Date().toISOString(), ch:0 });
-    document.getElementById('completeMsg').textContent = `"${_nov.title}"`;
-    document.getElementById('completeOv').classList.add('on');
-  }
-}
-function prevCh() {
-  if (curCh > 0) { _animDir = 'prev'; curCh--; renderCh(); }
-}
-function closeComplete(exit) {
-  document.getElementById('completeOv').classList.remove('on');
-  if (exit) closeViewer();
-  else { curCh = 0; _animDir = 'next'; renderCh(); }
-}
-
-// ── VIEWER POPUP ──────────────────────────────────────────────
-function openViewerPopup() {
-  const _nov = novels.find(x => x.id === curId); if (!_nov) return;
-  const total = _nov._chs ? _nov._chs.length : 1;
-  document.getElementById('vpopupTitle').textContent = _nov.title;
-  document.getElementById('vpopupInfo').textContent  = `${curCh+1} / ${total} 페이지  ·  ${getNovelUserData(curId).progress||0}% 진행`;
-  const sw = document.getElementById('vpopupSliderWrap');
-  const sl = document.getElementById('vpopupSlider');
-  if (total > 1) {
-    sw.style.display = ''; sl.max = total - 1; sl.value = curCh;
-    document.getElementById('vpopupSliderLabel').textContent = `${curCh+1} / ${total} 페이지`;
-  } else sw.style.display = 'none';
-  document.getElementById('vpopupOv').classList.add('on');
-}
-function closeViewerPopup() { document.getElementById('vpopupOv').classList.remove('on'); }
-function onSliderInput(v) {
-  const _nov = novels.find(x => x.id === curId);
-  if (_nov?._chs) document.getElementById('vpopupSliderLabel').textContent = `${parseInt(v)+1} / ${_nov._chs.length} 페이지`;
-}
-function onSliderChange(v) { curCh = parseInt(v); closeViewerPopup(); setTimeout(renderCh, 150); }
-
-// ── CHAPTER LIST ──────────────────────────────────────────────
-const CH_PAGE = 100; let chPage = 0;
-function openChList() {
-  const _nov = novels.find(x => x.id === curId); if (!_nov?._chs) return;
-  chPage = Math.floor(curCh / CH_PAGE);
-  document.getElementById('chListTitle').textContent = _nov.title;
-  renderChList();
-  document.getElementById('chListOv').classList.add('on');
-  document.getElementById('chListModal').classList.add('on');
-}
-function closeChList() {
-  document.getElementById('chListOv').classList.remove('on');
-  document.getElementById('chListModal').classList.remove('on');
-}
-function renderChList() {
-  const _nov = novels.find(x => x.id === curId); if (!_nov?._chs) return;
-  const total = _nov._chs.length;
-  const start = chPage * CH_PAGE;
-  const end   = Math.min(start + CH_PAGE, total);
-  const nav = total > CH_PAGE
-    ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:4px">
-        <button onclick="chPageMove(-1)" style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);font-size:12px;cursor:pointer;${chPage===0?'opacity:.4':''}">◀</button>
-        <span style="font-size:12px;color:var(--ink3)">${start+1}~${end} / ${total}</span>
-        <button onclick="chPageMove(1)"  style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);font-size:12px;cursor:pointer;${end>=total?'opacity:.4':''}">▶</button>
-      </div>` : '';
-  document.getElementById('chList').innerHTML = nav + _nov._chs.slice(start, end).map((ch, i) => {
-    const idx = start + i;
-    return `<div class="ch-item${idx===curCh?' active':''}" onclick="jumpCh(${idx})">
-      <span class="ch-num">${idx+1}</span>
-      <span class="ch-title">${escapeHtml(ch.title)}</span>
-      ${idx < curCh ? '<span class="ch-check">✓</span>' : ''}
-    </div>`;
-  }).join('');
-  setTimeout(() => document.querySelector('.ch-item.active')?.scrollIntoView({ block:'center' }), 100);
-}
-function chPageMove(d) {
-  const _nov = novels.find(x => x.id === curId); if (!_nov?._chs) return;
-  chPage = Math.max(0, Math.min(Math.ceil(_nov._chs.length / CH_PAGE) - 1, chPage + d));
-  renderChList();
-}
-function jumpCh(i) { curCh = i; closeChList(); renderCh(); }
-
-// ── READER SETTINGS ───────────────────────────────────────────
-function openSettings()  { syncSettingsUI(); document.getElementById('setOv').classList.add('on'); document.getElementById('setModal').classList.add('on'); }
-function closeSettings() { document.getElementById('setOv').classList.remove('on'); document.getElementById('setModal').classList.remove('on'); }
-
-function applyViewerSettings() {
-  const t  = THEMES[vSettings.theme] || THEMES.light;
-  const vb = document.getElementById('vBody');
-  if (vb) {
-    vb.style.background = t.bg;
-    vb.style.color      = t.ink;
-    vb.style.maxWidth   = vSettings.maxWidth === 9999 ? '100%' : vSettings.maxWidth + 'px';
-  }
-  const vt = document.getElementById('vText');
-  if (vt) {
-    vt.style.fontSize   = vSettings.fontSize + 'px';
-    vt.style.lineHeight = vSettings.lineHeight;
-    vt.style.fontFamily = FONTS[vSettings.fontFamily] || FONTS.system;
-  }
-  const prev = document.getElementById('previewText');
-  if (prev) {
-    prev.style.fontSize   = vSettings.fontSize + 'px';
-    prev.style.fontFamily = FONTS[vSettings.fontFamily] || FONTS.system;
-  }
-  const viewer = document.getElementById('viewer');
-  if (viewer) viewer.style.background = t.bg;
-}
-function syncSettingsUI() {
-  document.getElementById('fontSlider').value = vSettings.fontSize;
-  document.getElementById('fVal').textContent  = vSettings.fontSize;
-  document.getElementById('fValBadge').textContent = vSettings.fontSize + 'px';
-  document.getElementById('lhSlider').value    = vSettings.lineHeight * 100;
-  document.getElementById('lhBadge').textContent   = vSettings.lineHeight;
-  document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('on', c.id === 'theme-' + vSettings.theme));
-  document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('on', b.dataset.font === vSettings.fontFamily));
-  applyViewerSettings();
-}
-function saveSettings() { localStorage.setItem('ns_settings', JSON.stringify(vSettings)); }
-
-function setTheme(t)  { vSettings.theme = t; document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('on', c.id === 'theme-' + t)); applyViewerSettings(); saveSettings(); }
-function setFont(f,el){ vSettings.fontFamily = f; document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('on')); el.classList.add('on'); applyViewerSettings(); saveSettings(); }
-function chFontSlider(v) { chFontApply(parseInt(v)); }
-function chFont(d)       { chFontApply(Math.max(13, Math.min(26, vSettings.fontSize + d))); }
-function chFontApply(v) {
-  vSettings.fontSize = v;
-  document.getElementById('fontSlider').value        = v;
-  document.getElementById('fVal').textContent        = v;
-  document.getElementById('fValBadge').textContent   = v + 'px';
-  applyViewerSettings(); saveSettings();
-}
-function chLineHeight(v) {
-  vSettings.lineHeight = parseFloat((v/100).toFixed(1));
-  document.getElementById('lhBadge').textContent = vSettings.lineHeight;
-  applyViewerSettings(); saveSettings();
-}
-function setWidth(w, el) {
-  vSettings.maxWidth = w;
-  document.querySelectorAll('.width-btn').forEach(b => b.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('widthBadge').textContent = { 480:'좁음', 680:'기본', 860:'넓음', 9999:'전체' }[w] || '기본';
-  applyViewerSettings(); saveSettings();
-}
-function resetSettings() {
-  vSettings = { fontSize:17, lineHeight:1.9, fontFamily:'system', theme:'light', maxWidth:680 };
-  syncSettingsUI(); localStorage.removeItem('ns_settings');
-  showToast('설정 초기화했어요');
-}
-
-
-// ═══════════════════════════════════════════════════════════════
-//  AUTH 탭 전환
-// ═══════════════════════════════════════════════════════════════
-function switchAuthTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('loginForm').style.display  = isLogin ? '' : 'none';
-  document.getElementById('signupForm').style.display = isLogin ? 'none' : '';
-  document.getElementById('tabLogin').classList.toggle('on',  isLogin);
-  document.getElementById('tabSignup').classList.toggle('on', !isLogin);
-  document.getElementById('authMsg').textContent   = '';
-  document.getElementById('signupMsg').textContent = '';
-}
-
-function toggleSignupEye() {
-  const el = document.getElementById('signupPw');
-  el.type = el.type === 'password' ? 'text' : 'password';
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  가입 신청 — Firestore pending_users 컬렉션에 저장
-//  Cloud Functions 없이 동작 (관리자가 수동 승인 후 계정 생성)
-// ═══════════════════════════════════════════════════════════════
-async function doSignupRequest() {
-  const name   = document.getElementById('signupName').value.trim();
-  const email  = document.getElementById('signupEmail').value.trim();
-  const pw     = document.getElementById('signupPw').value;
-  const reason = document.getElementById('signupReason').value.trim();
-  const msg    = document.getElementById('signupMsg');
-  const btn    = document.getElementById('signupBtn');
-
-  // 입력값 검증
-  if (!name)  { msg.textContent='이름을 입력해주세요'; msg.className='auth-msg err'; return; }
-  if (!email) { msg.textContent='이메일을 입력해주세요'; msg.className='auth-msg err'; return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    msg.textContent='올바른 이메일 형식이 아니에요'; msg.className='auth-msg err'; return;
-  }
-  if (pw.length < 6) { msg.textContent='비밀번호는 6자 이상이어야 해요'; msg.className='auth-msg err'; return; }
-
-  btn.disabled = true; btn.textContent = '신청 중...';
-  msg.textContent = ''; msg.className = 'auth-msg';
-
-  try {
-    // 이미 신청했는지 확인
-    const existing = await db.collection('pending_users')
-      .where('email', '==', email).get();
-    if (!existing.empty) {
-      msg.textContent = '이미 가입 신청한 이메일이에요';
-      msg.className   = 'auth-msg err';
-      return;
-    }
-
-    // 비밀번호는 평문 저장하지 않음 — SHA-256 해시 후 저장
-    const pwHash = await hashPassword(pw);
-
-    await db.collection('pending_users').add({
-      name,
-      email,
-      pwHash,   // 관리자 승인 시 Cloud Functions에서 계정 생성에 사용
-      reason:   reason || '',
-      status:   'pending',  // pending | approved | rejected
-      requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    msg.textContent = '가입 신청이 완료됐어요! 관리자 승인 후 로그인할 수 있어요 😊';
-    msg.className   = 'auth-msg ok';
-    document.getElementById('signupName').value   = '';
-    document.getElementById('signupEmail').value  = '';
-    document.getElementById('signupPw').value     = '';
-    document.getElementById('signupReason').value = '';
-  } catch(e) {
-    console.error('signup error:', e);
-    msg.textContent = '신청 중 오류가 발생했어요. 다시 시도해주세요';
-    msg.className   = 'auth-msg err';
-  } finally {
-    btn.disabled = false; btn.textContent = '가입 신청하기';
-  }
-}
-
-// 비밀번호 SHA-256 해시 (브라우저 내장 crypto.subtle)
-async function hashPassword(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  관리자 — 가입 대기 목록 렌더링 + 승인/거절
-// ═══════════════════════════════════════════════════════════════
-async function renderPendingList() {
-  if (!isAdmin) return;
-  try {
-    const snap = await db.collection('pending_users')
-      .where('status', '==', 'pending')
-      .orderBy('requestedAt', 'asc')
-      .get();
-
-    const pendingSection = document.getElementById('pendingSection');
-    const pendingList    = document.getElementById('pendingList');
-    const badge          = document.getElementById('pendingCountBadge');
-
-    if (snap.empty) {
-      pendingSection.style.display = 'none';
-      return;
-    }
-
-    pendingSection.style.display = '';
-    badge.textContent = snap.size;
-
-    pendingList.innerHTML = snap.docs.map(d => {
-      const u = d.data();
-      const date = u.requestedAt?.toDate
-        ? u.requestedAt.toDate().toLocaleDateString('ko-KR')
-        : '';
-      return `<div class="user-item">
-        <div class="user-avatar">${getAvatar(u.name)}</div>
-        <div class="user-info">
-          <div class="user-name">${escapeHtml(u.name)}</div>
-          <div class="user-email">${escapeHtml(u.email)}</div>
-          ${u.reason ? `<div class="user-time">사유: ${escapeHtml(u.reason)}</div>` : ''}
-          <div class="user-time">${date} 신청</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-          <button class="add-user-btn" style="height:28px;font-size:11px;padding:0 10px" onclick="approvePending('${d.id}','${escapeHtml(u.email)}','${escapeHtml(u.name)}')">승인</button>
-          <button class="user-del-btn" onclick="rejectPending('${d.id}','${escapeHtml(u.name)}')">거절</button>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    console.error('renderPendingList error:', e);
-  }
-}
-
-async function approvePending(docId, email, name) {
-  if (!isAdmin) return;
-  // Cloud Functions 없는 현재: 대기 상태를 approved로만 변경
-  // 실제 Auth 계정 생성은 관리자가 Firebase 콘솔에서 직접 하거나
-  // 나중에 Cloud Functions 배포 후 자동화
-  try {
-    await db.collection('pending_users').doc(docId).update({
-      status: 'approved',
-      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    showToast(`${name}님 승인됐어요. Firebase 콘솔에서 계정을 생성해주세요 👤`);
-    await renderPendingList();
-    await renderUserList();
-  } catch(e) {
-    showToast('승인 처리에 실패했어요', 'error');
-  }
-}
-
-async function rejectPending(docId, name) {
-  if (!isAdmin) return;
-  try {
-    await db.collection('pending_users').doc(docId).update({
-      status: 'rejected',
-      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    showToast(`${name}님 가입 신청을 거절했어요`);
-    await renderPendingList();
-  } catch(e) {
-    showToast('거절 처리에 실패했어요', 'error');
-  }
-}
-
-// ── KEYBOARD SHORTCUTS ────────────────────────────────────────
-document.getElementById('authPw').addEventListener('keydown',    e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('authEmail').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
-document.getElementById('signupPw').addEventListener('keydown',   e => { if (e.key === 'Enter') doSignupRequest(); });
-document.getElementById('signupEmail').addEventListener('keydown',e => { if (e.key === 'Enter') document.getElementById('signupPw').focus(); });
-document.getElementById('signupName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('signupEmail').focus(); });
-</script>
+<!-- JS 모듈 (의존성 순서 준수) -->
+<script src="js/config.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/novels.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/auth.js"></script>
 
 <!--
 ══════════════════════════════════════════════════════════════════
-  [참고] CLOUD_FUNCTIONS.js
-  functions/index.js 에 저장 후 firebase deploy --only functions
+  [참고] CLOUD_FUNCTIONS — functions/index.js 에 저장 후 배포
+  firebase deploy --only functions
 ══════════════════════════════════════════════════════════════════
 
   const functions = require('firebase-functions');
@@ -2372,7 +571,6 @@ document.getElementById('signupName').addEventListener('keydown', e => { if (e.k
   const axios     = require('axios');
   admin.initializeApp();
 
-  // 관리자 권한 검증
   async function verifyAdmin(context) {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인이 필요해요');
     const snap = await admin.firestore().collection('users').doc(context.auth.uid).get();
@@ -2380,18 +578,15 @@ document.getElementById('signupName').addEventListener('keydown', e => { if (e.k
       throw new functions.https.HttpsError('permission-denied', '관리자 권한이 필요해요');
   }
 
-  // 네이버 책 검색 프록시
+  // 네이버 책 검색
   // firebase functions:config:set naver.client_id="..." naver.client_secret="..."
   exports.naverBookSearch = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인이 필요해요');
     const q = (data.q || '').trim();
     if (!q) throw new functions.https.HttpsError('invalid-argument', '검색어를 입력해주세요');
     const res = await axios.get('https://openapi.naver.com/v1/search/book.json', {
-      params: { query: q, display: 10, start: 1 },
-      headers: {
-        'X-Naver-Client-Id':     functions.config().naver.client_id,
-        'X-Naver-Client-Secret': functions.config().naver.client_secret,
-      },
+      params:  { query: q, display: 10, start: 1 },
+      headers: { 'X-Naver-Client-Id': functions.config().naver.client_id, 'X-Naver-Client-Secret': functions.config().naver.client_secret },
       timeout: 8000,
     });
     return { items: (res.data.items || []).map(item => ({
@@ -2400,88 +595,61 @@ document.getElementById('signupName').addEventListener('keydown', e => { if (e.k
     }))};
   });
 
-  // 사용자 생성 (관리자 전용)
-  exports.createUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
-    await verifyAdmin(context);
-    const { email, password, displayName, role = 'reader' } = data;
-    if (!email || !password || !displayName)
-      throw new functions.https.HttpsError('invalid-argument', '모든 필드를 입력해주세요');
-    const userRecord = await admin.auth().createUser({ email, password, displayName });
-    await admin.firestore().collection('users').doc(userRecord.uid).set({
-      email, displayName, role,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    return { uid: userRecord.uid };
-  });
-
-  // 가입 승인 (pending_users → Auth 계정 생성)
-  // 수정: name 필드명 통일 + 승인 후 pwHash 삭제 (프라이버시 보호)
+  // 가입 승인 — 계정 생성 + pwHash 삭제 + 비밀번호 재설정 링크 반환
   exports.approveUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     await verifyAdmin(context);
     const { docId } = data;
     const doc = await admin.firestore().collection('pending_users').doc(docId).get();
     if (!doc.exists) throw new functions.https.HttpsError('not-found', '신청 정보를 찾을 수 없어요');
-    const { email, name } = doc.data(); // name 필드로 통일
+    const { email, name } = doc.data();
     const userRecord = await admin.auth().createUser({ email, displayName: name });
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       email, displayName: name, role: 'reader',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    // 승인 완료 후 pwHash 삭제 (프라이버시 보호) + 상태 업데이트
-    await admin.firestore().collection('pending_users').doc(docId).update({
-      status: 'approved',
-      uid: userRecord.uid,
-      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-      pwHash: admin.firestore.FieldValue.delete(), // 해시라도 불필요한 보관 제거
-    });
-    return { uid: userRecord.uid };
+    const resetLink = await admin.auth().generatePasswordResetLink(email);
+    await admin.firestore().collection('pending_users').doc(docId).delete();
+    return { uid: userRecord.uid, resetLink };
   });
 
-  // 사용자 삭제 (관리자 전용)
+  // 사용자 삭제
   exports.deleteUser = functions.region('asia-northeast3').https.onCall(async (data, context) => {
     await verifyAdmin(context);
     const { uid } = data;
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'uid가 필요해요');
-    if (uid === context.auth.uid)
-      throw new functions.https.HttpsError('failed-precondition', '본인 계정은 삭제할 수 없어요');
+    if (uid === context.auth.uid) throw new functions.https.HttpsError('failed-precondition', '본인 계정은 삭제할 수 없어요');
     await admin.auth().deleteUser(uid);
     await admin.firestore().collection('users').doc(uid).delete();
     return { success: true };
   });
 
 ══════════════════════════════════════════════════════════════════
-  [참고] SECURITY_RULES — Firestore 보안 규칙
-  Firebase 콘솔 → Firestore → 규칙 탭에 전체 붙여넣기 후 게시
+  [참고] SECURITY_RULES — Firebase 콘솔 → Firestore → 규칙 탭
 ══════════════════════════════════════════════════════════════════
 
   rules_version = '2';
   service cloud.firestore {
     match /databases/{database}/documents {
 
-      // 관리자 판별 함수
       function isAdmin() {
         return request.auth != null &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       }
 
-      // 소설: 읽기 = 로그인 유저 / 쓰기 = 관리자만
       match /novels/{novelId} {
         allow read: if request.auth != null;
         allow create, update, delete: if isAdmin();
       }
 
-      // 유저 개인 데이터: 본인만 읽기/쓰기
       match /userdata/{uid}/novels/{novelId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
 
-      // 유저 프로필: 본인+관리자 읽기 / 쓰기는 Admin SDK만
       match /users/{uid} {
         allow read: if isAdmin() || request.auth.uid == uid;
         allow write: if false;
       }
 
-      // 가입 신청: 누구나 신청 가능(create) / 읽기·수정·삭제는 관리자만
       match /pending_users/{docId} {
         allow create: if true;
         allow read, update, delete: if isAdmin();
@@ -2492,7 +660,7 @@ document.getElementById('signupName').addEventListener('keydown', e => { if (e.k
 ══════════════════════════════════════════════════════════════════
   [초기 설정] 첫 번째 관리자 계정 생성
   1. Firebase 콘솔 → Authentication → 사용자 추가
-  2. Firestore → users 컬렉션 → 문서 ID = 위에서 생성된 UID
+  2. Firestore → users 컬렉션 → 문서 ID = 위 UID
      필드: role(string): "admin"
 ══════════════════════════════════════════════════════════════════
 -->
