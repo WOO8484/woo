@@ -390,6 +390,14 @@
       <input type="range" class="ns-slider" id="lhSlider" min="140" max="260" step="10" value="190" oninput="chLineHeight(this.value)">
       <span class="slider-max">넓게</span>
     </div>
+    <div class="prow">
+      <span class="plabel">빠른 조절</span>
+      <div class="fctrl">
+        <button class="fbtn" onclick="chLh(-0.1)">−</button>
+        <span class="fval" id="lhVal">1.9</span>
+        <button class="fbtn" onclick="chLh(0.1)">＋</button>
+      </div>
+    </div>
     <div class="set-label">본문 너비 <span class="set-val-badge" id="widthBadge">기본</span></div>
     <div class="width-btns">
       <button class="width-btn"    onclick="setWidth(480,this)">좁음</button>
