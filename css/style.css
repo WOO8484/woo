@@ -315,8 +315,17 @@ html,body {
 .cover-etc        { background:linear-gradient(135deg,#6B7280,#4B5563); color:#fff; }
 
 /* ── DETAIL ── */
-#detail { display:none; }
-#detail.open { display:flex; }
+#detail {
+  display:none;
+  position:fixed; inset:0; z-index:150;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+  height:100%;
+}
+#detail.open {
+  display:flex;
+}
 .dbar {
   display:flex; align-items:flex-start; justify-content:space-between;
   padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
