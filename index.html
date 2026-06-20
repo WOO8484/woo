@@ -78,7 +78,7 @@
     <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
   </div>
 
-  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.5.2</div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.5.6</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -93,7 +93,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.5.2</div>
+  <div class="nav-version">v2.5.6</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -222,7 +222,6 @@
      DETAIL
      ══════════════════════════════════════════════════════════════ -->
 <div id="detail">
-  <!-- 상단 바 -->
   <div class="dbar">
     <button class="dbar-back" onclick="closeDetail()">←</button>
     <div class="dbar-right">
@@ -235,7 +234,6 @@
       </div>
     </div>
   </div>
-  <!-- 히어로 영역 -->
   <div class="dhero" id="dHero">
     <div class="dhero-bg">
       <div class="dhero-bg-color" id="dHeroBgColor"></div>
@@ -250,33 +248,18 @@
       <div class="dprog-text" id="dProgText">아직 읽지 않았어요</div>
     </div>
   </div>
-  <!-- 정보 영역 -->
   <div class="dinfo-area">
     <div class="dstat-row">
       <div class="dstat"><div class="dstat-val" id="dStatProg">0p</div><div class="dstat-lbl">읽은 분량</div></div>
       <div class="dstat"><div class="dstat-val" id="dStatPages">0p</div><div class="dstat-lbl">전체 분량</div></div>
     </div>
-    <button class="dsyn-btn" id="dSynBtn" onclick="openSynopsis()">
-      <span class="dsyn-btn-label">줄거리 보기</span>
-      <span class="dsyn-btn-arrow">›</span>
-    </button>
+    <!-- 고정 카드 (내용 추후 연결) -->
+    <div class="dcard"></div>
   </div>
-  <!-- 하단 버튼 -->
   <div class="dfoot">
     <button class="dread-btn" id="dReadBtn" onclick="readFromDetail()">처음부터 읽기</button>
     <button id="dFavBtn" onclick="toggleFavDetail()" class="dfav-btn">☆</button>
   </div>
-</div>
-
-<!-- 줄거리 팝업 -->
-<div class="syn-ov" id="synOv" onclick="closeSynopsis()"></div>
-<div class="syn-sheet" id="synSheet">
-  <div class="syn-handle"></div>
-  <div class="syn-header">
-    <div class="syn-title">줄거리</div>
-    <button class="syn-close" onclick="closeSynopsis()">×</button>
-  </div>
-  <div class="syn-body" id="synBody">줄거리 없음</div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -285,8 +268,7 @@
 <div id="viewer" style="display:none; position:fixed; inset:0; z-index:200; flex-direction:column;">
   <div class="vbody" id="vBody">
     <div class="vpage" id="vPage">
-      <div class="vch-title" id="vChTitle"></div>
-      <div class="vtext"     id="vText"></div>
+      <div class="vtext" id="vText"></div>
     </div>
   </div>
   <div class="vtap-left"   onclick="prevCh()"></div>
@@ -298,33 +280,18 @@
 <div class="vpopup-ov" id="vpopupOv" onclick="closeViewerPopup()">
   <div class="vpopup" onclick="event.stopPropagation()">
     <div class="vpopup-title" id="vpopupTitle"></div>
-    <div class="vpopup-info"  id="vpopupInfo"></div>
     <div class="vpopup-slider-wrap" id="vpopupSliderWrap" style="display:none">
       <input type="range" class="ns-slider" id="vpopupSlider" min="0" step="1" value="0"
-        style="width:100%;margin-bottom:6px"
+        style="width:100%"
         oninput="onSliderInput(this.value)" onchange="onSliderChange(this.value)">
-      <div class="vpopup-slider-row">
-        <span class="vpopup-slider-label" id="vpopupSliderLabel">1 / 1 챕터</span>
-      </div>
     </div>
+    <div class="vpopup-info" id="vpopupInfo"></div>
     <div class="vpopup-btns">
-      <button class="vpopup-btn" onclick="closeViewerPopup();setTimeout(openChList,150)"><span>📋</span> 챕터 목록</button>
       <button class="vpopup-btn" onclick="closeViewerPopup();setTimeout(openSettings,150)"><span>⚙️</span> 읽기 설정</button>
       <button class="vpopup-btn danger" onclick="closeViewerPopup();setTimeout(closeViewer,150)"><span>✕</span> 서재로 나가기</button>
     </div>
     <button class="vpopup-close" onclick="closeViewerPopup()">계속 읽기</button>
   </div>
-</div>
-
-<!-- ── CHAPTER LIST ── -->
-<div class="modal-ov" id="chListOv"    onclick="closeChList()"></div>
-<div class="modal"    id="chListModal">
-  <div class="mhandle"></div>
-  <div class="modal-header">
-    <div class="modal-title" id="chListTitle">챕터 목록</div>
-    <button class="modal-close" onclick="closeChList()">×</button>
-  </div>
-  <div class="modal-scroll" id="chList"></div>
 </div>
 
 <!-- ── SETTINGS ── -->
