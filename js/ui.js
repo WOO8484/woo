@@ -261,6 +261,45 @@ async function saveNameEdit() {
   }
 }
 
+/* ── 가입 신청 ON/OFF (관리자) ───────────────── */
+let _signupOpen = false;
+
+function toggleSignupOpen() {
+  _signupOpen = !_signupOpen;
+  applySignupState();
+}
+
+function applySignupState() {
+  // 로그인 화면 탭 표시/숨김
+  const tabs = document.getElementById('authTabs');
+  if (tabs) tabs.style.display = _signupOpen ? '' : 'none';
+
+  // 가입 탭이 닫히면 로그인 폼으로 복귀
+  if (!_signupOpen) {
+    const sf = document.getElementById('signupForm');
+    const lf = document.getElementById('loginForm');
+    if (sf) sf.style.display = 'none';
+    if (lf) lf.style.display = '';
+    document.getElementById('tabLogin')?.classList.add('on');
+    document.getElementById('tabSignup')?.classList.remove('on');
+  }
+
+  // 관리자 패널 토글 버튼 상태
+  const btn   = document.getElementById('signupToggleBtn');
+  const label = document.getElementById('signupToggleLabel');
+  if (btn && label) {
+    if (_signupOpen) {
+      btn.textContent = '닫기';
+      btn.classList.add('open');
+      label.textContent = '현재 열림 🟢';
+    } else {
+      btn.textContent = '열기';
+      btn.classList.remove('open');
+      label.textContent = '현재 닫힘 🔴';
+    }
+  }
+}
+
 function resetSettings() {
   vSettings = { fontSize:17, lineHeight:1.9, fontFamily:'system', theme:'light', maxWidth:680 };
   syncSettingsUI();
