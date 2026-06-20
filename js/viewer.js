@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.4.3  —  js/viewer.js
+   Mr.woo v2.4.7  —  js/viewer.js
    소설 뷰어, 챕터 파싱, 읽기 설정
    ══════════════════════════════════════════════ */
 'use strict';
@@ -71,8 +71,15 @@ function splitCh(txt) {
 /* ═══════════════════════════════════════════════
    뷰어 열기 / 닫기
    ═══════════════════════════════════════════════ */
-function openViewer(id) {
+async function openViewer(id) {
   const nov = novels.find(x => x.id === id); if (!nov) return;
+
+  // Storage에서 본문 로드 (textUrl 있는 경우)
+  if (!nov.inlineText && nov.textUrl) {
+    showToast('본문 불러오는 중...');
+    await loadNovelText(nov);
+  }
+
   if (!nov.inlineText) { showToast('읽기 가능한 파일이 없어요'); return; }
   curId   = id;
   const novChs = getChs(nov);

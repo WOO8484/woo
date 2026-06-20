@@ -1,4 +1,4 @@
-/* Mr.woo v2.4.6  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
+/* Mr.woo v2.4.7  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
 'use strict';
 
 /* Firestore — 소설 목록 실시간 구독 */
@@ -42,6 +42,21 @@ async function loadUserData() {
 
 function getNovelUserData(id) {
   return userDataCache[id] || { progress:0, favorite:false, lastReadAt:null, ch:0 };
+}
+
+// Storage에서 소설 본문 로드 (textUrl 있는 경우)
+async function loadNovelText(nov) {
+  if (nov._textLoaded) return; // 이미 로드됨
+  if (nov.inlineText)  { nov._textLoaded = true; return; } // 구버전 inline
+  if (!nov.textUrl)    return; // 텍스트 없음
+  try {
+    const res     = await fetch(nov.textUrl);
+    nov.inlineText = await res.text();
+    nov._textLoaded = true;
+    _chsCache.delete(nov.id); // 캐시 초기화
+  } catch(e) {
+    console.error('loadNovelText error:', e);
+  }
 }
 
 async function setNovelUserData(id, patch) {
@@ -287,7 +302,7 @@ function openDetail(id) {
   document.getElementById('dSyn').textContent  = n.synopsis || '줄거리 없음';
   document.getElementById('dTags').innerHTML   = (n.tags && n.tags.length)
     ? n.tags.map(t => `<span class="dtag">#${escapeHtml(t)}</span>`).join('') : '태그 없음';
-  document.getElementById('dDlBtn').style.display       = n.inlineText ? '' : 'none';
+  document.getElementById('dDlBtn').style.display       = (n.inlineText || n.textUrl) ? '' : 'none';
   document.getElementById('dDelBtn').style.display      = isAdmin ? '' : 'none';
   document.getElementById('dEditBtn').style.display     = isAdmin ? '' : 'none';
   document.getElementById('dShelfRemBtn').style.display = (n.progress > 0 || n.favorite) ? '' : 'none';
@@ -439,15 +454,42 @@ async function saveNovel() {
       }
     }
     btn.textContent = '저장 중...';
-    await db.collection('novels').add({
+    const novelRef  = db.collection('novels').doc();
+    const storageRef = firebase.storage().ref();
+
+    // ── 표지 이미지 → Firebase Storage 업로드 ──
+    let coverStorageUrl = '';
+    if (addCoverBase64 && addCoverBase64.startsWith('data:')) {
+      btn.textContent = '표지 업로드 중...';
+      const coverRef  = storageRef.child(`covers/${novelRef.id}.jpg`);
+      await coverRef.putString(addCoverBase64, 'data_url');
+      coverStorageUrl = await coverRef.getDownloadURL();
+    } else if (addCoverBase64) {
+      // 네이버 검색 URL 그대로 사용
+      coverStorageUrl = addCoverBase64;
+    }
+
+    // ── 소설 본문 → Firebase Storage 업로드 ──
+    let textStorageUrl = '';
+    if (inlineText) {
+      btn.textContent = '본문 업로드 중...';
+      const textRef = storageRef.child(`novels/${novelRef.id}.txt`);
+      const blob    = new Blob([inlineText], { type: 'text/plain;charset=utf-8' });
+      await textRef.put(blob);
+      textStorageUrl = await textRef.getDownloadURL();
+    }
+
+    btn.textContent = '저장 중...';
+    await novelRef.set({
       title,
       author:    document.getElementById('addAuthor').value.trim() || '작자 미상',
       genre:     selG || 'etc',
       synopsis:  document.getElementById('addSyn').value.trim(),
       tags:      document.getElementById('addTags').value.split(',').map(t => t.trim()).filter(Boolean),
-      coverUrl:  addCoverBase64,
+      coverUrl:  coverStorageUrl,
+      textUrl:   textStorageUrl,   // Storage URL
       totalChars,
-      inlineText,
+      inlineText: '',              // Firestore에는 빈 문자열 (Storage에 저장)
       addedAt:   firebase.firestore.FieldValue.serverTimestamp(),
       addedBy:   currentUser.uid,
     });
@@ -618,16 +660,32 @@ function confirmShelfRemove(id) {
 }
 
 /* TXT 다운로드 */
-function downloadNovel() {
+async function downloadNovel() {
   const n = novels.find(x => x.id === curId);
-  if (!n || !n.inlineText) { showToast('다운로드할 텍스트가 없어요', 'error'); return; }
-  const blob = new Blob([n.inlineText], { type:'text/plain;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = (n.title || 'novel') + '.txt';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-  showToast('다운로드 완료 📄');
+  if (!n) return;
+  try {
+    let text = '';
+    if (n.textUrl) {
+      // Storage에서 fetch
+      const res = await fetch(n.textUrl);
+      text = await res.text();
+    } else if (n.inlineText) {
+      // 구버전 호환 (Firestore inline)
+      text = n.inlineText;
+    } else {
+      showToast('다운로드할 텍스트가 없어요', 'error'); return;
+    }
+    const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = (n.title || 'novel') + '.txt';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('다운로드 완료 📄');
+  } catch(e) {
+    console.error('downloadNovel error:', e);
+    showToast('다운로드에 실패했어요', 'error');
+  }
 }
 
 /* 네이버 책 검색 / Cloudflare Worker 프록시 / API 키 서버에서 관리 */
@@ -669,11 +727,9 @@ async function searchNaverBook() {
     renderNaverResults(items);
   } catch(e) {
     console.error('searchNaverBook error:', e);
-    const errMsg = e.message === 'API 키가 설정되지 않았어요'
-      ? 'API 키가 설정되지 않았어요. Remote Config를 확인해주세요.'
-      : e.message === 'The user aborted a request.'
-        ? '검색 시간이 초과됐어요. 다시 시도해주세요.'
-        : '검색 실패. 잠시 후 다시 시도해주세요.';
+    const errMsg = e.message?.includes('aborted') || e.name === 'AbortError'
+      ? '검색 시간이 초과됐어요. 다시 시도해주세요.'
+      : '검색 실패. 잠시 후 다시 시도해주세요.';
     document.getElementById('naverResults').innerHTML = `<div class="naver-status err">${errMsg}</div>`;
     showToast('검색 중 오류가 발생했어요', 'error');
   } finally {
@@ -687,6 +743,11 @@ function renderNaverResults(items) {
     el.innerHTML = '<div class="naver-status err">검색 결과가 없어요</div>';
     return;
   }
+  // 5개 초과 시 스크롤 활성화
+  el.style.maxHeight   = items.length > 5 ? '320px' : '';
+  el.style.overflowY   = items.length > 5 ? 'auto'  : '';
+  el.style.borderRadius = items.length > 5 ? '10px'  : '';
+  el.style.border      = items.length > 5 ? '1.5px solid var(--line)' : '';
   el.innerHTML = items.map((item, i) => `
     <div class="naver-result-item" id="naverItem_${i}" data-idx="${i}">
       <div class="naver-result-cover">
