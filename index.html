@@ -17,6 +17,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
 <!-- PWA manifest -->
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
+<link rel="dns-prefetch" href="https://firebasestorage.googleapis.com">
 <title>🚀 Mr.woo</title>
 
 <link rel="stylesheet" href="css/style.css">
@@ -566,16 +570,14 @@
 <!-- ── TOAST ── -->
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     Firebase SDK (compat v9)
-     ══════════════════════════════════════════════════════════════ -->
+<!-- Firebase SDK (compat v9) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-<!-- JS 모듈 (의존성 순서 준수) -->
+<!-- JS 모듈 -->
 <script src="js/config.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/novels.js"></script>
