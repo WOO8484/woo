@@ -62,6 +62,10 @@
 -->
 
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Safari 자동 텍스트 크기 조정 방지 — PWA와 동일하게 렌더링 */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+</style>
 </head>
 <body>
 
@@ -253,9 +257,7 @@
   <div class="dbar">
     <button class="dbar-back" onclick="closeDetail()">←</button>
     <div class="dbar-right">
-      <!-- 태그 -->
       <div class="dbar-tags" id="dBarTags"></div>
-      <!-- 액션 버튼들 -->
       <div class="dbar-actions">
         <button class="dbar-dl-btn"  id="dDlBtn"      style="display:none" onclick="downloadNovel()">↓ TXT</button>
         <button class="dbar-del-btn" id="dDelBtn"      style="display:none" onclick="deleteNovel()">🗑 삭제</button>
@@ -264,7 +266,8 @@
       </div>
     </div>
   </div>
-  <div class="dscroll">
+  <!-- 고정 영역: hero + stat -->
+  <div class="dfixed">
     <div class="dhero" id="dHero">
       <div class="dhero-bg">
         <div class="dhero-bg-color" id="dHeroBgColor"></div>
@@ -279,11 +282,14 @@
         <div class="dprog-text" id="dProgText">아직 읽지 않았어요</div>
       </div>
     </div>
+    <div class="dstat-row">
+      <div class="dstat"><div class="dstat-val" id="dStatProg">0p</div><div class="dstat-lbl">읽은 분량</div></div>
+      <div class="dstat"><div class="dstat-val" id="dStatPages">0p</div><div class="dstat-lbl">전체 분량</div></div>
+    </div>
+  </div>
+  <!-- 스크롤 영역: 줄거리만 -->
+  <div class="dscroll">
     <div class="dbody">
-      <div class="dstat-row">
-        <div class="dstat"><div class="dstat-val" id="dStatProg">0p</div><div class="dstat-lbl">읽은 분량</div></div>
-        <div class="dstat"><div class="dstat-val" id="dStatPages">0p</div><div class="dstat-lbl">전체 분량</div></div>
-      </div>
       <div class="dsyn-card" id="dSyn">줄거리 없음</div>
     </div>
   </div>
