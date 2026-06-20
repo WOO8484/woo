@@ -284,8 +284,7 @@ function openDetail(id) {
   const _ud = getNovelUserData(id);
   const n  = { ..._n, progress: _ud.progress || 0, favorite: _ud.favorite || false, lastReadAt: _ud.lastReadAt || null, ch: _ud.ch || 0 };
   curId = id;
-  const detailEl = document.getElementById('detail');
-  detailEl.style.cssText = 'display:flex; flex-direction:column; position:fixed; inset:0; z-index:150; overflow:hidden; background:var(--bg);';
+  document.getElementById('detail').style.display = 'flex';
   const cc = genreCoverClass(n.genre);
   document.getElementById('dHeroBgColor').className = 'dhero-bg-color ' + cc;
   const coverEl = document.getElementById('dCover');
@@ -303,7 +302,6 @@ function openDetail(id) {
   document.getElementById('dStatProg').textContent  = readPages + 'p';
   document.getElementById('dStatPages').textContent = totalPages + 'p';
   document.getElementById('dSyn').textContent  = n.synopsis || '줄거리 없음';
-  // 태그 → 상단 dbar에 렌더
   document.getElementById('dBarTags').innerHTML = (n.tags && n.tags.length)
     ? n.tags.map(t => `<span class="dbar-tag">#${escapeHtml(t)}</span>`).join('') : '';
   document.getElementById('dDlBtn').style.display       = (n.inlineText || n.textUrl) ? '' : 'none';
@@ -313,7 +311,7 @@ function openDetail(id) {
   document.getElementById('dReadBtn').textContent       = n.progress > 0 ? '이어 읽기' : '처음부터 읽기';
   document.getElementById('dFavBtn').textContent        = n.favorite ? '⭐' : '☆';
 }
-function closeDetail() { document.getElementById('detail').style.cssText = 'display:none; flex-direction:column;'; }
+function closeDetail() { document.getElementById('detail').style.display = 'none'; }
 function readFromDetail() { openViewer(curId); }
 
 /* 소설 추가 (관리자) */
