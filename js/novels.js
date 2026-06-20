@@ -137,7 +137,7 @@ function renderHome() {
     const cc   = genreCoverClass(n.genre);
     const icon = GENRE_ICON[n.genre] || '📖';
     const cover = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='recent-cover ${cc}';this.parentElement.innerHTML='<span class=recent-cover-icon>${icon}</span>'">`
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.className='recent-cover ${cc}';this.parentElement.innerHTML='<span class=recent-cover-icon>${icon}</span>'">`
       : `<span class="recent-cover-icon">${icon}</span>`;
     return `<div class="recent-card" onclick="openDetail('${n.id}')">
       <div class="recent-cover ${n.coverUrl ? '' : cc}">${cover}
@@ -235,7 +235,7 @@ function renderShelf() {
       </div>`;
     }
     const cover = n.coverUrl
-      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.className='card-cover ${cc}';this.remove()">`
+      ? `<img src="${escapeHtml(n.coverUrl)}" alt="" loading="lazy" onerror="this.parentElement.className='card-cover ${cc}';this.remove()">`
       : `<span class="card-cover-icon">${icon}</span>`;
     return `<div class="card" onclick="openDetail('${n.id}')">
       <div class="card-cover ${n.coverUrl ? '' : cc}">${cover}
