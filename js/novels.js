@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   NovelShelf v2.3.4  —  js/novels.js
+   NovelShelf v2.3.7  —  js/novels.js
    소설 CRUD, 유저 데이터, 홈/서재 렌더링
    ══════════════════════════════════════════════ */
 'use strict';
@@ -250,18 +250,22 @@ function renderShelf() {
    즐겨찾기
    ═══════════════════════════════════════════════ */
 async function toggleFav(id) {
-  const newFav = !getNovelUserData(id).favorite;
-  await setNovelUserData(id, { favorite: newFav });
-  batchRender();
-  showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
+  try {
+    const newFav = !getNovelUserData(id).favorite;
+    await setNovelUserData(id, { favorite: newFav });
+    batchRender();
+    showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
+  } catch(e) { console.error('toggleFav error:', e); }
 }
 async function toggleFavDetail() {
   if (!curId) return;
-  const newFav = !getNovelUserData(curId).favorite;
-  await setNovelUserData(curId, { favorite: newFav });
-  document.getElementById('dFavBtn').textContent = newFav ? '⭐' : '☆';
-  batchRender();
-  showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
+  try {
+    const newFav = !getNovelUserData(curId).favorite;
+    await setNovelUserData(curId, { favorite: newFav });
+    document.getElementById('dFavBtn').textContent = newFav ? '⭐' : '☆';
+    batchRender();
+    showToast(newFav ? '⭐ 즐겨찾기 추가' : '즐겨찾기 해제');
+  } catch(e) { console.error('toggleFavDetail error:', e); }
 }
 
 /* ═══════════════════════════════════════════════
@@ -600,11 +604,16 @@ async function deleteNovel() {
   );
 }
 async function removeFromShelf() {
-  await setNovelUserData(curId, { progress:0, favorite:false, lastReadAt:null, ch:0 });
-  delete userDataCache[curId];
-  closeDetail();
-  batchRender();
-  showToast('내 서재에서 제거했어요');
+  try {
+    await setNovelUserData(curId, { progress:0, favorite:false, lastReadAt:null, ch:0 });
+    delete userDataCache[curId];
+    closeDetail();
+    batchRender();
+    showToast('내 서재에서 제거했어요');
+  } catch(e) {
+    console.error('removeFromShelf error:', e);
+    showToast('제거에 실패했어요', 'error');
+  }
 }
 function confirmShelfRemove(id) {
   const n = novels.find(x => x.id === id); if (!n) return;
@@ -632,7 +641,7 @@ function downloadNovel() {
 
 /* ═══════════════════════════════════════════════
    네이버 책 검색
-   ⚠️ 임시 방식 (v2.3.4) — API 키 클라이언트 노출
+   ⚠️ 임시 방식 (v2.3.7) — API 키 클라이언트 노출
    PC 생기면 Cloud Functions 이전 예정
    ▶ 아래 두 줄에 본인 네이버 API 키를 입력하세요
    ═══════════════════════════════════════════════ */
@@ -726,6 +735,7 @@ function selectNaverBook(idx, item) {
    ═══════════════════════════════════════════════ */
 async function renderProfile() {
   if (!currentUser) return;
+  try {
   const name = currentUser.displayName || currentUser.email.split('@')[0];
   document.getElementById('profileAvatar').textContent = getAvatar(name);
   document.getElementById('profileName').textContent   = name;
@@ -736,8 +746,11 @@ async function renderProfile() {
   document.getElementById('pStatReading').textContent = plist.filter(n => n.progress > 0 && n.progress < 100).length;
   document.getElementById('pStatDone').textContent    = plist.filter(n => n.progress >= 100).length;
   document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) {
-    await renderPendingList();
-    await renderUserList();
+    if (isAdmin) {
+      await renderPendingList();
+      await renderUserList();
+    }
+  } catch(e) {
+    console.error('renderProfile error:', e);
   }
 }

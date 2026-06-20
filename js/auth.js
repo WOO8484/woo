@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   NovelShelf v2.3.0  —  js/auth.js
+   NovelShelf v2.3.7  —  js/auth.js
    Firebase Auth, 로그인, 가입 신청
    ══════════════════════════════════════════════ */
 'use strict';
@@ -83,10 +83,15 @@ async function doLogin() {
 /* ── 로그아웃 ─────────────────────────────────── */
 async function doLogout() {
   closeUserMenu();
-  if (_novelsUnsub) { _novelsUnsub(); _novelsUnsub = null; }
-  novels = []; userDataCache = {};
-  await auth.signOut();
-  showToast('로그아웃 했어요');
+  try {
+    if (_novelsUnsub) { _novelsUnsub(); _novelsUnsub = null; }
+    novels = []; userDataCache = {};
+    await auth.signOut();
+    showToast('로그아웃 했어요');
+  } catch(e) {
+    console.error('doLogout error:', e);
+    showToast('로그아웃에 실패했어요', 'error');
+  }
 }
 
 /* ── 가입 신청 ────────────────────────────────────

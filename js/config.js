@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   NovelShelf v2.3.0  —  js/config.js
+   NovelShelf v2.3.7  —  js/config.js
    Firebase 설정 및 앱 전역 상수
    ══════════════════════════════════════════════ */
 'use strict';
@@ -23,8 +23,6 @@ const FIREBASE_CONFIG = {
 const FUNCTIONS_REGION = 'asia-northeast3';
 
 /* ── 앱 버전 ──────────────────────────────── */
-const APP_VERSION = 'v2.3.0';
-
 /* ── Firebase 초기화 ─────────────────────── */
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth      = firebase.auth();
