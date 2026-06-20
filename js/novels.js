@@ -44,17 +44,18 @@ function getNovelUserData(id) {
   return userDataCache[id] || { progress:0, favorite:false, lastReadAt:null, ch:0 };
 }
 
-// Storage에서 소설 본문 로드 (textUrl 있는 경우)
+// Storage에서 소설 본문 로드
 async function loadNovelText(nov) {
-  if (nov._textLoaded) return; // 이미 로드됨
-  if (nov.inlineText)  { nov._textLoaded = true; return; } // 구버전 inline
-  if (!nov.textUrl)    return; // 텍스트 없음
+  if (nov._textLoaded) return;
+  if (nov.inlineText)  { nov._textLoaded = true; return; } // 구버전 호환
+  if (!nov.textUrl)    return;
   try {
-    const res     = await fetch(nov.textUrl);
+    const res      = await fetch(nov.textUrl);
     nov.inlineText = await res.text();
     nov._textLoaded = true;
     _chsCache.delete(nov.id); // 캐시 초기화
   } catch(e) {
+    showToast('본문을 불러오지 못했어요', 'error');
     console.error('loadNovelText error:', e);
   }
 }
@@ -498,21 +499,19 @@ async function saveNovel() {
       synopsis:  document.getElementById('addSyn').value.trim(),
       tags:      document.getElementById('addTags').value.split(',').map(t => t.trim()).filter(Boolean),
       coverUrl:  coverStorageUrl,
-      textUrl:   textStorageUrl,   // Storage URL
+      textUrl:   textStorageUrl,
       totalChars,
-      inlineText: '',              // Firestore에는 빈 문자열 (Storage에 저장)
       addedAt:   firebase.firestore.FieldValue.serverTimestamp(),
       addedBy:   currentUser.uid,
     });
 
-    // ── splitCh 지연 실행 (UI 블로킹 방지) ──
     closeAdd();
-    showToast('서재에 추가했어요 📚');
-    const raf = cb => requestAnimationFrame(() => requestAnimationFrame(cb));
-    raf(() => {
+    if (inlineText) {
       const chCount = splitCh(inlineText).length;
       showToast(`서재에 추가했어요 📚  총 ${chCount}화`);
-    });
+    } else {
+      showToast('서재에 추가했어요 📚');
+    }
   } catch(e) {
     console.error('saveNovel error:', e);
     showToast('저장에 실패했어요: ' + e.message, 'error');

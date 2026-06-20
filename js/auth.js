@@ -41,10 +41,6 @@ function toggleEye() {
   const el = document.getElementById('authPw');
   el.type = el.type === 'password' ? 'text' : 'password';
 }
-function toggleSignupEye() {
-  const el = document.getElementById('signupPw');
-  el.type = el.type === 'password' ? 'text' : 'password';
-}
 
 /* ── 로그인 ───────────────────────────────────── */
 async function doLogin() {
@@ -102,27 +98,22 @@ async function doLogout() {
 async function doSignupRequest() {
   const name   = document.getElementById('signupName').value.trim();
   const email  = document.getElementById('signupEmail').value.trim();
-  const pw     = document.getElementById('signupPw').value;
   const reason = document.getElementById('signupReason').value.trim();
   const msg    = document.getElementById('signupMsg');
   const btn    = document.getElementById('signupBtn');
 
-  // ── 입력값 검증 ──
   if (!name) {
     msg.textContent = '이름을 입력해주세요'; msg.className = 'auth-msg err'; return;
   }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     msg.textContent = '올바른 이메일을 입력해주세요'; msg.className = 'auth-msg err'; return;
   }
-  if (pw.length < 6) {
-    msg.textContent = '비밀번호는 6자 이상이어야 해요'; msg.className = 'auth-msg err'; return;
-  }
 
   btn.disabled = true; btn.textContent = '신청 중...';
   msg.textContent = ''; msg.className = 'auth-msg';
 
   try {
-    // ── 중복 신청 방지 ──
+    // 중복 신청 방지
     const existing = await db.collection('pending_users')
       .where('email', '==', email)
       .where('status', '==', 'pending')
@@ -133,13 +124,10 @@ async function doSignupRequest() {
       return;
     }
 
-    // ── 비밀번호 해시 후 저장 (평문 저장 금지) ──
-    const pwHash = await hashPassword(pw);
-
+    // 비밀번호는 저장하지 않음 — 승인 후 관리자가 Firebase 콘솔에서 계정 생성
     await db.collection('pending_users').add({
       name,
       email,
-      pwHash,    // 승인 시 Cloud Functions에서 계정 생성 후 즉시 삭제됨
       reason:    reason || '',
       status:    'pending',
       requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -164,5 +152,4 @@ async function doSignupRequest() {
 document.getElementById('authEmail').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
 document.getElementById('authPw').addEventListener('keydown',     e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('signupName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('signupEmail').focus(); });
-document.getElementById('signupEmail').addEventListener('keydown',e => { if (e.key === 'Enter') document.getElementById('signupPw').focus(); });
-document.getElementById('signupPw').addEventListener('keydown',   e => { if (e.key === 'Enter') doSignupRequest(); });
+document.getElementById('signupEmail').addEventListener('keydown',e => { if (e.key === 'Enter') doSignupRequest(); });

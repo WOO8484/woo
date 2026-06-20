@@ -1,16 +1,8 @@
-/* ══════════════════════════════════════════════
-   Mr.woo v2.4.7  —  js/admin.js
-   관리자 — 사용자 관리, 가입 승인/거절
-   ══════════════════════════════════════════════ */
 'use strict';
 
-/* ═══════════════════════════════════════════════
-   가입 대기 목록
-   ═══════════════════════════════════════════════ */
 async function renderPendingList() {
   if (!isAdmin) return;
   try {
-    // orderBy 제거 → Firestore 복합 인덱스 불필요 (클라이언트 정렬)
     const snap = await db.collection('pending_users')
       .where('status', '==', 'pending')
       .get();
@@ -57,34 +49,14 @@ async function renderPendingList() {
   }
 }
 
-/* ═══════════════════════════════════════════════
-   가입 승인
-   ─────────────────────────────────────────────
-   현재 (Cloud Functions 미배포):
-     pending_users 상태를 approved로 변경 +
-     관리자에게 Firebase 콘솔에서 직접 계정 생성 안내
-
-   Cloud Functions 배포 후:
-     functions.httpsCallable('approveUser') 호출 →
-     자동 계정 생성 + 비밀번호 재설정 링크 이메일 발송 +
-     pending_users 문서 삭제
-   ═══════════════════════════════════════════════ */
 async function approvePending(docId, name) {
   if (!isAdmin) return;
   try {
-    /* ── Cloud Functions 배포 후 아래 블록으로 교체 ──────────────
-    const approveUser = functions.httpsCallable('approveUser');
-    await approveUser({ docId });
-    showToast(`${name}님 승인됐어요. 비밀번호 재설정 메일이 발송됐어요 ✅`);
-    ──────────────────────────────────────────────────────────── */
-
-    // ── 임시: 상태만 approved로 변경 ──
     await db.collection('pending_users').doc(docId).update({
       status:     'approved',
       approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     showToast(`${name}님 승인됐어요. Firebase 콘솔에서 계정을 직접 생성해주세요 👤`);
-    // 승인 후 대기목록 + 사용자목록 병렬 갱신
     await Promise.all([renderPendingList(), renderUserList()]);
   } catch(e) {
     console.error('approvePending error:', e);
@@ -92,9 +64,6 @@ async function approvePending(docId, name) {
   }
 }
 
-/* ═══════════════════════════════════════════════
-   가입 거절
-   ═══════════════════════════════════════════════ */
 async function rejectPending(docId, name) {
   if (!isAdmin) return;
   try {
@@ -110,9 +79,6 @@ async function rejectPending(docId, name) {
   }
 }
 
-/* ═══════════════════════════════════════════════
-   사용자 목록
-   ═══════════════════════════════════════════════ */
 async function renderUserList() {
   if (!isAdmin) return;
   try {
@@ -137,21 +103,10 @@ async function renderUserList() {
   }
 }
 
-/* ═══════════════════════════════════════════════
-   사용자 삭제
-   Cloud Functions 배포 후 자동화 예정
-   현재: Firestore users 문서만 삭제 (Auth 계정은 콘솔에서 수동)
-   ═══════════════════════════════════════════════ */
 async function deleteUser(uid) {
   if (!isAdmin) return;
   showConfirm('이 사용자를 삭제할까요?', async () => {
     try {
-      /* ── Cloud Functions 배포 후 아래 블록으로 교체 ──────────────
-      const deleteUserFn = functions.httpsCallable('deleteUser');
-      await deleteUserFn({ uid });
-      ──────────────────────────────────────────────────────────── */
-
-      // ── 임시: Firestore 문서만 삭제 ──
       await db.collection('users').doc(uid).delete();
       showToast('사용자를 삭제했어요 (Firebase 콘솔에서 Auth 계정도 삭제해주세요)');
       await renderUserList();
