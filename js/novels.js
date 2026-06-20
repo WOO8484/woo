@@ -1,4 +1,4 @@
-/* Mr.woo v2.4.5  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
+/* Mr.woo v2.4.6  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
 'use strict';
 
 /* Firestore — 소설 목록 실시간 구독 */
@@ -630,53 +630,25 @@ function downloadNovel() {
   showToast('다운로드 완료 📄');
 }
 
-/* 네이버 책 검색 / ✅ Firebase Remote Config로 API 키 관리 / GitHub에 키 노출 없음 / Cloud Functions 불필요 */
+/* 네이버 책 검색 / Cloudflare Worker 프록시 / API 키 서버에서 관리 */
 
-// Remote Config 초기화
-const _remoteConfig = firebase.remoteConfig();
-_remoteConfig.settings.minimumFetchIntervalMillis = 0; // 매번 최신값 fetch (캐시 없음)
-_remoteConfig.defaultConfig = {
-  NAVER_CLIENT_ID:     '',
-  NAVER_CLIENT_SECRET: '',
-};
-
-// Remote Config에서 네이버 API 키 가져오기
-async function getNaverKeys() {
-  try {
-    await _remoteConfig.fetchAndActivate();
-    return {
-      clientId:     _remoteConfig.getValue('NAVER_CLIENT_ID').asString(),
-      clientSecret: _remoteConfig.getValue('NAVER_CLIENT_SECRET').asString(),
-    };
-  } catch(e) {
-    console.error('Remote Config 오류:', e);
-    return { clientId: '', clientSecret: '' };
-  }
-}
+// Cloudflare Worker URL (API 키는 Worker 환경변수에 저장)
+const WORKER_URL = 'https://old-meadow-5c40.qudrnr84.workers.dev';
 
 async function callNaverBookAPI(q) {
-  const { clientId, clientSecret } = await getNaverKeys();
-  if (!clientId || !clientSecret) throw new Error('API 키가 설정되지 않았어요');
-  const apiUrl = `https://openapi.naver.com/v1/search/book.json?query=${encodeURIComponent(q)}&display=10&start=1`;
-  const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-  const ctrl   = new AbortController();
-  const timer  = setTimeout(() => ctrl.abort(), 8000);
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   let res;
   try {
-    res = await fetch(proxy, {
+    res = await fetch(`${WORKER_URL}?q=${encodeURIComponent(q)}`, {
       signal: ctrl.signal,
-      headers: {
-        'X-Naver-Client-Id':     clientId,
-        'X-Naver-Client-Secret': clientSecret,
-      },
     });
   } finally {
     clearTimeout(timer);
   }
   if (!res.ok) throw new Error('네트워크 오류');
-  const data   = await res.json();
-  const parsed = JSON.parse(data.contents);
-  return (parsed.items || []).map(item => ({
+  const data = await res.json();
+  return (data.items || []).map(item => ({
     title:       item.title,
     author:      item.author,
     description: item.description,
