@@ -319,6 +319,7 @@ html,body {
   display:none; position:fixed; inset:0; z-index:150;
   background:var(--bg);
   flex-direction:column; overflow:hidden;
+  height:100%; /* 전체 높이 확정 */
 }
 #detail.open { display:flex; }
 .dbar {
