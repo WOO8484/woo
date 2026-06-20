@@ -269,7 +269,8 @@ async function toggleFavDetail() {
    ═══════════════════════════════════════════════ */
 function openDetail(id) {
   const _n = novels.find(x => x.id === id); if (!_n) return;
-  const n  = { ..._n, ...getNovelUserData(id) };
+  const _ud = getNovelUserData(id);
+  const n  = { ..._n, progress: _ud.progress || 0, favorite: _ud.favorite || false, lastReadAt: _ud.lastReadAt || null, ch: _ud.ch || 0 };
   curId = id;
   document.getElementById('detail').style.display = 'block';
   const cc = genreCoverClass(n.genre);
