@@ -316,15 +316,16 @@ html,body {
 
 /* ── DETAIL ── */
 #detail {
+  display:none;
   position:fixed; inset:0; z-index:150;
+  flex-direction:column;
+  overflow:hidden;
   background:var(--bg);
-  display:none; /* JS에서 flex로 변경 */
 }
+/* display:flex 인라인 적용 시 flex 레이아웃 강제 */
 #detail[style*="flex"] {
-  display:flex !important;
   flex-direction:column !important;
   overflow:hidden !important;
-  height:100% !important;
 }
 .dbar {
   display:flex; align-items:flex-start; justify-content:space-between;
