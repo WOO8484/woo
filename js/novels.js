@@ -314,15 +314,14 @@ function openDetail(id) {
   requestAnimationFrame(fixDetailScroll);
 }
 function fixDetailScroll() {
-  const dbar    = document.querySelector('.dbar');
-  const dfixed  = document.querySelector('.dfixed');
-  const dfoot   = document.querySelector('.dfoot');
-  const dscroll = document.querySelector('.dscroll');
+  const dbar    = document.querySelector('#detail .dbar');
+  const dfixed  = document.querySelector('#detail .dfixed');
+  const dfoot   = document.querySelector('#detail .dfoot');
+  const dscroll = document.querySelector('#detail .dscroll');
   if (!dbar || !dfixed || !dfoot || !dscroll) return;
   const used = dbar.offsetHeight + dfixed.offsetHeight + dfoot.offsetHeight;
-  dscroll.style.height   = (window.innerHeight - used) + 'px';
-  dscroll.style.overflowY = 'auto';
-  dscroll.style.flexShrink = '0';
+  const h = window.innerHeight - used;
+  dscroll.style.cssText = `height:${h}px; min-height:0; flex:none; overflow-y:auto; -webkit-overflow-scrolling:touch;`;
 }
 function closeDetail() { document.getElementById('detail').classList.remove('open'); }
 function readFromDetail() { openViewer(curId); }
