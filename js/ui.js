@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   NovelShelf v2.3.0  —  js/ui.js
+   NovelShelf v2.3.4  —  js/ui.js
    공통 UI 유틸리티
    ══════════════════════════════════════════════ */
 'use strict';
@@ -193,6 +193,58 @@ function setWidth(w, el) {
   document.getElementById('widthBadge').textContent = { 480:'좁음', 680:'기본', 860:'넓음', 9999:'전체' }[w] || '기본';
   applyViewerSettings(); saveSettings();
 }
+
+/* ═══════════════════════════════════════════════
+   이름 변경 (관리자·독자 모두 가능)
+   Firebase Auth displayName + Firestore users 동기화
+   ═══════════════════════════════════════════════ */
+function openNameEdit() {
+  const input = document.getElementById('nameEditInput');
+  const name  = currentUser.displayName || currentUser.email.split('@')[0];
+  input.value = name;
+  document.getElementById('nameEditMsg').textContent = '';
+  const ov = document.getElementById('nameEditOv');
+  ov.classList.add('on');
+  setTimeout(() => input.focus(), 100);
+}
+function closeNameEdit() {
+  document.getElementById('nameEditOv').classList.remove('on');
+}
+async function saveNameEdit() {
+  const name = document.getElementById('nameEditInput').value.trim();
+  const msg  = document.getElementById('nameEditMsg');
+  if (!name) { msg.textContent = '이름을 입력해주세요'; return; }
+  if (name.length > 20) { msg.textContent = '20자 이하로 입력해주세요'; return; }
+
+  const okBtn = document.querySelector('#nameEditOv .confirm-ok');
+  okBtn.disabled = true; okBtn.textContent = '저장 중...';
+
+  try {
+    // Firebase Auth displayName 업데이트
+    await currentUser.updateProfile({ displayName: name });
+
+    // Firestore users 문서 업데이트 (사용자 목록에 반영)
+    await db.collection('users').doc(currentUser.uid).set(
+      { displayName: name },
+      { merge: true }
+    );
+
+    // UI 즉시 반영
+    document.getElementById('profileName').textContent  = name;
+    document.getElementById('homeUserName').textContent = name;
+    document.getElementById('navAvatar').textContent    = getAvatar(name);
+    document.getElementById('menuName').textContent     = name;
+
+    closeNameEdit();
+    showToast('이름을 변경했어요 ✓');
+  } catch(e) {
+    console.error('saveNameEdit error:', e);
+    msg.textContent = '변경에 실패했어요. 다시 시도해주세요';
+  } finally {
+    okBtn.disabled = false; okBtn.textContent = '저장';
+  }
+}
+
 function resetSettings() {
   vSettings = { fontSize:17, lineHeight:1.9, fontFamily:'system', theme:'light', maxWidth:680 };
   syncSettingsUI();
