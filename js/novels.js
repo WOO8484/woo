@@ -310,6 +310,19 @@ function openDetail(id) {
   document.getElementById('dShelfRemBtn').style.display = (n.progress > 0 || n.favorite) ? '' : 'none';
   document.getElementById('dReadBtn').textContent       = n.progress > 0 ? '이어 읽기' : '처음부터 읽기';
   document.getElementById('dFavBtn').textContent        = n.favorite ? '⭐' : '☆';
+  // 렌더 후 dscroll 높이 직접 계산
+  requestAnimationFrame(fixDetailScroll);
+}
+function fixDetailScroll() {
+  const dbar    = document.querySelector('.dbar');
+  const dfixed  = document.querySelector('.dfixed');
+  const dfoot   = document.querySelector('.dfoot');
+  const dscroll = document.querySelector('.dscroll');
+  if (!dbar || !dfixed || !dfoot || !dscroll) return;
+  const used = dbar.offsetHeight + dfixed.offsetHeight + dfoot.offsetHeight;
+  dscroll.style.height   = (window.innerHeight - used) + 'px';
+  dscroll.style.overflowY = 'auto';
+  dscroll.style.flexShrink = '0';
 }
 function closeDetail() { document.getElementById('detail').classList.remove('open'); }
 function readFromDetail() { openViewer(curId); }
