@@ -231,7 +231,10 @@ function openViewerPopup() {
   const nov = novels.find(x => x.id === curId); if (!nov) return;
   const total = getChs(nov)?.length || 1;
   document.getElementById('vpopupTitle').textContent = nov.title;
-  document.getElementById('vpopupInfo').textContent  = `${curCh+1} / ${total} 페이지  ·  ${getNovelUserData(curId).progress||0}% 진행`;
+  const totalPgs = getChs(nov)?.length || 1;
+  const novTotalP = Math.round((nov.totalChars||0)/500);
+  const readP     = totalPgs > 1 ? Math.round(novTotalP * (curCh / (totalPgs - 1))) : novTotalP;
+  document.getElementById('vpopupInfo').textContent  = `${curCh+1} / ${total} 챕터  ·  ${readP}p / ${novTotalP}p`;
   const sw = document.getElementById('vpopupSliderWrap');
   const sl = document.getElementById('vpopupSlider');
   if (total > 1) {

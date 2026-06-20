@@ -249,39 +249,41 @@
 <!-- ══════════════════════════════════════════════════════════════
      DETAIL
      ══════════════════════════════════════════════════════════════ -->
-<div id="detail" style="display:none; position:fixed; inset:0; z-index:150; background:var(--bg); overflow-y:auto;">
+<div id="detail" style="display:none;">
   <div class="dbar">
     <button class="dbar-back" onclick="closeDetail()">←</button>
     <button id="dEditBtn" onclick="openEdit()" class="dbar-edit-btn" style="display:none">✏️ 수정</button>
   </div>
-  <div class="dhero" id="dHero">
-    <div class="dhero-bg">
-      <div class="dhero-bg-color" id="dHeroBgColor"></div>
-      <div class="dhero-bg-grad"></div>
+  <div class="dscroll">
+    <div class="dhero" id="dHero">
+      <div class="dhero-bg">
+        <div class="dhero-bg-color" id="dHeroBgColor"></div>
+        <div class="dhero-bg-grad"></div>
+      </div>
+      <div class="dcover" id="dCover"></div>
+      <div class="dinfo">
+        <div class="dtitle"  id="dTitle"></div>
+        <div class="dauthor" id="dAuthor"></div>
+        <div class="dmeta"   id="dMeta"></div>
+        <div class="dprog-bar"><div class="dprog-fill" id="dProgFill" style="width:0%"></div></div>
+        <div class="dprog-text" id="dProgText">아직 읽지 않았어요</div>
+      </div>
     </div>
-    <div class="dcover" id="dCover"></div>
-    <div class="dinfo">
-      <div class="dtitle"  id="dTitle"></div>
-      <div class="dauthor" id="dAuthor"></div>
-      <div class="dmeta"   id="dMeta"></div>
-      <div class="dprog-bar"><div class="dprog-fill" id="dProgFill" style="width:0%"></div></div>
-      <div class="dprog-text" id="dProgText">아직 읽지 않았어요</div>
-    </div>
-  </div>
-  <div class="dbody">
-    <div class="dstat-row">
-      <div class="dstat"><div class="dstat-val" id="dStatProg">0%</div><div class="dstat-lbl">진행률</div></div>
-      <div class="dstat"><div class="dstat-val" id="dStatPages">0p</div><div class="dstat-lbl">분량 (추정)</div></div>
-    </div>
-    <div class="dsyn-card" id="dSyn">줄거리 없음</div>
-    <div class="dtag-card">
-      <div class="dtag-title">태그</div>
-      <div id="dTags">태그 없음</div>
-    </div>
-    <div class="dbtns">
-      <button class="ddl-btn"  id="dDlBtn"      style="display:none" onclick="downloadNovel()">↓ TXT 다운로드</button>
-      <button class="ddel-btn" id="dDelBtn"      style="display:none" onclick="deleteNovel()">🗑 전체 삭제 (관리자)</button>
-      <button class="ddel-btn" id="dShelfRemBtn" style="display:none" onclick="removeFromShelf()">☆ 내 서재에서 제거</button>
+    <div class="dbody">
+      <div class="dstat-row">
+        <div class="dstat"><div class="dstat-val" id="dStatProg">0p</div><div class="dstat-lbl">읽은 분량</div></div>
+        <div class="dstat"><div class="dstat-val" id="dStatPages">0p</div><div class="dstat-lbl">전체 분량</div></div>
+      </div>
+      <div class="dsyn-card" id="dSyn">줄거리 없음</div>
+      <div class="dtag-card">
+        <div class="dtag-title">태그</div>
+        <div id="dTags">태그 없음</div>
+      </div>
+      <div class="dbtns">
+        <button class="ddl-btn"  id="dDlBtn"      style="display:none" onclick="downloadNovel()">↓ TXT 다운로드</button>
+        <button class="ddel-btn" id="dDelBtn"      style="display:none" onclick="deleteNovel()">🗑 전체 삭제 (관리자)</button>
+        <button class="ddel-btn" id="dShelfRemBtn" style="display:none" onclick="removeFromShelf()">☆ 내 서재에서 제거</button>
+      </div>
     </div>
   </div>
   <div class="dfoot">

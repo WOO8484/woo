@@ -284,7 +284,7 @@ function openDetail(id) {
   const _ud = getNovelUserData(id);
   const n  = { ..._n, progress: _ud.progress || 0, favorite: _ud.favorite || false, lastReadAt: _ud.lastReadAt || null, ch: _ud.ch || 0 };
   curId = id;
-  document.getElementById('detail').style.display = 'block';
+  document.getElementById('detail').style.display = 'flex';
   const cc = genreCoverClass(n.genre);
   document.getElementById('dHeroBgColor').className = 'dhero-bg-color ' + cc;
   const coverEl = document.getElementById('dCover');
@@ -297,8 +297,10 @@ function openDetail(id) {
   document.getElementById('dMeta').textContent    = (GENRE_LABEL[n.genre]||'기타') + ' · ' + Math.round((n.totalChars||0)/500) + 'p';
   document.getElementById('dProgFill').style.width = n.progress + '%';
   document.getElementById('dProgText').textContent = n.progress > 0 ? n.progress + '% 진행 중' : '아직 읽지 않았어요';
-  document.getElementById('dStatProg').textContent  = n.progress + '%';
-  document.getElementById('dStatPages').textContent = Math.round((n.totalChars||0)/500) + 'p';
+  const totalPages = Math.round((n.totalChars||0)/500);
+  const readPages  = Math.round(totalPages * (n.progress||0) / 100);
+  document.getElementById('dStatProg').textContent  = readPages + 'p';
+  document.getElementById('dStatPages').textContent = totalPages + 'p';
   document.getElementById('dSyn').textContent  = n.synopsis || '줄거리 없음';
   document.getElementById('dTags').innerHTML   = (n.tags && n.tags.length)
     ? n.tags.map(t => `<span class="dtag">#${escapeHtml(t)}</span>`).join('') : '태그 없음';

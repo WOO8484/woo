@@ -119,13 +119,18 @@ function applyViewerSettings() {
   if (vb) {
     vb.style.background = t.bg;
     vb.style.color      = t.ink;
-    vb.style.maxWidth   = vSettings.maxWidth === 9999 ? '100%' : vSettings.maxWidth + 'px';
+  }
+  // 본문 너비: vPage에 CSS 변수로 적용
+  const vp = document.getElementById('vPage');
+  if (vp) {
+    vp.style.maxWidth = vSettings.maxWidth === 9999 ? '100%' : vSettings.maxWidth + 'px';
   }
   const vt = document.getElementById('vText');
   if (vt) {
     vt.style.fontSize   = vSettings.fontSize + 'px';
     vt.style.lineHeight = vSettings.lineHeight;
     vt.style.fontFamily = FONTS[vSettings.fontFamily] || FONTS.system;
+    vt.style.textAlign  = 'center';
   }
   const prev = document.getElementById('previewText');
   if (prev) {
