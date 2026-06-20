@@ -74,22 +74,24 @@ function splitCh(txt) {
 async function openViewer(id) {
   const nov = novels.find(x => x.id === id); if (!nov) return;
 
-  // Storage에서 본문 로드 (textUrl 있는 경우)
+  // Storage에서 본문 로드 (textUrl 있고 아직 로드 안 된 경우)
   if (!nov.inlineText && nov.textUrl) {
-    showToast('본문 불러오는 중...');
+    // 로딩 중 토스트 — 2초 이상 걸릴 수 있으므로 충분히 표시
+    showToast('본문 불러오는 중...', '', 8000);
     await loadNovelText(nov);
   }
 
-  if (!nov.inlineText) { showToast('읽기 가능한 파일이 없어요'); return; }
-  curId   = id;
+  if (!nov.inlineText) { showToast('읽기 가능한 파일이 없어요', 'error'); return; }
+
+  curId = id;
   const novChs = getChs(nov);
   const saved  = getNovelUserData(id);
-  curCh = Math.min(saved.ch || 0, novChs.length - 1);
+  curCh = Math.min(saved.ch ?? 0, novChs.length - 1);
   chPage = Math.floor(curCh / CH_PAGE);
 
-  document.getElementById('viewer').style.display  = 'flex';
-  document.getElementById('mainNav').style.display  = 'none';
-  document.getElementById('tabBar').style.display   = 'none';
+  document.getElementById('viewer').style.display = 'flex';
+  document.getElementById('mainNav').style.display = 'none';
+  document.getElementById('tabBar').style.display  = 'none';
   applyViewerSettings();
   _animDir = 'next';
   renderCh();

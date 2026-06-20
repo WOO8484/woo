@@ -84,9 +84,8 @@ async function approvePending(docId, name) {
       approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     showToast(`${name}님 승인됐어요. Firebase 콘솔에서 계정을 직접 생성해주세요 👤`);
-
-    await renderPendingList();
-    await renderUserList();
+    // 승인 후 대기목록 + 사용자목록 병렬 갱신
+    await Promise.all([renderPendingList(), renderUserList()]);
   } catch(e) {
     console.error('approvePending error:', e);
     showToast('승인 처리에 실패했어요', 'error');

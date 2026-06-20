@@ -26,12 +26,12 @@ async function hashPassword(pw) {
 
 /* ── TOAST ────────────────────────────────────── */
 let _toastTimer;
-function showToast(msg, type = '') {
+function showToast(msg, type = '', duration = 2400) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className   = 'toast on' + (type === 'error' ? ' error' : '');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('on'), 2400);
+  _toastTimer = setTimeout(() => t.classList.remove('on'), duration);
 }
 
 /* ── 탭 전환 ──────────────────────────────────── */
@@ -77,6 +77,7 @@ function showApp() {
   document.getElementById('menuEmail').textContent    = currentUser.email;
   document.getElementById('homeUserName').textContent = name;
   renderGenreTabs();
+  loadSignupState(); // Firestore에서 가입 신청 상태 로드
   switchTab('home');
 }
 
@@ -264,17 +265,32 @@ async function saveNameEdit() {
 /* ── 가입 신청 ON/OFF (관리자) ───────────────── */
 let _signupOpen = false;
 
-function toggleSignupOpen() {
+// 앱 시작 시 Firestore에서 상태 로드
+async function loadSignupState() {
+  try {
+    const doc = await db.collection('settings').doc('app').get();
+    if (doc.exists) _signupOpen = doc.data().signupOpen || false;
+  } catch(e) {
+    _signupOpen = false;
+  }
+  applySignupState();
+}
+
+async function toggleSignupOpen() {
   _signupOpen = !_signupOpen;
+  try {
+    await db.collection('settings').doc('app').set({ signupOpen: _signupOpen }, { merge: true });
+  } catch(e) {
+    console.error('toggleSignupOpen save error:', e);
+  }
   applySignupState();
 }
 
 function applySignupState() {
-  // 로그인 화면 탭 표시/숨김
+  // DOM이 없을 때 에러 방지 — optional chaining으로 처리
   const tabs = document.getElementById('authTabs');
   if (tabs) tabs.style.display = _signupOpen ? '' : 'none';
 
-  // 가입 탭이 닫히면 로그인 폼으로 복귀
   if (!_signupOpen) {
     const sf = document.getElementById('signupForm');
     const lf = document.getElementById('loginForm');
@@ -284,20 +300,13 @@ function applySignupState() {
     document.getElementById('tabSignup')?.classList.remove('on');
   }
 
-  // 관리자 패널 토글 버튼 상태
   const btn   = document.getElementById('signupToggleBtn');
   const label = document.getElementById('signupToggleLabel');
-  if (btn && label) {
-    if (_signupOpen) {
-      btn.textContent = '닫기';
-      btn.classList.add('open');
-      label.textContent = '현재 열림 🟢';
-    } else {
-      btn.textContent = '열기';
-      btn.classList.remove('open');
-      label.textContent = '현재 닫힘 🔴';
-    }
+  if (btn) {
+    btn.textContent = _signupOpen ? '닫기' : '열기';
+    btn.classList.toggle('open', _signupOpen);
   }
+  if (label) label.textContent = _signupOpen ? '현재 열림 🟢' : '현재 닫힘 🔴';
 }
 
 function resetSettings() {
