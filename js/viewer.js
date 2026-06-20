@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.5.2  —  js/viewer.js
+   Mr.woo v2.5.6  —  js/viewer.js
    소설 뷰어, 챕터 파싱, 읽기 설정
    ══════════════════════════════════════════════ */
 'use strict';
@@ -10,11 +10,7 @@ let _animDir       = 'next';
 let _idleHandle    = null;
 let _renderGen     = 0;
 let _progressTimer = null;
-let _ioObserver    = null; // Intersection Observer
-
-/* ── 챕터 목록 페이지네이션 ────────────────────── */
-const CH_PAGE = 100;
-let chPage = 0;
+let _ioObserver    = null;
 
 /* ── Safari 안전 idle 헬퍼 ───────────────────────
    requestIdleCallback은 Safari에서 fallback이
@@ -87,7 +83,6 @@ async function openViewer(id) {
   const novChs = getChs(nov);
   const saved  = getNovelUserData(id);
   curCh = Math.min(saved.ch ?? 0, novChs.length - 1);
-  chPage = Math.floor(curCh / CH_PAGE);
 
   document.getElementById('viewer').style.display = 'flex';
   document.getElementById('mainNav').style.display = 'none';
@@ -122,11 +117,6 @@ function renderCh() {
 
   const gen = ++_renderGen;
   const ch  = chs[curCh];
-
-  const vChTitle = document.getElementById('vChTitle');
-  vChTitle.textContent   = ch.title;
-  vChTitle.style.display = chs.length === 1 ? 'none' : '';
-
   const vText = document.getElementById('vText');
   // 문단 분리: 빈줄 2개 이상 또는 단일 줄바꿈 모두 처리
   const paras = ch.content.split(/\n{1,}/).filter(p => p.trim());
@@ -234,65 +224,19 @@ function openViewerPopup() {
   const total = getChs(nov)?.length || 1;
   document.getElementById('vpopupTitle').textContent = nov.title;
   const novTotalP = Math.round((nov.totalChars||0)/500);
-  const readP     = total > 1 ? Math.round(novTotalP * (curCh / (total - 1))) : novTotalP;
+  const readP = total > 1 ? Math.round(novTotalP * (curCh / (total - 1))) : novTotalP;
   document.getElementById('vpopupInfo').textContent = `${curCh+1} / ${total} 챕터  ·  ${readP}p / ${novTotalP}p`;
   const sw = document.getElementById('vpopupSliderWrap');
   const sl = document.getElementById('vpopupSlider');
   if (total > 1) {
     sw.style.display = ''; sl.max = total - 1; sl.value = curCh;
-    document.getElementById('vpopupSliderLabel').textContent = `${curCh+1} / ${total} 챕터`;
-  } else sw.style.display = 'none';
+  } else {
+    sw.style.display = 'none';
+  }
   document.getElementById('vpopupOv').classList.add('on');
 }
 function closeViewerPopup() { document.getElementById('vpopupOv').classList.remove('on'); }
-function onSliderInput(v) {
-  const nov = novels.find(x => x.id === curId); if (!nov) return;
-  document.getElementById('vpopupSliderLabel').textContent = `${parseInt(v)+1} / ${getChs(nov)?.length||1} 챕터`;
-}
+function onSliderInput(v) {}
 function onSliderChange(v) { curCh = parseInt(v); closeViewerPopup(); setTimeout(renderCh, 150); }
 
-/* ═══════════════════════════════════════════════
-   챕터 목록
-   ═══════════════════════════════════════════════ */
-function openChList() {
-  const nov = novels.find(x => x.id === curId); if (!nov) return;
-  if (!getChs(nov)?.length) return;
-  chPage = Math.floor(curCh / CH_PAGE);
-  document.getElementById('chListTitle').textContent = nov.title;
-  renderChList();
-  document.getElementById('chListOv').classList.add('on');
-  document.getElementById('chListModal').classList.add('on');
-}
-function closeChList() {
-  document.getElementById('chListOv').classList.remove('on');
-  document.getElementById('chListModal').classList.remove('on');
-}
-function renderChList() {
-  const nov = novels.find(x => x.id === curId); if (!nov) return;
-  const chs = getChs(nov); if (!chs?.length) return;
-  const total = chs.length;
-  const start = chPage * CH_PAGE;
-  const end   = Math.min(start + CH_PAGE, total);
-  const nav = total > CH_PAGE
-    ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:4px">
-        <button onclick="chPageMove(-1)" style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);font-size:12px;cursor:pointer;${chPage===0?'opacity:.4':''}">◀</button>
-        <span style="font-size:12px;color:var(--ink3)">${start+1}~${end} / ${total}</span>
-        <button onclick="chPageMove(1)"  style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);font-size:12px;cursor:pointer;${end>=total?'opacity:.4':''}">▶</button>
-      </div>` : '';
-  document.getElementById('chList').innerHTML = nav + chs.slice(start, end).map((ch, i) => {
-    const idx = start + i;
-    return `<div class="ch-item${idx===curCh?' active':''}" onclick="jumpCh(${idx})">
-      <span class="ch-num">${idx+1}</span>
-      <span class="ch-title">${escapeHtml(ch.title)}</span>
-      ${idx < curCh ? '<span class="ch-check">✓</span>' : ''}
-    </div>`;
-  }).join('');
-  setTimeout(() => document.querySelector('.ch-item.active')?.scrollIntoView({ block:'center' }), 100);
-}
-function chPageMove(d) {
-  const nov = novels.find(x => x.id === curId); if (!nov) return;
-  const chs = getChs(nov); if (!chs?.length) return;
-  chPage = Math.max(0, Math.min(Math.ceil(chs.length / CH_PAGE) - 1, chPage + d));
-  renderChList();
-}
-function jumpCh(i) { curCh = i; closeChList(); renderCh(); }
+

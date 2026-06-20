@@ -1,4 +1,4 @@
-/* Mr.woo v2.5.2  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
+/* Mr.woo v2.5.6  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
 'use strict';
 
 /* Firestore — 소설 목록 실시간 구독 */
@@ -301,8 +301,6 @@ function openDetail(id) {
   const readPages  = Math.round(totalPages * (n.progress||0) / 100);
   document.getElementById('dStatProg').textContent  = readPages + 'p';
   document.getElementById('dStatPages').textContent = totalPages + 'p';
-  document.getElementById('dSynBtn').style.display = n.synopsis ? '' : 'none';
-  document.getElementById('synBody').textContent   = n.synopsis || '줄거리 없음';
   document.getElementById('dBarTags').innerHTML = (n.tags && n.tags.length)
     ? n.tags.map(t => `<span class="dbar-tag">#${escapeHtml(t)}</span>`).join('') : '';
   document.getElementById('dDlBtn').style.display       = n.textUrl ? '' : 'none';
@@ -312,16 +310,8 @@ function openDetail(id) {
   document.getElementById('dReadBtn').textContent       = n.progress > 0 ? '이어 읽기' : '처음부터 읽기';
   document.getElementById('dFavBtn').textContent        = n.favorite ? '⭐' : '☆';
 }
-function closeDetail() { document.getElementById('detail').classList.remove('open'); closeSynopsis(); }
+function closeDetail() { document.getElementById('detail').classList.remove('open'); }
 function readFromDetail() { openViewer(curId); }
-function openSynopsis() {
-  document.getElementById('synOv').classList.add('on');
-  document.getElementById('synSheet').classList.add('on');
-}
-function closeSynopsis() {
-  document.getElementById('synOv').classList.remove('on');
-  document.getElementById('synSheet').classList.remove('on');
-}
 
 /* 소설 추가 (관리자) */
 let selG          = null;
