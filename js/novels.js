@@ -732,15 +732,16 @@ function switchBookSearchTab(tab) {
 }
 
 async function searchBookPopup() {
-  const q   = document.getElementById('naverPopupInput').value.trim();
+  const q          = document.getElementById('naverPopupInput').value.trim();
   if (!q) { showToast('검색어를 입력해주세요', 'error'); return; }
-  const btn = document.getElementById('naverPopupBtn');
+  const novelOnly  = document.getElementById('novelOnlyCheck').checked;
+  const btn        = document.getElementById('naverPopupBtn');
   btn.disabled = true; btn.textContent = '검색 중...';
   document.getElementById('naverPopupResults').innerHTML = '<div class="naver-status">🔍 검색 중...</div>';
   try {
     const items = _bookSearchTab === 'google'
-      ? await callGoogleBooksAPI(q)
-      : await callNaverBookAPI(q);
+      ? await callGoogleBooksAPI(q, novelOnly)
+      : await callNaverBookAPI(q, novelOnly);
     renderNaverPopupResults(items);
   } catch(e) {
     console.error('searchBookPopup error:', e);
@@ -753,11 +754,15 @@ async function searchBookPopup() {
   }
 }
 
-async function callGoogleBooksAPI(q) {
+async function callGoogleBooksAPI(q, novelOnly = false) {
   const ctrl  = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const res  = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&langRestrict=ko`, { signal: ctrl.signal });
+    const query = novelOnly ? `${q}+subject:fiction` : q;
+    const res   = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=ko`,
+      { signal: ctrl.signal }
+    );
     if (!res.ok) throw new Error('네트워크 오류');
     const data = await res.json();
     return (data.items || []).map(item => {
@@ -824,17 +829,14 @@ function selectNaverPopupBook(item) {
   showToast('메타정보를 불러왔어요 ✓');
 }
 
-async function callNaverBookAPI(q) {
+async function callNaverBookAPI(q, novelOnly = false) {
   const ctrl  = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
+  const query = novelOnly ? `${q} 소설` : q;
   let res;
   try {
-    res = await fetch(`${WORKER_URL}?q=${encodeURIComponent(q)}`, {
-      signal: ctrl.signal,
-    });
-  } finally {
-    clearTimeout(timer);
-  }
+    res = await fetch(`${WORKER_URL}?q=${encodeURIComponent(query)}`, { signal: ctrl.signal });
+  } finally { clearTimeout(timer); }
   if (!res.ok) throw new Error('네트워크 오류');
   const data = await res.json();
   return (data.items || []).map(item => ({
