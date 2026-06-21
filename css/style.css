@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.7.2  —  style.css
+   Mr.woo v2.7.3  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -618,38 +618,72 @@ html,body {
 
 /* ── VIEWER ── */
 #viewer {
-  display:none;
-  position:fixed; inset:0; z-index:200;
-  flex-direction:column;
-  background:#fff;
+  display:none; position:fixed; inset:0; z-index:200;
+  flex-direction:column; background:#fff;
 }
 #viewer.open { display:flex; }
-
 .v-topbar {
-  flex-shrink:0;
-  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
   padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
-  border-bottom:1px solid var(--line);
-  background:#fff;
+  border-bottom:1px solid var(--line); background:inherit;
 }
-.v-title {
-  font-size:15px; font-weight:700;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  flex:1; margin-right:12px;
-}
-.v-close {
-  flex-shrink:0; width:32px; height:32px;
-  border:none; background:var(--bg2); border-radius:50%;
-  font-size:14px; cursor:pointer; color:var(--ink2);
-}
-
-.v-body {
+.v-title { font-size:15px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; margin-right:12px; }
+.v-close { flex-shrink:0; width:32px; height:32px; border:none; background:var(--bg2); border-radius:50%; font-size:14px; cursor:pointer; color:var(--ink2); }
+#vPage   { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.v-body  {
   flex:1; overflow-y:auto; overflow-x:hidden;
   padding:24px 24px max(env(safe-area-inset-bottom), 40px);
-  box-sizing:border-box;
-  -webkit-overflow-scrolling:touch;
+  box-sizing:border-box; -webkit-overflow-scrolling:touch;
   font-size:17px; line-height:1.9; color:var(--ink);
   word-break:keep-all; overflow-wrap:break-word;
 }
 .v-body p { margin:0 0 1em; }
+@keyframes chIn  { from{opacity:0;transform:translateX(30px)}  to{opacity:1;transform:none} }
+@keyframes chOut { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:none} }
+#vPage.anim-next { animation:chIn  .18s ease both; }
+#vPage.anim-prev { animation:chOut .18s ease both; }
+.vtap-left   { position:fixed; left:0;  top:0; width:25%; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
+.vtap-right  { position:fixed; right:0; top:0; width:25%; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
+.vtap-center { position:fixed; left:25%; right:25%; top:0; height:100%; z-index:505; cursor:pointer; touch-action:manipulation; }
+
+/* ── 뷰어 팝업 ── */
+.vpopup-ov { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:520; display:none; align-items:center; justify-content:center; }
+.vpopup-ov.on { display:flex; }
+.vpopup { background:#fff; border-radius:20px; padding:24px 20px 20px; width:88%; max-width:360px; }
+.vpopup-title { font-size:16px; font-weight:800; margin-bottom:16px; }
+.vpopup-slider-wrap { margin-bottom:8px; }
+.vpopup-info  { font-size:12px; color:var(--ink3); margin-bottom:16px; }
+.vpopup-btns  { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.vpopup-btn   { width:100%; height:52px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:14px; padding:0 18px; color:var(--ink); }
+.vpopup-btn span { font-size:22px; }
+.vpopup-btn.danger { color:var(--danger); border-color:var(--danger-line); }
+.vpopup-close { width:100%; height:48px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-size:14px; font-weight:700; cursor:pointer; }
+
+/* ── 읽기 설정 ── */
+.modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:540; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-ov.on { opacity:1; pointer-events:all; }
+.modal { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-radius:20px 20px 0 0; padding:10px 16px max(20px,env(safe-area-inset-bottom)); z-index:550; transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,0,1); }
+.modal.on { transform:translateY(0); }
+.mhandle { width:36px; height:4px; background:var(--line); border-radius:2px; margin:0 auto 10px; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.modal-title  { font-size:15px; font-weight:800; }
+.modal-close  { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg2); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink2); }
+.modal-body   { max-height:60vh; overflow-y:auto; padding-bottom:4px; }
+.set-label    { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
+.v-slider     { width:100%; height:4px; accent-color:var(--accent); cursor:pointer; }
+.vmode-row,.vtheme-row,.vfont-row { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:2px; }
+.vtheme-row,.vfont-row { grid-template-columns:repeat(4,1fr); }
+.vmode-btn,.vtheme-btn,.vfont-btn { height:36px; border-radius:10px; border:2px solid var(--line); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+.vmode-btn.on,.vtheme-btn.on,.vfont-btn.on { border-color:var(--accent); outline:2px solid var(--accent); }
+.vslider-row  { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+.vslider-lbl  { font-size:10px; color:var(--ink3); white-space:nowrap; }
+.vctrl-row    { display:flex; align-items:center; justify-content:space-between; padding:4px 0; }
+.vctrl-label  { font-size:12px; color:var(--ink2); }
+.vctrl        { display:flex; align-items:center; gap:8px; }
+.vctrl-btn    { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+/* ── 완독 팝업 ── */
+.complete-ov  { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.complete-ov.on { opacity:1; pointer-events:all; }
+.complete-box { background:#fff; border-radius:16px; padding:28px 20px 18px; max-width:320px; width:100%; text-align:center; box-shadow:var(--sh2); }
 

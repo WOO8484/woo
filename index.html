@@ -78,7 +78,7 @@
     <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
   </div>
 
-  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.7.2</div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.7.3</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -93,7 +93,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.7.2</div>
+  <div class="nav-version">v2.7.3</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -446,7 +446,109 @@
     <div class="v-title" id="vTitle"></div>
     <button class="v-close" onclick="closeViewer()">✕</button>
   </div>
-  <div class="v-body" id="vBody"></div>
+  <div id="vPage">
+    <div class="v-body" id="vBody"></div>
+  </div>
+  <div class="vtap-left"   id="vTapLeft"   onclick="vPrev()" style="display:none"></div>
+  <div class="vtap-right"  id="vTapRight"  onclick="vNext()" style="display:none"></div>
+  <div class="vtap-center" id="vTapCenter" onclick="openVPopup()"></div>
+</div>
+
+<!-- ── 뷰어 팝업 ── -->
+<div class="vpopup-ov" id="vpopupOv" onclick="closeVPopup()">
+  <div class="vpopup" onclick="event.stopPropagation()">
+    <div class="vpopup-title" id="vpopupTitle"></div>
+    <div class="vpopup-slider-wrap" id="vpopupSliderWrap" style="display:none">
+      <input type="range" class="v-slider" id="vpopupSlider" min="0" step="1" value="0"
+        style="width:100%" onchange="onSliderChange(this.value)">
+    </div>
+    <div class="vpopup-info" id="vpopupInfo"></div>
+    <div class="vpopup-btns">
+      <button class="vpopup-btn" onclick="closeVPopup();setTimeout(openVSettings,150)"><span>⚙️</span> 읽기 설정</button>
+      <button class="vpopup-btn danger" onclick="closeVPopup();setTimeout(closeViewer,150)"><span>✕</span> 서재로 나가기</button>
+    </div>
+    <button class="vpopup-close" onclick="closeVPopup()">계속 읽기</button>
+  </div>
+</div>
+
+<!-- ── 읽기 설정 ── -->
+<div class="modal-ov" id="vSetOv" onclick="closeVSettings()"></div>
+<div class="modal" id="vSetModal">
+  <div class="mhandle"></div>
+  <div class="modal-header">
+    <div class="modal-title">읽기 설정</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button style="height:28px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);font-size:11px;cursor:pointer" onclick="vResetSettings()">초기화</button>
+      <button class="modal-close" onclick="closeVSettings()">×</button>
+    </div>
+  </div>
+  <div class="modal-body">
+    <!-- 읽기 방식 -->
+    <div class="set-label">읽기 방식</div>
+    <div class="vmode-row">
+      <button class="vmode-btn on" data-mode="scroll" onclick="vSetMode('scroll')">스크롤</button>
+      <button class="vmode-btn"    data-mode="page"   onclick="vSetMode('page')">페이지</button>
+    </div>
+    <!-- 배경 테마 -->
+    <div class="set-label">배경 테마</div>
+    <div class="vtheme-row">
+      <button class="vtheme-btn on" data-theme="light"  onclick="vSetTheme('light')"  style="background:#fff;color:#2A2A2A">라이트</button>
+      <button class="vtheme-btn"    data-theme="sepia"  onclick="vSetTheme('sepia')"  style="background:#F4ECD8;color:#3D2B1A">세피아</button>
+      <button class="vtheme-btn"    data-theme="dark"   onclick="vSetTheme('dark')"   style="background:#1C1C28;color:#C8C8D8">다크</button>
+      <button class="vtheme-btn"    data-theme="amoled" onclick="vSetTheme('amoled')" style="background:#000;color:#E0E0E0">AMOLED</button>
+    </div>
+    <!-- 글꼴 -->
+    <div class="set-label">글꼴</div>
+    <div class="vfont-row">
+      <button class="vfont-btn on" data-font="system" onclick="vSetFont('system')">기본</button>
+      <button class="vfont-btn"    data-font="gothic" onclick="vSetFont('gothic')" style="font-family:'Apple SD Gothic Neo',sans-serif">고딕</button>
+      <button class="vfont-btn"    data-font="serif"  onclick="vSetFont('serif')"  style="font-family:'Nanum Myeongjo',serif">명조</button>
+      <button class="vfont-btn"    data-font="mono"   onclick="vSetFont('mono')"   style="font-family:monospace">모노</button>
+    </div>
+    <!-- 글자 크기 -->
+    <div class="set-label">글자 크기</div>
+    <div class="vslider-row">
+      <span class="vslider-lbl">작게</span>
+      <input type="range" class="v-slider" id="vFontSlider" min="13" max="26" value="17" oninput="vChFontSlider(this.value)">
+      <span class="vslider-lbl">크게</span>
+    </div>
+    <div class="vctrl-row">
+      <span class="vctrl-label">빠른 조절</span>
+      <div class="vctrl">
+        <button class="vctrl-btn" onclick="vChFont(-1)">−</button>
+        <span id="vFontVal">17px</span>
+        <button class="vctrl-btn" onclick="vChFont(1)">＋</button>
+      </div>
+    </div>
+    <!-- 줄 간격 -->
+    <div class="set-label">줄 간격</div>
+    <div class="vslider-row">
+      <span class="vslider-lbl">좁게</span>
+      <input type="range" class="v-slider" id="vLhSlider" min="140" max="260" step="10" value="190" oninput="vChLhSlider(this.value)">
+      <span class="vslider-lbl">넓게</span>
+    </div>
+    <div class="vctrl-row">
+      <span class="vctrl-label">빠른 조절</span>
+      <div class="vctrl">
+        <button class="vctrl-btn" onclick="vChLh(-0.1)">−</button>
+        <span id="vLhVal">1.9</span>
+        <button class="vctrl-btn" onclick="vChLh(0.1)">＋</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 완독 팝업 ── -->
+<div class="complete-ov" id="completeOv">
+  <div class="complete-box">
+    <div style="font-size:56px;margin-bottom:12px">🎉</div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:6px">완독을 축하드려요!</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:20px" id="completeMsg"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button style="height:46px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer" onclick="closeComplete(true)">서재로 나가기</button>
+      <button style="height:40px;background:var(--bg2);border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink2)" onclick="closeComplete(false)">처음부터 다시 읽기</button>
+    </div>
+  </div>
 </div>
 
 <!-- JS 모듈 -->
