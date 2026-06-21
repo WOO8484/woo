@@ -1,7 +1,35 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.9.0  —  js/admin.js
+   Mr.woo v2.9.1  —  js/admin.js
    ══════════════════════════════════════════════ */
 'use strict';
+
+/* ── 이메일 로그인 ON/OFF ──────────────────── */
+let _emailLoginOpen = false;
+
+async function loadEmailLoginState() {
+  try {
+    const doc = await db.collection('settings').doc('app').get();
+    _emailLoginOpen = doc.exists ? (doc.data().emailLoginOpen || false) : false;
+  } catch(e) { _emailLoginOpen = false; }
+  applyEmailLoginState();
+}
+
+async function toggleEmailLogin() {
+  _emailLoginOpen = !_emailLoginOpen;
+  try {
+    await db.collection('settings').doc('app').set({ emailLoginOpen: _emailLoginOpen }, { merge: true });
+  } catch(e) { console.error('toggleEmailLogin error:', e); }
+  applyEmailLoginState();
+}
+
+function applyEmailLoginState() {
+  const sec = document.getElementById('emailLoginSection');
+  if (sec) sec.style.display = _emailLoginOpen ? '' : 'none';
+  const btn   = document.getElementById('emailLoginToggleBtn');
+  const label = document.getElementById('emailLoginToggleLabel');
+  if (btn)   { btn.textContent = _emailLoginOpen ? '닫기' : '열기'; btn.classList.toggle('open', _emailLoginOpen); }
+  if (label) { label.textContent = _emailLoginOpen ? '현재 열림 🟢' : '현재 닫힘 🔴'; }
+}
 
 /* ── 가입 신청 ON/OFF ──────────────────────── */
 let _signupOpen = false;
@@ -9,9 +37,11 @@ let _signupOpen = false;
 async function loadSignupState() {
   try {
     const doc = await db.collection('settings').doc('app').get();
-    _signupOpen = doc.exists ? (doc.data().signupOpen || false) : false;
-  } catch(e) { _signupOpen = false; }
+    _signupOpen     = doc.exists ? (doc.data().signupOpen     || false) : false;
+    _emailLoginOpen = doc.exists ? (doc.data().emailLoginOpen || false) : false;
+  } catch(e) { _signupOpen = false; _emailLoginOpen = false; }
   applySignupState();
+  applyEmailLoginState();
 }
 
 async function toggleSignupOpen() {

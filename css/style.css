@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.9.0  —  style.css
+   Mr.woo v2.9.1  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -72,6 +72,18 @@ html,body {
 .google-btn.secondary {
   background:var(--bg2); border-color:var(--line);
   font-size:14px; height:46px;
+}
+.auth-input {
+  width:100%; height:48px; border:1.5px solid var(--line);
+  border-radius:12px; padding:0 14px; font-size:14px;
+  color:var(--ink); outline:none; background:#fff;
+  transition:border-color .2s; box-sizing:border-box;
+}
+.auth-input:focus { border-color:var(--accent); }
+.auth-pw-eye {
+  position:absolute; right:14px; top:50%; transform:translateY(-50%);
+  background:none; border:none; cursor:pointer; font-size:16px;
+  color:var(--ink3); padding:4px;
 }
 
 /* ── NAV ── */
@@ -629,8 +641,8 @@ html,body {
 .vpopup-ov.on { display:flex; }
 .vpopup { background:#fff; border-radius:20px; padding:24px 20px 20px; width:88%; max-width:360px; }
 .vpopup-title { font-size:16px; font-weight:800; margin-bottom:16px; }
-.vpopup-slider-wrap { margin-bottom:8px; }
-.vpopup-info  { font-size:12px; color:var(--ink3); margin-bottom:16px; }
+.vpopup-slider-wrap { margin-bottom:16px; }
+.vpopup-slider-label { font-size:12px; color:var(--ink3); margin-top:6px; text-align:center; }
 .vpopup-btns  { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
 .vpopup-btn   { width:100%; height:52px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:14px; padding:0 18px; color:var(--ink); }
 .vpopup-btn span { font-size:22px; }
@@ -646,19 +658,21 @@ html,body {
 .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .modal-title  { font-size:15px; font-weight:800; }
 .modal-close  { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg2); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink2); }
-.modal-body   { max-height:60vh; overflow-y:auto; padding-bottom:4px; }
-.set-label    { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.5px; margin:12px 0 6px; }
+.modal-body   { max-height:60vh; overflow-y:auto; padding:0 4px 16px; }
+.set-label    { font-size:11px; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:.5px; margin:14px 0 8px; }
 .v-slider     { width:100%; height:4px; accent-color:var(--accent); cursor:pointer; }
-.vmode-row,.vtheme-row,.vfont-row { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:2px; }
-.vtheme-row,.vfont-row { grid-template-columns:repeat(4,1fr); }
-.vmode-btn,.vtheme-btn,.vfont-btn { height:36px; border-radius:10px; border:2px solid var(--line); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+.vmode-row    { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:2px; }
+.vtheme-row   { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:2px; }
+.vfont-row    { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:2px; }
+.vmode-btn    { height:40px; border-radius:10px; border:2px solid var(--line); font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+.vtheme-btn,.vfont-btn { height:36px; border-radius:10px; border:2px solid var(--line); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
 .vmode-btn.on,.vtheme-btn.on,.vfont-btn.on { border-color:var(--accent); outline:2px solid var(--accent); }
-.vslider-row  { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+.vslider-row  { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
 .vslider-lbl  { font-size:10px; color:var(--ink3); white-space:nowrap; }
-.vctrl-row    { display:flex; align-items:center; justify-content:space-between; padding:4px 0; }
+.vctrl-row    { display:flex; align-items:center; justify-content:space-between; padding:6px 0; }
 .vctrl-label  { font-size:12px; color:var(--ink2); }
-.vctrl        { display:flex; align-items:center; gap:8px; }
-.vctrl-btn    { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.vctrl        { display:flex; align-items:center; gap:10px; }
+.vctrl-btn    { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
 /* ── 완독 팝업 ── */
 .complete-ov  { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.9.0  —  js/auth.js
+   Mr.woo v2.9.1  —  js/auth.js
    인증: 구글 로그인 전용
    ══════════════════════════════════════════════ */
 'use strict';
@@ -114,7 +114,41 @@ function showPendingScreen(type) {
   document.getElementById('pendingScreen').style.display = 'flex';
 }
 
-/* ── 로그아웃 ──────────────────────────────── */
+/* ── 이메일 로그인 ─────────────────────────── */
+async function doEmailLogin() {
+  const email = document.getElementById('authEmail').value.trim();
+  const pw    = document.getElementById('authPw').value;
+  const msg   = document.getElementById('authMsg');
+  const btn   = document.getElementById('emailLoginBtn');
+  if (!email || !pw) { msg.textContent = '이메일과 비밀번호를 입력해주세요'; return; }
+  btn.disabled = true; btn.textContent = '로그인 중...';
+  msg.textContent = '';
+  try {
+    await auth.signInWithEmailAndPassword(email, pw);
+  } catch(e) {
+    const MAP = {
+      'auth/user-not-found':    '등록되지 않은 이메일이에요',
+      'auth/wrong-password':    '비밀번호가 올바르지 않아요',
+      'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요',
+      'auth/too-many-requests': '로그인 시도가 너무 많아요. 잠시 후 다시 시도해주세요',
+    };
+    msg.textContent = MAP[e.code] || '로그인에 실패했어요';
+  } finally {
+    btn.disabled = false; btn.textContent = '이메일로 로그인';
+  }
+}
+
+function toggleEye() {
+  const el = document.getElementById('authPw');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const emailEl = document.getElementById('authEmail');
+  const pwEl    = document.getElementById('authPw');
+  if (emailEl) emailEl.addEventListener('keydown', e => { if (e.key==='Enter') pwEl?.focus(); });
+  if (pwEl)    pwEl.addEventListener('keydown',    e => { if (e.key==='Enter') doEmailLogin(); });
+});
 async function doLogout() {
   closeUserMenu();
   try {

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.9.0  —  js/viewer.js
+   Mr.woo v2.9.1  —  js/viewer.js
    ══════════════════════════════════════════════ */
 'use strict';
 
@@ -219,17 +219,25 @@ function closeComplete(exit) {
 function openVPopup() {
   const total = _vChs.length;
   document.getElementById('vpopupTitle').textContent = _vNov?.title || '';
-  const novTotalP = Math.round((_vNov?.totalChars||0)/500);
-  const readP = total > 1 ? Math.round(novTotalP * (_vCur/(total-1))) : novTotalP;
-  document.getElementById('vpopupInfo').textContent = `${_vCur+1} / ${total} 챕터  ·  ${readP}p / ${novTotalP}p`;
   const sw = document.getElementById('vpopupSliderWrap');
   const sl = document.getElementById('vpopupSlider');
-  if (total > 1) { sw.style.display=''; sl.max=total-1; sl.value=_vCur; }
-  else sw.style.display='none';
+  if (total > 1) {
+    sw.style.display = '';
+    sl.max   = total - 1;
+    sl.value = _vCur;
+    document.getElementById('vpopupSliderLabel').textContent = `${_vCur + 1} / ${total}`;
+  } else {
+    sw.style.display = 'none';
+  }
   document.getElementById('vpopupOv').classList.add('on');
 }
 function closeVPopup() { document.getElementById('vpopupOv').classList.remove('on'); }
-function onSliderChange(v) { _vCur=parseInt(v); closeVPopup(); setTimeout(renderVCh,150); }
+function onSliderChange(v) {
+  _vCur = parseInt(v);
+  document.getElementById('vpopupSliderLabel').textContent = `${_vCur + 1} / ${_vChs.length}`;
+  closeVPopup();
+  setTimeout(renderVCh, 150);
+}
 
 /* ── 읽기 설정 ─────────────────────────────── */
 function applyVTheme() {
