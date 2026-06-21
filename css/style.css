@@ -507,6 +507,11 @@ html,body {
   font-size:13px; font-weight:600; color:var(--ink3); cursor:pointer;
 }
 .book-search-tab.on { border-color:var(--accent); color:var(--accent); background:var(--accent2); }
+.novel-only-toggle {
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--ink3); font-weight:600; cursor:pointer;
+}
+.novel-only-toggle input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
 .naver-result-item {
   display:flex; gap:10px; padding:10px; border:1.5px solid var(--line);
   border-radius:10px; cursor:pointer; transition:all var(--tr);
