@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.9.1  —  style.css
+   Mr.woo v2.9.3  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -493,6 +493,13 @@ html,body {
   cursor:pointer; white-space:nowrap;
 }
 .naver-search-btn:disabled { opacity:.5; cursor:not-allowed; }
+.naver-open-btn {
+  width:100%; height:40px; background:var(--bg2);
+  border:1.5px solid var(--line); border-radius:10px;
+  font-size:13px; font-weight:600; color:var(--ink2); cursor:pointer;
+  transition:background var(--tr);
+}
+.naver-open-btn:hover { background:var(--accent2); color:var(--accent); border-color:var(--accent); }
 .naver-result-item {
   display:flex; gap:10px; padding:10px; border:1.5px solid var(--line);
   border-radius:10px; cursor:pointer; transition:all var(--tr);
