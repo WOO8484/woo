@@ -1,4 +1,4 @@
-/* Mr.woo v2.5.6  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
+/* Mr.woo v2.6.0  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
 'use strict';
 
 /* Firestore — 소설 목록 실시간 구독 */
@@ -301,6 +301,17 @@ function openDetail(id) {
   const readPages  = Math.round(totalPages * (n.progress||0) / 100);
   document.getElementById('dStatProg').textContent  = readPages + 'p';
   document.getElementById('dStatPages').textContent = totalPages + 'p';
+  // 줄거리 문단 분리 렌더
+  const synEl = document.getElementById('dSynBody');
+  if (n.synopsis) {
+    synEl.innerHTML = n.synopsis
+      .split(/\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p>${escapeHtml(p.trim())}</p>`)
+      .join('');
+  } else {
+    synEl.innerHTML = '<p style="color:var(--ink3);font-style:italic">줄거리 없음</p>';
+  }
   document.getElementById('dBarTags').innerHTML = (n.tags && n.tags.length)
     ? n.tags.map(t => `<span class="dbar-tag">#${escapeHtml(t)}</span>`).join('') : '';
   document.getElementById('dDlBtn').style.display       = n.textUrl ? '' : 'none';
