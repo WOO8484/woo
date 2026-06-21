@@ -1,4 +1,4 @@
-/* Mr.woo v2.9.3  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
+/* Mr.woo v2.9.4  —  js/novels.js / 소설 CRUD, 유저 데이터, 홈/서재 렌더링 */
 'use strict';
 
 /* Firestore — 소설 목록 실시간 구독 */
@@ -694,42 +694,83 @@ async function downloadNovel() {
 const WORKER_URL = 'https://old-meadow-5c40.qudrnr84.workers.dev';
 
 /* ══════════════════════════════════════════════
-   네이버 책 검색 팝업 (독립)
-   _naverTarget: 'add' | 'edit'
+   책 검색 팝업 (네이버 + 구글)
    ══════════════════════════════════════════════ */
-let _naverTarget = 'add';
+let _naverTarget   = 'add';
+let _bookSearchTab = 'naver';
 
 function openNaverPopup(target) {
-  _naverTarget = target || 'add';
-  document.getElementById('naverPopupInput').value = '';
+  _naverTarget   = target || 'add';
+  _bookSearchTab = 'naver';
+  switchBookSearchTab('naver');
+
+  // edit 모드면 현재 제목으로 자동 검색
+  const title = target === 'edit'
+    ? document.getElementById('editTitle')?.value.trim()
+    : '';
+
+  document.getElementById('naverPopupInput').value = title || '';
   document.getElementById('naverPopupResults').innerHTML = '';
   document.getElementById('naverPopupOv').classList.add('on');
   document.getElementById('naverPopupModal').classList.add('on');
-  setTimeout(() => document.getElementById('naverPopupInput').focus(), 150);
+
+  if (title) {
+    setTimeout(searchBookPopup, 200);
+  } else {
+    setTimeout(() => document.getElementById('naverPopupInput').focus(), 150);
+  }
 }
 function closeNaverPopup() {
   document.getElementById('naverPopupOv').classList.remove('on');
   document.getElementById('naverPopupModal').classList.remove('on');
 }
+function switchBookSearchTab(tab) {
+  _bookSearchTab = tab;
+  document.getElementById('tabNaver').classList.toggle('on',  tab === 'naver');
+  document.getElementById('tabGoogle').classList.toggle('on', tab === 'google');
+  document.getElementById('naverPopupResults').innerHTML = '';
+}
 
-async function searchNaverPopup() {
+async function searchBookPopup() {
   const q   = document.getElementById('naverPopupInput').value.trim();
   if (!q) { showToast('검색어를 입력해주세요', 'error'); return; }
   const btn = document.getElementById('naverPopupBtn');
   btn.disabled = true; btn.textContent = '검색 중...';
   document.getElementById('naverPopupResults').innerHTML = '<div class="naver-status">🔍 검색 중...</div>';
   try {
-    const items = await callNaverBookAPI(q);
+    const items = _bookSearchTab === 'google'
+      ? await callGoogleBooksAPI(q)
+      : await callNaverBookAPI(q);
     renderNaverPopupResults(items);
   } catch(e) {
-    console.error('searchNaverPopup error:', e);
+    console.error('searchBookPopup error:', e);
     const errMsg = e.name === 'AbortError'
-      ? '검색 시간이 초과됐어요. 다시 시도해주세요.'
+      ? '검색 시간이 초과됐어요.'
       : '검색 실패. 잠시 후 다시 시도해주세요.';
     document.getElementById('naverPopupResults').innerHTML = `<div class="naver-status err">${errMsg}</div>`;
   } finally {
     btn.disabled = false; btn.textContent = '검색';
   }
+}
+
+async function callGoogleBooksAPI(q) {
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res  = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&langRestrict=ko`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error('네트워크 오류');
+    const data = await res.json();
+    return (data.items || []).map(item => {
+      const info = item.volumeInfo || {};
+      return {
+        title:       info.title || '',
+        author:      (info.authors || []).join(', '),
+        description: info.description || '',
+        coverUrl:    info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+        publisher:   info.publisher || '',
+      };
+    });
+  } finally { clearTimeout(timer); }
 }
 
 function renderNaverPopupResults(items) {
@@ -753,7 +794,6 @@ function renderNaverPopupResults(items) {
 
 function selectNaverPopupBook(item) {
   if (_naverTarget === 'edit') {
-    // 수정 모달에 적용
     if (item.title)       document.getElementById('editTitle').value  = stripHtmlTags(item.title);
     if (item.author)      document.getElementById('editAuthor').value = stripHtmlTags(item.author);
     if (item.description) document.getElementById('editSyn').value    = stripHtmlTags(item.description);
@@ -765,7 +805,6 @@ function selectNaverPopupBook(item) {
       document.getElementById('editCoverClearBtn').style.display = '';
     }
   } else {
-    // 추가 모달에 적용
     if (item.title)       document.getElementById('addTitle').value  = stripHtmlTags(item.title);
     if (item.author)      document.getElementById('addAuthor').value = stripHtmlTags(item.author);
     if (item.description) document.getElementById('addSyn').value    = stripHtmlTags(item.description);
