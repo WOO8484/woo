@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.6.1  —  style.css
+   Mr.woo v2.6.2  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -415,16 +415,17 @@ html,body {
 /* ── VIEWER ── */
 #viewer { display:none; position:fixed; inset:0; z-index:200; flex-direction:column; }
 .vbody  {
-  flex:1; overflow-y:auto; width:100%;
-  display:block;
-  padding:32px 28px 0;
+  flex:1; overflow:hidden;
+  width:100%; display:block;
   box-sizing:border-box;
 }
 .vpage  {
-  width:100%;
-  max-width:640px;
-  margin:0 auto;
-  padding-bottom:20px;
+  width:100%; height:100%;
+  max-width:640px; margin:0 auto;
+  padding:32px 28px 20px;
+  box-sizing:border-box;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 /* 투명 하단 고정바 — 홈 인디케이터/글자 잘림 방지 */
 .vfoot {
@@ -432,7 +433,10 @@ html,body {
   height:max(env(safe-area-inset-bottom), 34px);
   pointer-events:none;
 }
-.vtext  { font-size:17px; line-height:1.9; text-align:left; }
+.vtext  {
+  font-size:17px; line-height:1.9; text-align:left;
+  word-break:keep-all; overflow-wrap:break-word;
+}
 .vtext p { margin-bottom:1em; }
 @keyframes chIn  { from{opacity:0;transform:translateX(30px)}  to{opacity:1;transform:none} }
 @keyframes chOut { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:none} }
