@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.5.7  —  style.css
+   Mr.woo v2.5.8  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -318,10 +318,13 @@ html,body {
 #detail {
   display:none;
   position:fixed; inset:0; z-index:150;
-  flex-direction:column;
   background:var(--bg);
+  overflow:hidden;
 }
-#detail.open { display:flex; }
+#detail.open {
+  display:flex;
+  flex-direction:column;
+}
 
 .dbar {
   display:flex; align-items:flex-start; justify-content:space-between;
@@ -386,7 +389,6 @@ html,body {
   flex:1; min-height:0;
 }
 .dfoot {
-  margin-top:auto;
   padding:12px 16px max(20px, env(safe-area-inset-bottom));
   display:flex; gap:10px; flex-shrink:0;
   background:#fff; border-top:1px solid var(--line);
