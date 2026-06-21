@@ -443,17 +443,19 @@
     <div class="modal-title">📚 책 검색</div>
     <button class="modal-close" onclick="closeNaverPopup()">×</button>
   </div>
-  <!-- 검색 탭 -->
   <div class="book-search-tabs">
-    <button class="book-search-tab on" id="tabNaver" onclick="switchBookSearchTab('naver')">네이버</button>
+    <button class="book-search-tab on" id="tabNaver"  onclick="switchBookSearchTab('naver')">네이버</button>
     <button class="book-search-tab"    id="tabGoogle" onclick="switchBookSearchTab('google')">구글</button>
   </div>
-  <div class="naver-search-row" style="margin-bottom:12px">
+  <div class="naver-search-row" style="margin-bottom:8px">
     <input class="naver-search-input" id="naverPopupInput" placeholder="책 제목 입력..."
       onkeydown="if(event.key==='Enter')searchBookPopup()">
     <button class="naver-search-btn" id="naverPopupBtn" onclick="searchBookPopup()">검색</button>
   </div>
-  <div id="naverPopupResults" style="max-height:50vh;overflow-y:auto"></div>
+  <label class="novel-only-toggle">
+    <input type="checkbox" id="novelOnlyCheck" checked onchange=""> 소설만 검색
+  </label>
+  <div id="naverPopupResults" style="max-height:48vh;overflow-y:auto;margin-top:8px"></div>
 </div>
 
 <!-- ── TOAST ── -->
