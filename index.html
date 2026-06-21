@@ -69,7 +69,7 @@
       Google로 가입 신청
     </button>
   </div>
-  <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--ink3)">v2.9.3</div>
+  <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--ink3)">v2.9.4</div>
 </div>
 
 <!-- ── 승인 대기 화면 ── -->
@@ -92,7 +92,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.9.3</div>
+  <div class="nav-version">v2.9.4</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -435,20 +435,25 @@
   </div>
 </div>
 
-<!-- ── 네이버 책 검색 팝업 ── -->
+<!-- ── 책 검색 팝업 ── -->
 <div class="modal-ov" id="naverPopupOv" onclick="closeNaverPopup()"></div>
 <div class="modal" id="naverPopupModal">
   <div class="mhandle"></div>
   <div class="modal-header">
-    <div class="modal-title">📚 네이버 책 검색</div>
+    <div class="modal-title">📚 책 검색</div>
     <button class="modal-close" onclick="closeNaverPopup()">×</button>
+  </div>
+  <!-- 검색 탭 -->
+  <div class="book-search-tabs">
+    <button class="book-search-tab on" id="tabNaver" onclick="switchBookSearchTab('naver')">네이버</button>
+    <button class="book-search-tab"    id="tabGoogle" onclick="switchBookSearchTab('google')">구글</button>
   </div>
   <div class="naver-search-row" style="margin-bottom:12px">
     <input class="naver-search-input" id="naverPopupInput" placeholder="책 제목 입력..."
-      onkeydown="if(event.key==='Enter')searchNaverPopup()">
-    <button class="naver-search-btn" id="naverPopupBtn" onclick="searchNaverPopup()">검색</button>
+      onkeydown="if(event.key==='Enter')searchBookPopup()">
+    <button class="naver-search-btn" id="naverPopupBtn" onclick="searchBookPopup()">검색</button>
   </div>
-  <div id="naverPopupResults" style="max-height:55vh;overflow-y:auto"></div>
+  <div id="naverPopupResults" style="max-height:50vh;overflow-y:auto"></div>
 </div>
 
 <!-- ── TOAST ── -->
