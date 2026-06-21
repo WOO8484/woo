@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.8.1  —  js/auth.js
+   Mr.woo v2.8.2  —  js/auth.js
    ══════════════════════════════════════════════ */
 'use strict';
 
@@ -47,8 +47,9 @@ auth.onAuthStateChanged(async (user) => {
           showApp();
           return;
         }
-      } catch(e) {}
-      clearSession();
+      } catch(e) {
+        console.error('session restore error:', e);
+      }      clearSession();
     }
     if (currentUser) return;
     currentUser = null;
