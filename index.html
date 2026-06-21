@@ -69,7 +69,7 @@
       Google로 가입 신청
     </button>
   </div>
-  <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--ink3)">v2.9.1</div>
+  <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--ink3)">v2.9.3</div>
 </div>
 
 <!-- ── 승인 대기 화면 ── -->
@@ -92,7 +92,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.9.1</div>
+  <div class="nav-version">v2.9.3</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -286,11 +286,7 @@
     </div>
     <div class="add-field">
       <label class="add-label">📚 네이버 책 검색 <span style="font-size:10px;color:var(--ink3);font-weight:400">제목으로 메타정보 자동 입력</span></label>
-      <div class="naver-search-row">
-        <input class="naver-search-input" id="naverSearchInput" placeholder="책 제목 입력..." onkeydown="if(event.key==='Enter')searchNaverBook()">
-        <button class="naver-search-btn" id="naverSearchBtn" onclick="searchNaverBook()">검색</button>
-      </div>
-      <div id="naverResults"></div>
+      <button class="naver-open-btn" onclick="openNaverPopup('add')">🔍 네이버에서 검색</button>
     </div>
     <div class="add-section-divider"><span>메타정보</span></div>
     <div class="add-field">
@@ -370,6 +366,7 @@
         </div>
         <div class="cover-upload-btns">
           <button class="cover-upload-btn" onclick="document.getElementById('editCoverInput').click()">📁 이미지 변경</button>
+          <button class="naver-open-btn" onclick="openNaverPopup('edit')" style="margin-top:4px">🔍 네이버 검색</button>
           <button class="cover-upload-btn" id="editCoverClearBtn" onclick="clearEditCover()" style="display:none">✕ 제거</button>
         </div>
       </div>
@@ -438,6 +435,22 @@
   </div>
 </div>
 
+<!-- ── 네이버 책 검색 팝업 ── -->
+<div class="modal-ov" id="naverPopupOv" onclick="closeNaverPopup()"></div>
+<div class="modal" id="naverPopupModal">
+  <div class="mhandle"></div>
+  <div class="modal-header">
+    <div class="modal-title">📚 네이버 책 검색</div>
+    <button class="modal-close" onclick="closeNaverPopup()">×</button>
+  </div>
+  <div class="naver-search-row" style="margin-bottom:12px">
+    <input class="naver-search-input" id="naverPopupInput" placeholder="책 제목 입력..."
+      onkeydown="if(event.key==='Enter')searchNaverPopup()">
+    <button class="naver-search-btn" id="naverPopupBtn" onclick="searchNaverPopup()">검색</button>
+  </div>
+  <div id="naverPopupResults" style="max-height:55vh;overflow-y:auto"></div>
+</div>
+
 <!-- ── TOAST ── -->
 <div class="toast" id="toast"></div>
 
@@ -465,8 +478,8 @@
   <div class="vpopup" onclick="event.stopPropagation()">
     <div class="vpopup-title" id="vpopupTitle"></div>
     <div class="vpopup-slider-wrap" id="vpopupSliderWrap" style="display:none">
-      <input type="range" class="v-slider" id="vpopupSlider" min="0" step="1" value="0"
-        style="width:100%" onchange="onSliderChange(this.value)">
+      <input type="range" class="v-slider" id="vpopupSlider" min="0" max="100" step="1" value="0"
+        style="width:100%" oninput="onSliderInput(this.value)" onchange="onSliderChange(this.value)">
       <div class="vpopup-slider-label" id="vpopupSliderLabel"></div>
     </div>
     <div class="vpopup-btns">
@@ -542,7 +555,7 @@
       </div>
     </div>
     <!-- 적용 버튼 -->
-    <button class="vset-apply-btn" onclick="closeVSettings()">적용</button>
+    <button class="vset-apply-btn" onclick="applyVSettingsAndClose()">적용</button>
   </div>
 </div>
 
