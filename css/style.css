@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.7.3  —  style.css
+   Mr.woo v2.8.0  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -53,16 +53,6 @@ html,body {
 .auth-logo { font-size:28px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
 .auth-logo em { color:var(--accent); font-style:normal; }
 .auth-sub { font-size:13px; color:var(--ink3); margin-bottom:20px; }
-.auth-tabs {
-  display:flex; margin-bottom:20px; width:100%; max-width:360px;
-  border:1.5px solid var(--line); border-radius:12px; overflow:hidden;
-}
-.auth-tab {
-  flex:1; height:42px; border:none; background:#fff;
-  font-size:14px; font-weight:600; color:var(--ink3);
-  cursor:pointer; transition:all .18s;
-}
-.auth-tab.on { background:var(--accent); color:#fff; }
 .auth-form { width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px; }
 .auth-field { display:flex; flex-direction:column; gap:3px; }
 .auth-input-wrap { position:relative; }
@@ -436,21 +426,6 @@ html,body {
 .profile-stat-lbl { font-size:11px; color:var(--ink3); }
 .admin-section       { margin-bottom:24px; }
 .admin-section-title { font-size:14px; font-weight:800; margin-bottom:10px; }
-/* 가입 신청 토글 카드 */
-.signup-toggle-card {
-  background:#fff; border-radius:var(--r); padding:14px 16px;
-  box-shadow:var(--sh); display:flex; align-items:center;
-  justify-content:space-between; gap:12px;
-}
-.signup-toggle-label { font-size:13px; font-weight:700; margin-bottom:3px; }
-.signup-toggle-sub   { font-size:11px; color:var(--ink3); }
-.signup-toggle-btn {
-  flex-shrink:0; height:34px; padding:0 16px;
-  border:none; border-radius:20px; font-size:12px; font-weight:700;
-  cursor:pointer; transition:all var(--tr);
-  background:var(--accent); color:#fff;
-}
-.signup-toggle-btn.open { background:#f0fdf4; color:#16a34a; border:1.5px solid #86efac; }
 .user-list  { background:#fff; border-radius:var(--r); overflow:hidden; box-shadow:var(--sh); }
 .user-item  { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
 .user-item:last-child { border-bottom:none; }

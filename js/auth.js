@@ -1,6 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.7.3  —  js/auth.js
-   Firebase Auth, 로그인, 가입 신청
+   Mr.woo v2.8.0  —  js/auth.js
    ══════════════════════════════════════════════ */
 'use strict';
 
@@ -11,9 +10,13 @@ auth.onAuthStateChanged(async (user) => {
     try {
       const snap = await db.collection('users').doc(user.uid).get();
       isAdmin = snap.exists && snap.data().role === 'admin';
-    } catch(e) {
-      isAdmin = false;
-    }
+      // 첫 로그인 비밀번호 변경 확인
+      if (snap.exists && snap.data().passwordChanged === false) {
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('pwChangeScreen').style.display = 'flex';
+        return;
+      }
+    } catch(e) { isAdmin = false; }
     await loadUserData();
     subscribeNovels();
     showApp();
@@ -25,42 +28,17 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-/* ── 로그인 탭 전환 ───────────────────────────── */
-function switchAuthTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('loginForm').style.display  = isLogin ? '' : 'none';
-  document.getElementById('signupForm').style.display = isLogin ? 'none' : '';
-  document.getElementById('tabLogin').classList.toggle('on',  isLogin);
-  document.getElementById('tabSignup').classList.toggle('on', !isLogin);
-  document.getElementById('authMsg').textContent   = '';
-  document.getElementById('signupMsg').textContent = '';
-}
-
-/* ── 비밀번호 표시/숨기기 ──────────────────────── */
-function toggleEye() {
-  const el = document.getElementById('authPw');
-  el.type = el.type === 'password' ? 'text' : 'password';
-}
-
 /* ── 로그인 ───────────────────────────────────── */
 async function doLogin() {
   const email = document.getElementById('authEmail').value.trim();
   const pw    = document.getElementById('authPw').value;
   const msg   = document.getElementById('authMsg');
   const btn   = document.getElementById('authBtn');
-
-  if (!email || !pw) {
-    msg.textContent = '이메일과 비밀번호를 입력해주세요';
-    msg.className   = 'auth-msg err';
-    return;
-  }
-
+  if (!email || !pw) { msg.textContent = '이메일과 비밀번호를 입력해주세요'; msg.className = 'auth-msg err'; return; }
   btn.disabled = true; btn.textContent = '로그인 중...';
   msg.textContent = ''; msg.className = 'auth-msg';
-
   try {
     await auth.signInWithEmailAndPassword(email, pw);
-    // onAuthStateChanged → showApp() 자동 호출
   } catch(e) {
     const MAP = {
       'auth/user-not-found':    '등록되지 않은 이메일이에요',
@@ -85,70 +63,43 @@ async function doLogout() {
     await auth.signOut();
     showToast('로그아웃 했어요');
   } catch(e) {
-    console.error('doLogout error:', e);
     showToast('로그아웃에 실패했어요', 'error');
   }
 }
 
-/* ── 가입 신청 ────────────────────────────────────
-   Cloud Functions 없이 동작.
-   Firestore pending_users 컬렉션에 저장 →
-   관리자가 승인 후 계정 생성 (admin.js 참고)
-   ────────────────────────────────────────────── */
-async function doSignupRequest() {
-  const name   = document.getElementById('signupName').value.trim();
-  const email  = document.getElementById('signupEmail').value.trim();
-  const reason = document.getElementById('signupReason').value.trim();
-  const msg    = document.getElementById('signupMsg');
-  const btn    = document.getElementById('signupBtn');
+/* ── 비밀번호 표시/숨기기 ──────────────────────── */
+function toggleEye() {
+  const el = document.getElementById('authPw');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
 
-  if (!name) {
-    msg.textContent = '이름을 입력해주세요'; msg.className = 'auth-msg err'; return;
-  }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    msg.textContent = '올바른 이메일을 입력해주세요'; msg.className = 'auth-msg err'; return;
-  }
+/* ── 첫 로그인 비밀번호 변경 ──────────────────── */
+async function submitPwChange() {
+  const pw1 = document.getElementById('pwChangeNew').value;
+  const pw2 = document.getElementById('pwChangeConfirm').value;
+  const msg = document.getElementById('pwChangeMsg');
+  const btn = document.getElementById('pwChangeBtn');
 
-  btn.disabled = true; btn.textContent = '신청 중...';
-  msg.textContent = ''; msg.className = 'auth-msg';
+  if (pw1.length < 6) { msg.textContent = '비밀번호는 6자 이상이어야 해요'; return; }
+  if (pw1 !== pw2)    { msg.textContent = '비밀번호가 일치하지 않아요'; return; }
 
+  btn.disabled = true; btn.textContent = '변경 중...';
+  msg.textContent = '';
   try {
-    // 중복 신청 방지
-    const existing = await db.collection('pending_users')
-      .where('email', '==', email)
-      .where('status', '==', 'pending')
-      .get();
-    if (!existing.empty) {
-      msg.textContent = '이미 가입 신청 중인 이메일이에요';
-      msg.className   = 'auth-msg err';
-      return;
-    }
-
-    // 비밀번호는 저장하지 않음 — 승인 후 관리자가 Firebase 콘솔에서 계정 생성
-    await db.collection('pending_users').add({
-      name,
-      email,
-      reason:    reason || '',
-      status:    'pending',
-      requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    msg.textContent = '가입 신청이 완료됐어요! 관리자 승인 후 로그인할 수 있어요 😊';
-    msg.className   = 'auth-msg ok';
-    document.getElementById('signupName').value   = '';
-    document.getElementById('signupEmail').value  = '';
-    document.getElementById('signupReason').value = '';
+    await auth.currentUser.updatePassword(pw1);
+    await db.collection('users').doc(auth.currentUser.uid).update({ passwordChanged: true });
+    document.getElementById('pwChangeScreen').style.display = 'none';
+    await loadUserData();
+    subscribeNovels();
+    showApp();
+    showToast('비밀번호가 변경됐어요 ✓');
   } catch(e) {
-    console.error('signup error:', e);
-    msg.textContent = '신청 중 오류가 발생했어요. 다시 시도해주세요';
-    msg.className   = 'auth-msg err';
+    msg.textContent = '변경에 실패했어요. 다시 로그인 후 시도해주세요';
   } finally {
-    btn.disabled = false; btn.textContent = '가입 신청하기';
+    btn.disabled = false; btn.textContent = '변경 완료';
   }
 }
 
 /* ── 키보드 단축키 ────────────────────────────── */
-document.getElementById('authEmail').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
-document.getElementById('authPw').addEventListener('keydown',     e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('signupName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('signupEmail').focus(); });
-document.getElementById('signupEmail').addEventListener('keydown',e => { if (e.key === 'Enter') doSignupRequest(); });
+document.getElementById('authEmail').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('authPw').focus(); });
+document.getElementById('authPw').addEventListener('keydown',   e => { if (e.key === 'Enter') doLogin(); });

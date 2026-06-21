@@ -1,84 +1,46 @@
+/* ══════════════════════════════════════════════
+   Mr.woo v2.8.0  —  js/admin.js
+   ══════════════════════════════════════════════ */
 'use strict';
 
-async function renderPendingList() {
-  if (!isAdmin) return;
+/* ── 사용자 추가 폼 ────────────────────────── */
+function openAddUser() {
+  document.getElementById('addUserName').value  = '';
+  document.getElementById('addUserEmail').value = '';
+  document.getElementById('addUserPw').value    = '';
+  document.getElementById('addUserMsg').textContent = '';
+  document.getElementById('addUserOv').classList.add('on');
+}
+function closeAddUser() {
+  document.getElementById('addUserOv').classList.remove('on');
+}
+async function submitAddUser() {
+  const name  = document.getElementById('addUserName').value.trim();
+  const email = document.getElementById('addUserEmail').value.trim();
+  const pw    = document.getElementById('addUserPw').value;
+  const msg   = document.getElementById('addUserMsg');
+  const btn   = document.getElementById('addUserBtn');
+
+  if (!name)  { msg.textContent = '이름을 입력해주세요'; return; }
+  if (!email) { msg.textContent = '이메일을 입력해주세요'; return; }
+  if (pw.length < 6) { msg.textContent = '임시 비밀번호는 6자 이상이어야 해요'; return; }
+
+  btn.disabled = true; btn.textContent = '생성 중...';
+  msg.textContent = '';
   try {
-    const snap = await db.collection('pending_users')
-      .where('status', '==', 'pending')
-      .get();
-
-    const section = document.getElementById('pendingSection');
-    const list    = document.getElementById('pendingList');
-    const badge   = document.getElementById('pendingCountBadge');
-
-    section.style.display = '';
-    if (snap.empty) {
-      badge.textContent = '0';
-      list.innerHTML = '<div style="padding:16px;text-align:center;font-size:13px;color:var(--ink3)">대기 중인 가입 신청이 없어요</div>';
-      return;
-    }
-    badge.textContent = snap.size;
-
-    const sortedDocs = [...snap.docs].sort((a,b) => {
-      const at = a.data().requestedAt?.toMillis?.() || 0;
-      const bt = b.data().requestedAt?.toMillis?.() || 0;
-      return at - bt;
-    });
-    list.innerHTML = sortedDocs.map(d => {
-      const u    = d.data();
-      const date = u.requestedAt?.toDate
-        ? u.requestedAt.toDate().toLocaleDateString('ko-KR') : '';
-      return `<div class="user-item">
-        <div class="user-avatar">${getAvatar(u.name)}</div>
-        <div class="user-info">
-          <div class="user-name">${escapeHtml(u.name)}</div>
-          <div class="user-email">${escapeHtml(u.email)}</div>
-          ${u.reason ? `<div class="user-time">사유: ${escapeHtml(u.reason)}</div>` : ''}
-          <div class="user-time">${date} 신청</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-          <button class="add-user-btn" style="height:28px;font-size:11px;padding:0 10px"
-            onclick="approvePending('${d.id}','${escapeHtml(u.name)}')">승인</button>
-          <button class="user-del-btn"
-            onclick="rejectPending('${d.id}','${escapeHtml(u.name)}')">거절</button>
-        </div>
-      </div>`;
-    }).join('');
+    const createUser = functions.httpsCallable('createUser');
+    await createUser({ name, email, password: pw });
+    showToast(`${name}님 계정이 생성됐어요 ✅`);
+    closeAddUser();
+    await renderUserList();
   } catch(e) {
-    console.error('renderPendingList error:', e);
+    msg.textContent = e.message || '계정 생성에 실패했어요';
+  } finally {
+    btn.disabled = false; btn.textContent = '계정 생성';
   }
 }
 
-async function approvePending(docId, name) {
-  if (!isAdmin) return;
-  try {
-    await db.collection('pending_users').doc(docId).update({
-      status:     'approved',
-      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    showToast(`${name}님 승인됐어요. Firebase 콘솔에서 계정을 직접 생성해주세요 👤`);
-    await Promise.all([renderPendingList(), renderUserList()]);
-  } catch(e) {
-    console.error('approvePending error:', e);
-    showToast('승인 처리에 실패했어요', 'error');
-  }
-}
-
-async function rejectPending(docId, name) {
-  if (!isAdmin) return;
-  try {
-    await db.collection('pending_users').doc(docId).update({
-      status:     'rejected',
-      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    showToast(`${name}님 가입 신청을 거절했어요`);
-    await renderPendingList();
-  } catch(e) {
-    console.error('rejectPending error:', e);
-    showToast('거절 처리에 실패했어요', 'error');
-  }
-}
-
+/* ── 사용자 목록 ───────────────────────────── */
 async function renderUserList() {
   if (!isAdmin) return;
   try {
@@ -103,12 +65,14 @@ async function renderUserList() {
   }
 }
 
+/* ── 사용자 삭제 ───────────────────────────── */
 async function deleteUser(uid) {
   if (!isAdmin) return;
   showConfirm('이 사용자를 삭제할까요?', async () => {
     try {
-      await db.collection('users').doc(uid).delete();
-      showToast('사용자를 삭제했어요 (Firebase 콘솔에서 Auth 계정도 삭제해주세요)');
+      const deleteUserFn = functions.httpsCallable('deleteUser');
+      await deleteUserFn({ uid });
+      showToast('사용자를 삭제했어요');
       await renderUserList();
     } catch(e) {
       showToast('사용자 삭제에 실패했어요', 'error');

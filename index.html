@@ -41,14 +41,6 @@
 <div id="authScreen" style="display:none">
   <div class="auth-logo">🚀 <em>Mr.woo</em></div>
   <div class="auth-sub">소설 서재에 오신 것을 환영해요</div>
-
-  <!-- 가입 신청 탭 — 관리자가 열었을 때만 표시 -->
-  <div class="auth-tabs" id="authTabs" style="display:none">
-    <button class="auth-tab on" id="tabLogin"  onclick="switchAuthTab('login')">로그인</button>
-    <button class="auth-tab"    id="tabSignup" onclick="switchAuthTab('signup')">가입 신청</button>
-  </div>
-
-  <!-- 로그인 폼 -->
   <div class="auth-form" id="loginForm">
     <div class="auth-msg" id="authMsg"></div>
     <div class="auth-field">
@@ -62,23 +54,7 @@
     </div>
     <button class="auth-btn" id="authBtn" onclick="doLogin()">로그인</button>
   </div>
-
-  <!-- 가입 신청 폼 -->
-  <div class="auth-form" id="signupForm" style="display:none">
-    <div class="auth-msg" id="signupMsg"></div>
-    <div class="auth-field">
-      <input class="auth-input" id="signupName"  type="text"  placeholder="이름" autocomplete="name">
-    </div>
-    <div class="auth-field">
-      <input class="auth-input" id="signupEmail" type="email" placeholder="이메일" autocomplete="email">
-    </div>
-    <div class="auth-field">
-      <textarea class="auth-input" id="signupReason" placeholder="가입 사유 (선택)" style="height:72px;padding:12px 14px;resize:none;line-height:1.5"></textarea>
-    </div>
-    <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
-  </div>
-
-  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.7.3</div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.8.0</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -93,7 +69,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.7.3</div>
+  <div class="nav-version">v2.8.0</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -194,25 +170,12 @@
   </div>
   <!-- 관리자 전용 패널 -->
   <div id="adminPanel" style="display:none">
-    <!-- 가입 신청 ON/OFF -->
+    <!-- 사용자 추가 -->
     <div class="admin-section">
-      <div class="admin-section-title">🔐 가입 신청</div>
-      <div class="signup-toggle-card">
-        <div>
-          <div class="signup-toggle-label" id="signupToggleLabel">현재 닫힘</div>
-          <div class="signup-toggle-sub">열면 로그인 화면에 가입 신청 탭이 표시됩니다</div>
-        </div>
-        <button class="signup-toggle-btn" id="signupToggleBtn" onclick="toggleSignupOpen()">열기</button>
+      <div class="admin-section-title" style="display:flex;align-items:center;justify-content:space-between">
+        👥 사용자 목록 <span class="admin-badge" id="userCountBadge">0</span>
+        <button class="add-user-btn" onclick="openAddUser()">+ 추가</button>
       </div>
-    </div>
-    <!-- 가입 대기 목록 -->
-    <div class="admin-section" id="pendingSection" style="display:none">
-      <div class="admin-section-title">⏳ 가입 대기 <span class="admin-badge" id="pendingCountBadge">0</span></div>
-      <div class="user-list" id="pendingList"></div>
-    </div>
-    <!-- 사용자 목록 -->
-    <div class="admin-section">
-      <div class="admin-section-title">👥 사용자 목록 <span class="admin-badge" id="userCountBadge">0</span></div>
       <div class="user-list" id="userList"></div>
     </div>
   </div>
@@ -425,6 +388,47 @@
       <button class="confirm-cancel" onclick="closeConfirm()">취소</button>
       <button class="confirm-ok"     id="confirmOkBtn">확인</button>
     </div>
+  </div>
+</div>
+
+<!-- ── 사용자 추가 모달 ── -->
+<div class="confirm-ov" id="addUserOv">
+  <div class="confirm-box">
+    <div class="confirm-icon">👤</div>
+    <div class="confirm-title">새 사용자 추가</div>
+    <div class="confirm-msg" style="text-align:left">
+      <div class="auth-field" style="margin-bottom:8px">
+        <input class="auth-input" id="addUserName" type="text" placeholder="이름" style="height:40px;font-size:14px">
+      </div>
+      <div class="auth-field" style="margin-bottom:8px">
+        <input class="auth-input" id="addUserEmail" type="email" placeholder="이메일" style="height:40px;font-size:14px">
+      </div>
+      <div class="auth-field" style="margin-bottom:4px">
+        <input class="auth-input" id="addUserPw" type="password" placeholder="임시 비밀번호 (6자 이상)" style="height:40px;font-size:14px">
+      </div>
+      <div id="addUserMsg" style="font-size:12px;color:var(--danger);min-height:16px;margin-top:4px"></div>
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeAddUser()">취소</button>
+      <button class="confirm-ok" id="addUserBtn" style="background:var(--accent)" onclick="submitAddUser()">계정 생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 비밀번호 변경 (첫 로그인 강제) ── -->
+<div id="pwChangeScreen" style="display:none; position:fixed; inset:0; z-index:800; background:var(--bg); flex-direction:column; align-items:center; justify-content:center; padding:32px;">
+  <div style="width:100%; max-width:360px">
+    <div style="font-size:24px; text-align:center; margin-bottom:8px">🔐</div>
+    <div style="font-size:18px; font-weight:800; text-align:center; margin-bottom:8px">비밀번호 변경</div>
+    <div style="font-size:13px; color:var(--ink3); text-align:center; margin-bottom:24px">첫 로그인 시 비밀번호를 변경해주세요</div>
+    <div class="auth-field" style="margin-bottom:12px">
+      <input class="auth-input" id="pwChangeNew" type="password" placeholder="새 비밀번호 (6자 이상)">
+    </div>
+    <div class="auth-field" style="margin-bottom:12px">
+      <input class="auth-input" id="pwChangeConfirm" type="password" placeholder="비밀번호 확인">
+    </div>
+    <div id="pwChangeMsg" style="font-size:12px; color:var(--danger); min-height:16px; margin-bottom:12px"></div>
+    <button class="auth-btn" id="pwChangeBtn" onclick="submitPwChange()">변경 완료</button>
   </div>
 </div>
 
