@@ -806,12 +806,9 @@ async function callNaverBookAPI(q) {
   const qNoSpace = q.replace(/\s+/g, '');
 
   // 검색 헬퍼
-  const doSearch = async (query, useAdv) => {
+  const doSearch = async (param) => {
     const ctrl  = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
-    const param = useAdv
-      ? `d_titl=${encodeURIComponent(query)}`
-      : `q=${encodeURIComponent(query)}`;
     try {
       const res = await fetch(`${WORKER_URL}?${param}`, { signal: ctrl.signal });
       if (!res.ok) return null;
@@ -823,17 +820,49 @@ async function callNaverBookAPI(q) {
     }
   };
 
-  // 1차: 원본 제목으로 상세검색 (book_adv)
-  let data = await doSearch(q, true);
+  // 1차: 제목 상세검색 + 저자 상세검색 동시 시도
+  const [byTitle, byAuth] = await Promise.all([
+    doSearch(`d_titl=${encodeURIComponent(q)}`),
+    doSearch(`d_auth=${encodeURIComponent(q)}`),
+  ]);
 
-  // 2차: 공백 제거 제목으로 상세검색
-  if (!data?.items?.length) data = await doSearch(qNoSpace, true);
+  // 결과 합치기 (중복 제거)
+  let items = [
+    ...(byTitle?.items || []),
+    ...(byAuth?.items  || []),
+  ];
+  const seen = new Set();
+  items = items.filter(x => {
+    const key = (x.title + x.author).replace(/\s/g, '');
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 
-  // 3차: 원본으로 일반검색
-  if (!data?.items?.length) data = await doSearch(q, false);
+  let data = items.length ? { items } : null;
 
-  // 4차: 공백 제거로 일반검색
-  if (!data?.items?.length) data = await doSearch(qNoSpace, false);
+  // 2차: 공백 제거로 제목+저자 동시 시도
+  if (!data?.items?.length) {
+    const [byTitle2, byAuth2] = await Promise.all([
+      doSearch(`d_titl=${encodeURIComponent(qNoSpace)}`),
+      doSearch(`d_auth=${encodeURIComponent(qNoSpace)}`),
+    ]);
+    const items2 = [
+      ...(byTitle2?.items || []),
+      ...(byAuth2?.items  || []),
+    ];
+    const seen2 = new Set();
+    data = { items: items2.filter(x => {
+      const key = (x.title + x.author).replace(/\s/g, '');
+      if (seen2.has(key)) return false;
+      seen2.add(key); return true;
+    })};
+  }
+
+  // 3차: 일반 검색 폴백
+  if (!data?.items?.length) data = await doSearch(`q=${encodeURIComponent(q)}`);
+
+  // 4차: 공백 제거 일반 검색
+  if (!data?.items?.length) data = await doSearch(`q=${encodeURIComponent(qNoSpace)}`);
 
   if (!data) throw new Error('네트워크 오류');
 
