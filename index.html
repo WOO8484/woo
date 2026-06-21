@@ -286,7 +286,7 @@
     </div>
     <div class="add-field">
       <label class="add-label">📚 네이버 책 검색 <span style="font-size:10px;color:var(--ink3);font-weight:400">제목으로 메타정보 자동 입력</span></label>
-      <button class="naver-open-btn" onclick="openNaverPopup('add')">🔍 네이버에서 검색</button>
+      <button class="add-naver-btn" onclick="openNaverPopup('add')">🔍 책 검색 (네이버/구글)</button>
     </div>
     <div class="add-section-divider"><span>메타정보</span></div>
     <div class="add-field">
@@ -447,13 +447,13 @@
     <button class="book-search-tab on" id="tabNaver"  onclick="switchBookSearchTab('naver')">네이버</button>
     <button class="book-search-tab"    id="tabGoogle" onclick="switchBookSearchTab('google')">구글</button>
   </div>
-  <div class="naver-search-row" style="margin-bottom:8px">
+  <div class="naver-search-row" style="margin-bottom:6px">
     <input class="naver-search-input" id="naverPopupInput" placeholder="책 제목 입력..."
       onkeydown="if(event.key==='Enter')searchBookPopup()">
     <button class="naver-search-btn" id="naverPopupBtn" onclick="searchBookPopup()">검색</button>
   </div>
-  <label class="novel-only-toggle">
-    <input type="checkbox" id="novelOnlyCheck" checked onchange=""> 소설만 검색
+  <label class="novel-only-toggle" style="margin-bottom:8px">
+    <input type="checkbox" id="novelOnlyCheck" checked> 소설만 검색
   </label>
   <div id="naverPopupResults" style="max-height:48vh;overflow-y:auto;margin-top:8px"></div>
 </div>
