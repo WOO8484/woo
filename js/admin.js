@@ -33,9 +33,9 @@ async function submitAddUser() {
     const existing = await db.collection('users').where('username','==',username).get();
     if (!existing.empty) { msg.textContent = '이미 사용 중인 아이디예요'; return; }
 
-    // 비밀번호 해시
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-    const passwordHash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    // Salt 생성 + 비밀번호 해시
+    const salt = genSalt();
+    const passwordHash = await hashPw(pw, salt);
 
     // Firestore 저장
     await db.collection('users').add({
@@ -43,6 +43,7 @@ async function submitAddUser() {
       username,
       displayName:  name,
       passwordHash,
+      salt,
       role:         'reader',
       createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
     });

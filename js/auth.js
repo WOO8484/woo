@@ -3,10 +3,15 @@
    ══════════════════════════════════════════════ */
 'use strict';
 
-/* ── 비밀번호 해시 ─────────────────────────── */
-async function hashPw(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+/* ── 비밀번호 해시 (Salt 포함) ─────────────── */
+async function hashPw(pw, salt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + pw));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function genSalt() {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 /* ── 세션 관리 ─────────────────────────────── */
@@ -74,7 +79,7 @@ async function doLogin() {
 
     if (!snap.empty) {
       const userData = snap.docs[0].data();
-      const hash = await hashPw(pw);
+      const hash = await hashPw(pw, userData.salt || '');
       if (hash !== userData.passwordHash) {
         msg.textContent = '아이디 또는 비밀번호가 올바르지 않아요';
         msg.className = 'auth-msg err'; return;
