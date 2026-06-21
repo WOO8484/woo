@@ -78,7 +78,7 @@
     <button class="auth-btn" id="signupBtn" onclick="doSignupRequest()">가입 신청하기</button>
   </div>
 
-  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.7.1</div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--ink3)">v2.7.2</div>
 </div>
 
 <!-- ── USER MENU ── -->
@@ -93,7 +93,7 @@
 <!-- ── NAV ── -->
 <nav class="nav" id="mainNav">
   <div class="nav-logo">🚀 <em>Mr.woo</em></div>
-  <div class="nav-version">v2.7.1</div>
+  <div class="nav-version">v2.7.2</div>
   <div class="nav-right">
     <button class="nav-add" id="navAddBtn" onclick="openAdd()" title="소설 추가">＋</button>
     <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu(event)">🐱</div>
@@ -442,19 +442,11 @@
      VIEWER
      ══════════════════════════════════════════════════════════════ -->
 <div id="viewer">
-  <!-- 상단바 -->
   <div class="v-topbar">
     <div class="v-title" id="vTitle"></div>
     <button class="v-close" onclick="closeViewer()">✕</button>
   </div>
-  <!-- 본문 -->
   <div class="v-body" id="vBody"></div>
-  <!-- 하단바 -->
-  <div class="v-btmbar">
-    <button class="v-nav-btn" id="vPrevBtn" onclick="viewerPrev()">◀ 이전</button>
-    <span class="v-pager" id="vPager"></span>
-    <button class="v-nav-btn" id="vNextBtn" onclick="viewerNext()">다음 ▶</button>
-  </div>
 </div>
 
 <!-- JS 모듈 -->

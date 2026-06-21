@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   Mr.woo v2.7.1  —  style.css
+   Mr.woo v2.7.2  —  style.css
    ══════════════════════════════════════════════ */
 
 /* ── DESIGN TOKENS ── */
@@ -645,27 +645,11 @@ html,body {
 
 .v-body {
   flex:1; overflow-y:auto; overflow-x:hidden;
-  padding:24px 24px 0;
+  padding:24px 24px max(env(safe-area-inset-bottom), 40px);
   box-sizing:border-box;
   -webkit-overflow-scrolling:touch;
   font-size:17px; line-height:1.9; color:var(--ink);
   word-break:keep-all; overflow-wrap:break-word;
 }
 .v-body p { margin:0 0 1em; }
-
-.v-btmbar {
-  flex-shrink:0;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 16px max(16px, env(safe-area-inset-bottom));
-  border-top:1px solid var(--line);
-  background:#fff;
-}
-.v-nav-btn {
-  height:40px; padding:0 16px;
-  border:1.5px solid var(--line); border-radius:10px;
-  background:#fff; font-size:13px; font-weight:600;
-  cursor:pointer; color:var(--ink2);
-}
-.v-nav-btn:disabled { opacity:.35; cursor:not-allowed; }
-.v-pager { font-size:12px; color:var(--ink3); }
 
