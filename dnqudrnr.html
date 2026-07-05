@@ -3,513 +3,271 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>GitHub ZIP 자동 반영 도구 - Single File</title>
+  <meta name="theme-color" content="#0e9488" />
+  <title>ZIP 업로더</title>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
-    :root {
-      --bg: #f6f8fb;
-      --panel: #ffffff;
-      --panel2: #f9fbfd;
-      --ink: #14212f;
-      --muted: #657386;
-      --line: #dce5ef;
-      --brand: #0e9488;
-      --brand2: #0b766d;
-      --soft: #e8f6f4;
-      --danger: #d64545;
-      --dangerSoft: #fff0f0;
-      --warn: #b86b00;
-      --warnSoft: #fff7e8;
-      --ok: #168a4a;
-      --okSoft: #ebf8f0;
-      --shadow: 0 12px 32px rgba(20, 33, 47, 0.08);
-      --radius: 18px;
-    }
-
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
-    body { min-height: 100vh; }
-    .wrap { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 24px 0 48px; }
-    .hero { background: linear-gradient(135deg, #0e9488 0%, #147ea0 100%); color: #fff; border-radius: 26px; padding: 26px; box-shadow: var(--shadow); overflow: hidden; position: relative; }
-    .hero:after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 999px; background: rgba(255,255,255,.13); right: -70px; top: -90px; }
-    h1 { margin: 0 0 8px; font-size: clamp(24px, 3.6vw, 38px); letter-spacing: -0.04em; }
-    .hero p { margin: 0; color: rgba(255,255,255,.86); line-height: 1.6; max-width: 760px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
-    .card.full { grid-column: 1 / -1; }
-    .card h2 { margin: 0 0 12px; font-size: 19px; letter-spacing: -0.03em; }
-    .note { background: var(--soft); color: #075b54; border: 1px solid #c9ece8; border-radius: 14px; padding: 12px 14px; line-height: 1.55; font-size: 14px; }
-    .note.warn { background: var(--warnSoft); border-color: #f0d6a7; color: #6c4300; }
-    .note.danger { background: var(--dangerSoft); border-color: #f0b7b7; color: #7b2020; }
-    label { display: block; font-weight: 700; font-size: 13px; margin: 13px 0 7px; color: #253648; }
-    input, select, textarea, button { font: inherit; }
-    input[type="text"], input[type="password"], select, textarea {
-      width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 12px 13px; outline: none; color: var(--ink);
-    }
-    input[type="file"] { width: 100%; padding: 12px; background: var(--panel2); border: 1px dashed #b8c6d5; border-radius: 12px; }
-    input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(14,148,136,.12); }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
-    button { border: 0; border-radius: 13px; padding: 12px 16px; cursor: pointer; font-weight: 800; letter-spacing: -0.02em; }
-    .btn { background: var(--brand); color: white; }
-    .btn:hover { background: var(--brand2); }
-    .btn.secondary { background: #eaf0f5; color: #26394d; }
-    .btn.danger { background: var(--danger); color: white; }
-    .btn:disabled { opacity: .45; cursor: not-allowed; }
-    .pillbox { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; background: #eef3f8; color: #3e4e60; font-size: 13px; font-weight: 700; }
-    .pill.ok { background: var(--okSoft); color: var(--ok); }
-    .pill.warn { background: var(--warnSoft); color: var(--warn); }
-    .pill.danger { background: var(--dangerSoft); color: var(--danger); }
-    .progress { height: 11px; border-radius: 999px; background: #e5edf5; overflow: hidden; margin-top: 12px; }
-    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--brand), #37a3dd); transition: width .2s ease; }
-    .status { margin-top: 10px; font-size: 14px; color: var(--muted); line-height: 1.5; }
-    .fileList { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #edf2f6; vertical-align: top; }
-    th { position: sticky; top: 0; background: #f4f8fb; text-align: left; color: #405266; z-index: 1; }
-    td.path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
-    .log { background: #0e1722; color: #cfe0ef; border-radius: 15px; padding: 14px; max-height: 300px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
-    .small { font-size: 12px; color: var(--muted); line-height: 1.5; }
-    .split { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-    .checkline { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; color: #394b5f; font-size: 14px; line-height: 1.45; }
-    .checkline input { margin-top: 2px; }
-    .hidden { display: none !important; }
-
-    @media (max-width: 820px) {
-      .grid, .row, .row3 { grid-template-columns: 1fr; }
-      .wrap { width: min(100% - 20px, 1180px); padding-top: 12px; }
-      .hero { padding: 20px; border-radius: 22px; }
-      .card { padding: 15px; }
-      button { width: 100%; }
-      .actions { flex-direction: column; }
-    }
+    :root{--bg:#eef3f6;--card:#fff;--ink:#142234;--muted:#7b8796;--line:#d9e3ec;--brand:#0e9488;--brand2:#08766d;--red:#d94444;--blue:#1d73be;--amber:#b46900;--green:#168a4a;--r:12px;--shadow:0 6px 16px rgba(16,32,44,.05)}
+    *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-text-size-adjust:100%}
+    .app{height:100dvh;max-width:1220px;margin:0 auto;padding:8px;display:grid;grid-template-rows:46px minmax(0,1fr);gap:8px;overflow:hidden}
+    .top{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 210px minmax(0,1fr);gap:8px;align-items:center;padding:6px 8px;position:relative;overflow:hidden}
+    .title h1{margin:0;font-size:17px;color:var(--brand2);letter-spacing:-.04em;white-space:nowrap}.mini{justify-self:end;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .menu{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:32px}.menu-btn{border:0;border-radius:10px;background:#e9f1f2;color:#43625f;font:inherit;font-size:13px;font-weight:900}.menu-btn.on{background:var(--brand);color:#fff}
+    .progress{position:absolute;left:8px;right:8px;bottom:3px;height:3px;background:#e7eef4;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:var(--brand);transition:.2s}
+    .views{min-height:0;overflow:hidden}.view{height:100%;min-height:0;display:none;overflow:hidden}.view.active{display:block}
+    .upload-grid{height:100%;display:grid;grid-template-columns:280px minmax(340px,1fr) 280px;gap:8px;min-height:0}
+    .panel{min-height:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}.panel-head{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px 0}.panel h2{margin:0;font-size:16px;letter-spacing:-.04em}.panel-body{min-height:0;padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}.scroll{overflow:auto}
+    label{display:block;font-size:11px;font-weight:900;margin:0 0 3px;color:#27374a}input{width:100%;min-height:34px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,148,136,.12)}input[type=file]{border-style:dashed;background:#fbfdff}.grid-3{display:grid;grid-template-columns:1fr 1fr 86px;gap:6px}.small{font-size:11px;color:var(--muted);line-height:1.35}.checkline{display:flex;gap:6px;align-items:center;margin:0;font-size:12px;font-weight:900;line-height:1.2}.checkline input{width:17px;height:17px;min-height:0;accent-color:var(--brand)}
+    .btn-row,.action-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.btn{min-height:34px;border:0;border-radius:10px;padding:0 8px;font:inherit;font-size:13px;font-weight:900;cursor:pointer}.btn.primary{background:var(--brand);color:#fff}.btn.blue{background:var(--blue);color:#fff}.btn.secondary{background:#e9f0f5;color:#233548}.btn.danger{background:var(--red);color:#fff}.btn:disabled{opacity:.42;cursor:not-allowed}
+    .badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 7px;background:#eef3f8;color:#40536a;font-size:11px;font-weight:900;white-space:nowrap}.badge.ok{background:#eaf8ef;color:var(--green)}.badge.warn{background:#fff4df;color:var(--amber)}.badge.danger{background:#fff0f0;color:var(--red)}.badge.blue{background:#eaf4ff;color:var(--blue)}.badges{display:flex;gap:4px;flex-wrap:wrap}
+    .preview-card .panel-body{height:100%}.file-list{height:100%;min-height:0;overflow:auto;display:grid;align-content:start;gap:4px;margin:0;padding-right:1px}.file-row{display:grid;grid-template-columns:52px minmax(0,1fr) 62px;gap:6px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:6px;background:#fff}.file-row code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file-row .size{font-size:10.5px;color:var(--muted);white-space:nowrap;text-align:right}.status-pill{border-radius:999px;padding:4px 5px;background:#edf2f7;color:#526274;font-size:11px;font-weight:900;text-align:center}.status-pill.add{background:#eaf8ef;color:var(--green)}.status-pill.mod{background:#fff4df;color:var(--amber)}.empty{height:100%;min-height:120px;display:grid;place-items:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:12px;text-align:center}
+    .settings-wrap{height:100%;display:grid;place-items:center;overflow:hidden}.settings-card{width:min(760px,100%);max-height:100%}.settings-card .panel-body{gap:8px}.hidden{display:none!important}.toast{position:fixed;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%) translateY(12px);background:#172433;color:#fff;border-radius:12px;padding:10px 12px;min-width:min(320px,calc(100% - 32px));opacity:0;pointer-events:none;transition:.2s;z-index:99;font-weight:800;font-size:13px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @media(max-width:960px){.app{padding:6px;grid-template-rows:45px minmax(0,1fr);gap:6px}.top{grid-template-columns:auto 150px minmax(0,1fr);border-radius:12px}.title h1{font-size:15px}.menu{height:30px}.menu-btn{font-size:12px}.mini{font-size:10.5px}.upload-grid{grid-template-columns:240px minmax(280px,1fr) 240px;gap:6px}.panel-head{padding:7px 8px 0}.panel h2{font-size:14px}.panel-body{padding:6px 8px 8px;gap:5px}input{min-height:31px;font-size:12px;padding:5px 7px}.btn{min-height:31px;font-size:12px}.grid-3{grid-template-columns:1fr 1fr 70px}.file-row{grid-template-columns:48px minmax(0,1fr);gap:4px}.file-row .size{grid-column:2;text-align:left}.small{font-size:10px}.checkline{font-size:11px}.settings-card{height:100%}}
+    @media(max-width:700px){body{overflow:auto}.app{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:45px auto}.views,.view{overflow:visible}.top{grid-template-columns:1fr 135px}.mini{display:none}.upload-grid{height:auto;display:flex;flex-direction:column}.panel{min-height:auto}.preview-card{min-height:320px}.preview-card .panel-body{height:320px}.grid-3{grid-template-columns:1fr}.grid-3 .field{grid-column:auto}}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>GitHub ZIP 자동 반영 도구</h1>
-      <p>ZIP 파일명을 무시하고 내부의 실제 프로젝트 루트를 찾아 GitHub 저장소에 자동 커밋합니다. 단일 HTML 버전이라 GitHub 토큰은 사용자가 직접 입력해야 하며, 기본적으로 토큰은 저장하지 않습니다. 본인 아이폰 전용으로 사용할 때만 “이 아이폰에 저장” 옵션을 켜면 다음 접속부터 자동 입력됩니다.</p>
-    </section>
+  <main class="app">
+    <header class="top">
+      <div class="title"><h1>ZIP 업로더</h1></div>
+      <nav class="menu" aria-label="화면 전환">
+        <button class="menu-btn on" type="button" data-view="upload">업로드</button>
+        <button class="menu-btn" type="button" data-view="settings">설정</button>
+      </nav>
+      <span class="mini" id="status">파일 선택 전</span>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </header>
 
-    <div class="grid">
-      <section class="card">
-        <h2>1. GitHub 연결</h2>
-        <div class="note warn">단일파일 버전은 GitHub 로그인 버튼 방식이 아닙니다. 안전한 로그인형은 GitHub App + Cloudflare Worker가 필요합니다. 이 파일은 토큰 입력형입니다.</div>
+    <div class="views">
+      <section class="view upload active" id="view-upload">
+        <div class="upload-grid">
+          <section class="panel select-card">
+            <div class="panel-head"><h2>파일 선택</h2><span class="badge" id="zipBadge">대기</span></div>
+            <div class="panel-body">
+              <div class="field"><label for="zipFile">ZIP 파일</label><input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed" /></div>
+              <button class="btn secondary" id="analyzeBtn" type="button" disabled>다시 읽기</button>
+              <div class="small">ZIP 파일명은 무시하고 내부 파일만 덮어쓰기 기준으로 처리합니다.</div>
+            </div>
+          </section>
 
-        <label for="token">GitHub Fine-grained Token 또는 Classic PAT</label>
-        <input id="token" type="password" autocomplete="off" placeholder="ghp_ 또는 github_pat_ 로 시작하는 토큰" />
-        <div class="small">필요 권한: 대상 저장소 Contents Read and write. 기본값은 저장 안 함입니다. 본인 아이폰 전용이면 아래 저장 옵션을 켜서 매번 입력을 줄일 수 있습니다.</div>
+          <section class="panel preview-card">
+            <div class="panel-head"><h2>변경 확인</h2><span class="badge" id="previewBadge">미확인</span></div>
+            <div class="panel-body">
+              <div class="action-row"><button class="btn blue" id="previewBtn" type="button" disabled>변경 확인</button><span class="badge" id="fileCountText">0개</span></div>
+              <div class="badges" id="summaryPills"><span class="badge">파일 없음</span></div>
+              <div class="file-list" id="fileList"><div class="empty">파일 없음</div></div>
+            </div>
+          </section>
 
-        <label class="checkline">
-          <input id="saveToken" type="checkbox" />
-          <span>이 아이폰에 토큰 저장하기. 공용 PC/다른 사람 기기에서는 절대 사용하지 마세요.</span>
-        </label>
-        <div class="actions">
-          <button class="btn secondary" id="saveLocalBtn" type="button">토큰/설정 저장</button>
-          <button class="btn danger" id="clearLocalBtn" type="button">저장된 토큰 삭제</button>
-        </div>
-        <div class="small" id="localSaveText">저장된 토큰 없음</div>
-
-        <div class="row3">
-          <div>
-            <label for="owner">Owner</label>
-            <input id="owner" type="text" placeholder="예: woo8484" />
-          </div>
-          <div>
-            <label for="repo">Repository</label>
-            <input id="repo" type="text" placeholder="예: TEST" />
-          </div>
-          <div>
-            <label for="branch">Branch</label>
-            <input id="branch" type="text" value="main" />
-          </div>
-        </div>
-
-        <label for="targetPath">GitHub 반영 위치</label>
-        <input id="targetPath" type="text" value="/" placeholder="/ 또는 docs 또는 public/app" />
-        <div class="small">루트에 반영하려면 / 로 두세요. 특정 폴더에 넣으려면 예: bpw 또는 docs</div>
-      </section>
-
-      <section class="card">
-        <h2>2. ZIP 선택</h2>
-        <label for="zipFile">업로드할 ZIP</label>
-        <input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
-
-        <label for="rootSelect">자동 감지된 프로젝트 루트</label>
-        <select id="rootSelect" disabled>
-          <option>ZIP을 먼저 선택하세요</option>
-        </select>
-        <div class="small">index.html이 있는 위치를 우선 프로젝트 루트로 판단합니다. 상위 폴더명은 자동 제거됩니다.</div>
-
-        <div class="pillbox" id="summaryPills">
-          <span class="pill">대기 중</span>
-        </div>
-
-        <div class="actions">
-          <button class="btn secondary" id="analyzeBtn" disabled>ZIP 다시 분석</button>
-          <button class="btn secondary" id="previewBtn" disabled>GitHub 변경 미리보기</button>
+          <section class="panel upload-card">
+            <div class="panel-head"><h2>깃허브 업로드</h2><span class="badge" id="uploadBadge">준비 전</span></div>
+            <div class="panel-body">
+              <button class="btn primary" id="uploadBtn" type="button" disabled>업로드</button>
+              <button class="btn secondary" id="resetBtn" type="button">초기화</button>
+              <div class="small">같은 경로의 파일은 덮어쓰고, 없는 파일은 추가합니다. ZIP에 없는 기존 파일은 삭제하지 않습니다.</div>
+            </div>
+          </section>
         </div>
       </section>
 
-      <section class="card full">
-        <h2>3. 반영 방식</h2>
-        <div class="row">
-          <div class="note">
-            <b>기존 파일 유지 + ZIP 파일만 덮어쓰기</b><br />
-            ZIP 안에 있는 파일만 추가/수정합니다. ZIP에 없는 기존 파일은 그대로 남습니다.
-          </div>
-          <div class="note danger">
-            <b>선택 위치 전체 교체</b><br />
-            선택한 GitHub 위치 안의 기존 파일 중 ZIP에 없는 파일은 삭제됩니다. BPW 버전 교체용으로 편합니다.
-          </div>
+      <section class="view settings" id="view-settings">
+        <div class="settings-wrap">
+          <section class="panel settings-card">
+            <div class="panel-head"><h2>설정</h2><span class="badge" id="tokenBadge">대기</span></div>
+            <div class="panel-body scroll">
+              <div class="field"><label for="token">토큰</label><input id="token" type="password" autocomplete="off" placeholder="github_pat_..." /></div>
+              <div class="grid-3"><div class="field"><label for="owner">Owner</label><input id="owner" type="text" placeholder="woo8484" /></div><div class="field"><label for="repo">Repo</label><input id="repo" type="text" placeholder="wooow" /></div><div class="field"><label for="branch">Branch</label><input id="branch" type="text" value="main" /></div></div>
+              <div class="field"><label for="targetPath">위치</label><input id="targetPath" type="text" value="/" placeholder="/ 또는 docs" /></div>
+              <label class="checkline"><input id="saveToken" type="checkbox" /><span>이 아이폰에 저장</span></label>
+              <div class="btn-row"><button class="btn secondary" id="saveLocalBtn" type="button">저장</button><button class="btn danger" id="clearLocalBtn" type="button">삭제</button></div>
+              <div class="small" id="localSaveText">저장값 없음</div>
+            </div>
+          </section>
         </div>
-
-        <label for="mode">업로드 모드</label>
-        <select id="mode">
-          <option value="merge">기존 파일 유지 + 같은 경로만 덮어쓰기</option>
-          <option value="replace">선택 위치 전체 교체</option>
-        </select>
-
-        <label for="commitMessage">커밋 메시지</label>
-        <input id="commitMessage" type="text" value="Update project from ZIP uploader" />
-
-        <label class="checkline">
-          <input id="confirmReplace" type="checkbox" />
-          <span>전체 교체 모드 사용 시, 선택 위치 안의 예전 잔재 파일이 삭제될 수 있음을 확인합니다.</span>
-        </label>
-
-        <div class="actions">
-          <button class="btn" id="uploadBtn" disabled>GitHub에 자동 반영</button>
-          <button class="btn secondary" id="resetBtn">초기화</button>
-        </div>
-        <div class="progress"><div class="bar" id="bar"></div></div>
-        <div class="status" id="status">ZIP 파일을 선택하면 분석을 시작합니다.</div>
-      </section>
-
-      <section class="card full">
-        <div class="split">
-          <h2>파일 미리보기</h2>
-          <div class="small" id="fileCountText">파일 0개</div>
-        </div>
-        <div class="fileList" id="fileList">
-          <table>
-            <thead><tr><th style="width:90px;">상태</th><th>경로</th><th style="width:120px;">크기</th></tr></thead>
-            <tbody id="fileTbody"><tr><td colspan="3">아직 분석된 파일이 없습니다.</td></tr></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card full">
-        <h2>실행 로그</h2>
-        <div class="log" id="log">대기 중...</div>
       </section>
     </div>
-  </div>
+  </main>
+  <div class="toast" id="toast"></div>
 
 <script>
 (() => {
   'use strict';
 
   const API = 'https://api.github.com';
-  const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v1';
-  const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v1';
+  const DEFAULT_UPLOAD_MESSAGE = 'Update project from ZIP uploader';
+  const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v2';
+  const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v2';
   const els = {
-    token: document.getElementById('token'),
-    saveToken: document.getElementById('saveToken'),
-    saveLocalBtn: document.getElementById('saveLocalBtn'),
-    clearLocalBtn: document.getElementById('clearLocalBtn'),
-    localSaveText: document.getElementById('localSaveText'),
-    owner: document.getElementById('owner'),
-    repo: document.getElementById('repo'),
-    branch: document.getElementById('branch'),
-    targetPath: document.getElementById('targetPath'),
-    zipFile: document.getElementById('zipFile'),
-    rootSelect: document.getElementById('rootSelect'),
-    analyzeBtn: document.getElementById('analyzeBtn'),
-    previewBtn: document.getElementById('previewBtn'),
-    uploadBtn: document.getElementById('uploadBtn'),
-    resetBtn: document.getElementById('resetBtn'),
-    mode: document.getElementById('mode'),
-    confirmReplace: document.getElementById('confirmReplace'),
-    commitMessage: document.getElementById('commitMessage'),
-    fileTbody: document.getElementById('fileTbody'),
-    fileCountText: document.getElementById('fileCountText'),
-    summaryPills: document.getElementById('summaryPills'),
-    status: document.getElementById('status'),
-    log: document.getElementById('log'),
-    bar: document.getElementById('bar'),
+    token: document.getElementById('token'), saveToken: document.getElementById('saveToken'), saveLocalBtn: document.getElementById('saveLocalBtn'), clearLocalBtn: document.getElementById('clearLocalBtn'), localSaveText: document.getElementById('localSaveText'),
+    owner: document.getElementById('owner'), repo: document.getElementById('repo'), branch: document.getElementById('branch'), targetPath: document.getElementById('targetPath'),
+    zipFile: document.getElementById('zipFile'), analyzeBtn: document.getElementById('analyzeBtn'), previewBtn: document.getElementById('previewBtn'), uploadBtn: document.getElementById('uploadBtn'), resetBtn: document.getElementById('resetBtn'),
+    fileList: document.getElementById('fileList'), fileCountText: document.getElementById('fileCountText'), summaryPills: document.getElementById('summaryPills'), status: document.getElementById('status'), bar: document.getElementById('bar'),
+    tokenBadge: document.getElementById('tokenBadge'), zipBadge: document.getElementById('zipBadge'), previewBadge: document.getElementById('previewBadge'), uploadBadge: document.getElementById('uploadBadge'), toast: document.getElementById('toast')
   };
 
   let zip = null;
   let rawEntries = [];
-  let rootCandidates = [];
+  let autoRoot = '';
   let preparedFiles = [];
   let remoteTree = null;
   let previewDone = false;
+  let completed = false;
+  let busy = false;
 
-  const junkPatterns = [
-    /^__MACOSX\//,
-    /(^|\/)\.DS_Store$/,
-    /(^|\/)Thumbs\.db$/i,
-    /(^|\/)desktop\.ini$/i,
-    /(^|\/)\.git(\/|$)/,
-    /(^|\/)node_modules(\/|$)/,
-    /(^|\/)\.idea(\/|$)/,
-    /(^|\/)\.vscode(\/|$)/,
-    /(^|\/)\.wrangler(\/|$)/,
-    /(^|\/)dist\.zip$/i,
-  ];
+  const junkPatterns = [/^__MACOSX\//, /(^|\/)\.DS_Store$/, /(^|\/)Thumbs\.db$/i, /(^|\/)desktop\.ini$/i, /(^|\/)\.git(\/|$)/, /(^|\/)node_modules(\/|$)/, /(^|\/)\.idea(\/|$)/, /(^|\/)\.vscode(\/|$)/, /(^|\/)\.wrangler(\/|$)/];
 
-  function log(msg) {
-    const now = new Date().toLocaleTimeString('ko-KR', { hour12: false });
-    if (els.log.textContent === '대기 중...') els.log.textContent = '';
-    els.log.textContent += `[${now}] ${msg}\n`;
-    els.log.scrollTop = els.log.scrollHeight;
-  }
-
-  function setStatus(msg) { els.status.textContent = msg; }
-  function setProgress(value) { els.bar.style.width = `${Math.max(0, Math.min(100, value))}%`; }
-  function normalizePath(path) {
-    return String(path || '')
-      .replace(/\\+/g, '/')
-      .replace(/^\.\//, '')
-      .replace(/^\/+/, '')
-      .replace(/\/+/g, '/')
-      .trim();
-  }
-  function cleanTargetPath(path) {
-    const p = normalizePath(path);
-    return p === '' ? '' : p.replace(/\/+$/, '');
-  }
-  function joinPath(a, b) {
-    const aa = cleanTargetPath(a);
-    const bb = normalizePath(b);
-    if (!aa) return bb;
-    if (!bb) return aa;
-    return `${aa}/${bb}`;
-  }
+  function toast(msg) { els.toast.textContent = msg; els.toast.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => els.toast.classList.remove('show'), 2300); }
+  function log(msg) { try { console.log('[ZIP 업로더]', msg); } catch (_) {} }
+  function setStatus(msg) { els.status.textContent = msg || ''; }
+  function setProgress(v) { els.bar.style.width = `${Math.max(0, Math.min(100, v))}%`; }
+  function safeText(text) { return String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+  function normalizePath(path) { return String(path || '').replace(/\\+/g, '/').replace(/^\.\//, '').replace(/^\/+/, '').replace(/\/+/g, '/').trim(); }
+  function cleanTargetPath(path) { const p = normalizePath(path); return p === '' ? '' : p.replace(/\/+$/, ''); }
+  function joinPath(a, b) { const aa = cleanTargetPath(a); const bb = normalizePath(b); if (!aa) return bb; if (!bb) return aa; return `${aa}/${bb}`; }
   function isJunk(path) { return junkPatterns.some(re => re.test(path)); }
-  function formatBytes(bytes) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-  }
-  function safeText(text) {
-    return String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-  }
-  function updateButtons() {
-    const hasZip = !!zip && rawEntries.length > 0;
-    const hasRoot = !els.rootSelect.disabled; // root '/' can have an empty value, so only check enabled state
-    const hasAuth = els.token.value.trim() && els.owner.value.trim() && els.repo.value.trim() && els.branch.value.trim();
-    els.analyzeBtn.disabled = !els.zipFile.files[0];
-    els.previewBtn.disabled = !(hasZip && hasRoot && hasAuth);
-    els.uploadBtn.disabled = !(hasZip && hasRoot && hasAuth && preparedFiles.length > 0);
-  }
-  function setPills(items) {
-    els.summaryPills.innerHTML = items.map(it => `<span class="pill ${it.type || ''}">${safeText(it.text)}</span>`).join('');
+  function formatBytes(bytes) { if (!bytes && bytes !== 0) return '-'; if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1024 / 1024).toFixed(2)} MB`; }
+  function isAuthReady() { return !!(els.token.value.trim() && els.owner.value.trim() && els.repo.value.trim() && els.branch.value.trim()); }
+  function isZipReady() { return !!(zip && rawEntries.length && preparedFiles.length); }
+  function setPills(items) { els.summaryPills.innerHTML = items.map(it => `<span class="badge ${it.type || ''}">${safeText(it.text)}</span>`).join(''); }
+  function badgeClass(status) { if (status === '추가') return 'add'; if (status === '수정') return 'mod'; return ''; }
+
+  function updateUiState() {
+    const auth = isAuthReady();
+    const zipReady = isZipReady();
+    els.analyzeBtn.disabled = busy || !els.zipFile.files[0];
+    els.previewBtn.disabled = busy || !(auth && zipReady);
+    els.uploadBtn.disabled = busy || !(auth && zipReady && previewDone && preparedFiles.length > 0);
+
+    els.tokenBadge.textContent = auth ? '준비 완료' : '설정 필요';
+    els.tokenBadge.className = `badge ${auth ? 'ok' : 'warn'}`;
+    els.zipBadge.textContent = zipReady ? `${preparedFiles.length}개` : '대기';
+    els.zipBadge.className = `badge ${zipReady ? 'ok' : ''}`;
+    els.previewBadge.textContent = previewDone ? '확인 완료' : '미확인';
+    els.previewBadge.className = `badge ${previewDone ? 'ok' : 'warn'}`;
+    els.uploadBadge.textContent = completed ? '완료' : (previewDone ? '업로드 대기' : '준비 전');
+    els.uploadBadge.className = `badge ${completed ? 'ok' : (previewDone ? 'blue' : 'warn')}`;
+
+    if (busy) return;
+    if (!auth) setStatus('설정 필요');
+    else if (!zipReady) setStatus('파일 선택 전');
+    else if (completed) setStatus('업로드 완료');
+    else if (!previewDone) setStatus('변경 확인 전');
+    else setStatus('업로드 대기');
   }
 
-  function setLocalSaveText(text) {
-    if (els.localSaveText) els.localSaveText.textContent = text;
-  }
+  function setBusy(value, msg) { busy = value; if (msg) setStatus(msg); updateUiState(); }
 
   function loadLocalSettings() {
     try {
-      const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY) || '';
-      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY) || '{}');
-      if (savedToken) {
-        els.token.value = savedToken;
-        els.saveToken.checked = true;
-      }
+      const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY) || localStorage.getItem('githubZipUploader.token.v1') || '';
+      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY) || localStorage.getItem('githubZipUploader.settings.v1') || '{}');
+      if (savedToken) { els.token.value = savedToken; els.saveToken.checked = true; els.localSaveText.textContent = '저장된 토큰을 불러왔습니다. 이 아이폰에서만 사용하세요.'; }
+      else els.localSaveText.textContent = '저장된 토큰 없음';
       if (savedSettings.owner) els.owner.value = savedSettings.owner;
       if (savedSettings.repo) els.repo.value = savedSettings.repo;
       if (savedSettings.branch) els.branch.value = savedSettings.branch;
       if (savedSettings.targetPath) els.targetPath.value = savedSettings.targetPath;
-      setLocalSaveText(savedToken ? '저장된 토큰을 불러왔습니다. 이 아이폰에서만 사용하세요.' : '저장된 토큰 없음');
-    } catch (err) {
-      setLocalSaveText('저장값을 불러오지 못했습니다. Safari 저장소 설정을 확인하세요.');
-    }
+    } catch (err) { els.localSaveText.textContent = '저장값을 불러오지 못했습니다.'; }
   }
 
   function saveLocalSettings() {
     try {
-      const settings = {
-        owner: els.owner.value.trim(),
-        repo: els.repo.value.trim(),
-        branch: els.branch.value.trim(),
-        targetPath: els.targetPath.value.trim()
-      };
+      const settings = { owner: els.owner.value.trim(), repo: els.repo.value.trim(), branch: els.branch.value.trim(), targetPath: els.targetPath.value.trim() };
       localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
       if (els.saveToken.checked) {
         const token = els.token.value.trim();
         if (!token) throw new Error('저장할 토큰을 먼저 입력하세요.');
         localStorage.setItem(STORAGE_TOKEN_KEY, token);
-        setLocalSaveText('토큰과 기본 설정을 이 아이폰에 저장했습니다.');
-        log('토큰/설정 로컬 저장 완료');
+        els.localSaveText.textContent = '토큰과 기본값을 이 아이폰에 저장했습니다.';
       } else {
         localStorage.removeItem(STORAGE_TOKEN_KEY);
-        setLocalSaveText('기본 설정만 저장했습니다. 토큰은 저장하지 않았습니다.');
-        log('기본 설정 로컬 저장 완료, 토큰 저장 안 함');
+        els.localSaveText.textContent = '기본값만 저장했습니다. 토큰은 저장하지 않았습니다.';
       }
-    } catch (err) {
-      setLocalSaveText(`저장 실패: ${err.message}`);
-      log(`저장 실패: ${err.message}`);
-    }
+      toast('저장 완료');
+    } catch (err) { els.localSaveText.textContent = `저장 실패: ${err.message}`; toast(err.message); }
+    updateUiState();
   }
 
   function clearLocalSettings() {
-    localStorage.removeItem(STORAGE_TOKEN_KEY);
-    localStorage.removeItem(STORAGE_SETTINGS_KEY);
-    els.saveToken.checked = false;
-    setLocalSaveText('저장된 토큰과 기본 설정을 삭제했습니다.');
-    log('로컬 저장값 삭제 완료');
+    localStorage.removeItem(STORAGE_TOKEN_KEY); localStorage.removeItem(STORAGE_SETTINGS_KEY);
+    localStorage.removeItem('githubZipUploader.token.v1'); localStorage.removeItem('githubZipUploader.settings.v1');
+    els.saveToken.checked = false; els.token.value = ''; els.localSaveText.textContent = '저장된 토큰과 기본값을 삭제했습니다.'; toast('삭제 완료'); updateUiState();
   }
 
   async function readZipFile(file) {
-    if (!window.JSZip) throw new Error('JSZip 라이브러리를 불러오지 못했습니다. 인터넷 연결 또는 CDN 차단 여부를 확인하세요.');
-    setProgress(5);
-    log(`ZIP 읽기 시작: ${file.name} (${formatBytes(file.size)})`);
+    if (!window.JSZip) throw new Error('JSZip을 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
+    completed = false; previewDone = false; remoteTree = null; setProgress(5); log(`ZIP 읽기 시작: ${file.name} (${formatBytes(file.size)})`);
     zip = await JSZip.loadAsync(file);
     rawEntries = [];
-
     zip.forEach((relativePath, entry) => {
       const path = normalizePath(relativePath);
       if (!path || entry.dir || isJunk(path)) return;
       rawEntries.push({ path, entry, size: entry._data && entry._data.uncompressedSize ? entry._data.uncompressedSize : 0 });
     });
-
     if (!rawEntries.length) throw new Error('ZIP 안에서 업로드 가능한 파일을 찾지 못했습니다.');
-    detectRoots();
-    setProgress(25);
-    log(`ZIP 내부 파일 ${rawEntries.length}개 감지`);
-    renderRootSelect();
-    prepareFilesFromSelectedRoot();
-    updateButtons();
+    autoRoot = detectProjectRoot();
+    prepareFilesFromDetectedRoot();
+    setProgress(35); setStatus(`${preparedFiles.length}개 파일 분석 완료`); toast('ZIP 분석 완료');
   }
 
-  function detectRoots() {
-    const indexPaths = rawEntries
-      .map(f => f.path)
-      .filter(p => /(^|\/)index\.html$/i.test(p));
-
-    if (indexPaths.length) {
-      rootCandidates = indexPaths.map(p => p.replace(/(^|\/)index\.html$/i, '').replace(/\/$/, ''));
-    } else {
+  function detectProjectRoot() {
+    const indexPaths = rawEntries.map(f => f.path).filter(p => /(^|\/)index\.html$/i.test(p));
+    let candidates;
+    if (indexPaths.length) candidates = indexPaths.map(p => p.replace(/(^|\/)index\.html$/i, '').replace(/\/$/, ''));
+    else {
       const firstParts = rawEntries.map(f => f.path.split('/')[0]);
       const counts = firstParts.reduce((acc, cur) => (acc[cur] = (acc[cur] || 0) + 1, acc), {});
       const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0] || '';
       const allUnderTop = rawEntries.every(f => f.path === top || f.path.startsWith(top + '/'));
-      rootCandidates = allUnderTop ? [top] : [''];
+      candidates = allUnderTop ? [top] : [''];
     }
-
-    rootCandidates = Array.from(new Set(rootCandidates));
-    rootCandidates.sort((a, b) => scoreRoot(b) - scoreRoot(a));
+    candidates = Array.from(new Set(candidates)).sort((a, b) => scoreProjectRoot(b) - scoreProjectRoot(a));
+    return candidates[0] || '';
   }
 
-  function scoreRoot(root) {
-    const rels = rawEntries.map(f => stripRoot(f.path, root)).filter(Boolean);
-    let score = 0;
-    const names = new Set(rels.map(p => p.toLowerCase()));
-    if (names.has('index.html')) score += 100;
-    if (names.has('app.js')) score += 25;
-    if (names.has('style.css')) score += 25;
-    if (names.has('config.js')) score += 12;
-    if (names.has('manifest.json')) score += 8;
-    if (rels.some(p => p.startsWith('assets/'))) score += 8;
-    score -= root.split('/').filter(Boolean).length;
-    return score;
+  function scoreProjectRoot(candidate) {
+    const rels = rawEntries.map(f => stripDetectedRoot(f.path, candidate)).filter(Boolean);
+    let score = 0; const names = new Set(rels.map(p => p.toLowerCase()));
+    if (names.has('index.html')) score += 100; if (names.has('app.js')) score += 25; if (names.has('style.css')) score += 25; if (names.has('config.js')) score += 12; if (names.has('manifest.json')) score += 8; if (rels.some(p => p.startsWith('assets/'))) score += 8; score -= candidate.split('/').filter(Boolean).length; return score;
   }
 
-  function renderRootSelect() {
-    els.rootSelect.innerHTML = '';
-    rootCandidates.forEach((root, idx) => {
-      const opt = document.createElement('option');
-      opt.value = root;
-      opt.textContent = root ? `${root}/` : '/';
-      if (idx === 0) opt.selected = true;
-      els.rootSelect.appendChild(opt);
-    });
-    els.rootSelect.disabled = false;
-  }
+  function stripDetectedRoot(path, candidate) { const p = normalizePath(path); const r = cleanTargetPath(candidate); if (!r) return p; if (p === r) return ''; if (p.startsWith(r + '/')) return p.slice(r.length + 1); return ''; }
 
-  function stripRoot(path, root) {
-    const p = normalizePath(path);
-    const r = cleanTargetPath(root);
-    if (!r) return p;
-    if (p === r) return '';
-    if (p.startsWith(r + '/')) return p.slice(r.length + 1);
-    return '';
-  }
-
-  function prepareFilesFromSelectedRoot() {
-    const root = els.rootSelect.value;
+  function prepareFilesFromDetectedRoot() {
     const map = new Map();
-    for (const f of rawEntries) {
-      const rel = stripRoot(f.path, root);
-      if (!rel || isJunk(rel)) continue;
-      map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' });
-    }
+    for (const f of rawEntries) { const rel = stripDetectedRoot(f.path, autoRoot); if (!rel || isJunk(rel)) continue; map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' }); }
     preparedFiles = Array.from(map.values()).sort((a,b) => a.relativePath.localeCompare(b.relativePath));
-    previewDone = false;
-    remoteTree = null;
-    renderFileList();
-    setPills([
-      { text: `파일 ${preparedFiles.length}개`, type: 'ok' },
-      { text: `루트 ${root ? root + '/' : '/'}`, type: 'warn' },
-      { text: `ZIP명 무시`, type: '' },
-    ]);
-    setStatus(`프로젝트 루트가 ${root ? root + '/' : '/'} 로 선택되었습니다. GitHub 변경 미리보기를 실행할 수 있습니다.`);
-    setProgress(35);
-    updateButtons();
+    previewDone = false; completed = false; remoteTree = null; renderFileList(); setPills([{ text: `파일 ${preparedFiles.length}개`, type: 'ok' }, { text: '변경 확인 전', type: 'warn' }]);
+    updateUiState();
   }
 
   function renderFileList() {
-    els.fileCountText.textContent = `파일 ${preparedFiles.length}개`;
-    if (!preparedFiles.length) {
-      els.fileTbody.innerHTML = '<tr><td colspan="3">분석된 파일이 없습니다.</td></tr>';
-      return;
-    }
-    const rows = preparedFiles.slice(0, 700).map(f => {
-      const cls = f.status === '추가' ? 'ok' : f.status === '수정' ? 'warn' : f.status === '삭제예정' ? 'danger' : '';
-      return `<tr><td><span class="pill ${cls}">${safeText(f.status)}</span></td><td class="path">${safeText(f.relativePath)}</td><td>${formatBytes(f.size || 0)}</td></tr>`;
-    }).join('');
-    const extra = preparedFiles.length > 700 ? `<tr><td colspan="3">표시 제한으로 700개까지만 표시합니다. 실제 업로드는 전체 파일 기준입니다.</td></tr>` : '';
-    els.fileTbody.innerHTML = rows + extra;
+    els.fileCountText.textContent = `${preparedFiles.length}개`;
+    els.fileCountText.className = `badge ${preparedFiles.length ? 'ok' : ''}`;
+    if (!preparedFiles.length) { els.fileList.innerHTML = '<div class="empty">파일 없음</div>'; return; }
+    const rows = preparedFiles.slice(0, 900).map(f => `<div class="file-row"><span class="status-pill ${badgeClass(f.status)}">${safeText(f.status)}</span><code title="${safeText(f.relativePath)}">${safeText(f.relativePath)}</code><span class="size">${formatBytes(f.size || 0)}</span></div>`).join('');
+    const extra = preparedFiles.length > 900 ? '<div class="empty">표시 제한으로 900개까지만 보입니다. 실제 업로드는 전체 파일 기준입니다.</div>' : '';
+    els.fileList.innerHTML = rows + extra;
   }
 
   async function gh(path, options = {}) {
     const token = els.token.value.trim();
-    const res = await fetch(`${API}${path}`, {
-      ...options,
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'Authorization': `Bearer ${token}`,
-        ...(options.headers || {})
-      }
-    });
-    const text = await res.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+    const res = await fetch(`${API}${path}`, { ...options, headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Authorization': `Bearer ${token}`, ...(options.headers || {}) } });
+    const text = await res.text(); let data = null; try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
     if (!res.ok) {
       const message = data && data.message ? data.message : res.statusText;
+      if (res.status === 401) throw new Error('401 인증 실패: 토큰이 잘못됐거나 만료됐습니다.');
+      if (res.status === 403) throw new Error('403 권한 부족: 토큰 저장소 권한과 Contents Read/write를 확인하세요.');
+      if (res.status === 404) throw new Error('404 저장소/브랜치 없음: Owner, Repository, Branch 또는 토큰 대상 저장소를 확인하세요.');
       throw new Error(`GitHub API 오류 ${res.status}: ${message}`);
     }
     return data;
   }
 
-  function repoPath(extra) {
-    const owner = encodeURIComponent(els.owner.value.trim());
-    const repo = encodeURIComponent(els.repo.value.trim());
-    return `/repos/${owner}/${repo}${extra}`;
-  }
+  function repoPath(extra) { return `/repos/${encodeURIComponent(els.owner.value.trim())}/${encodeURIComponent(els.repo.value.trim())}${extra}`; }
 
   async function fetchRemoteTree() {
     const branch = encodeURIComponent(els.branch.value.trim());
-    log(`브랜치 조회: ${els.branch.value.trim()}`);
     const ref = await gh(repoPath(`/git/ref/heads/${branch}`));
     const headSha = ref.object.sha;
     const commit = await gh(repoPath(`/git/commits/${headSha}`));
@@ -519,232 +277,77 @@
   }
 
   async function previewChanges() {
-    if (!preparedFiles.length) throw new Error('먼저 ZIP을 분석하세요.');
-    setProgress(40);
-    setStatus('GitHub 저장소 현재 파일 목록을 가져오는 중입니다.');
+    if (!preparedFiles.length) throw new Error('먼저 ZIP 파일을 선택하세요.');
+    setBusy(true, 'GitHub 파일 비교 중'); setProgress(42);
     remoteTree = await fetchRemoteTree();
-
     const target = cleanTargetPath(els.targetPath.value);
-    const remoteFiles = new Set(
-      remoteTree.tree
-        .filter(item => item.type === 'blob')
-        .map(item => item.path)
-    );
-
+    const remoteFiles = new Set(remoteTree.tree.filter(item => item.type === 'blob').map(item => item.path));
     let add = 0, modify = 0;
-    for (const f of preparedFiles) {
-      const finalPath = joinPath(target, f.relativePath);
-      if (remoteFiles.has(finalPath)) { f.status = '수정'; modify++; }
-      else { f.status = '추가'; add++; }
-    }
-
-    let del = 0;
-    if (els.mode.value === 'replace') {
-      const newPaths = new Set(preparedFiles.map(f => joinPath(target, f.relativePath)));
-      const prefix = target ? target + '/' : '';
-      del = remoteTree.tree.filter(item => {
-        if (item.type !== 'blob') return false;
-        if (target && !(item.path === target || item.path.startsWith(prefix))) return false;
-        return !newPaths.has(item.path);
-      }).length;
-    }
-
-    previewDone = true;
-    renderFileList();
-    setPills([
-      { text: `추가 ${add}`, type: 'ok' },
-      { text: `수정 ${modify}`, type: 'warn' },
-      { text: `삭제 ${del}`, type: del ? 'danger' : '' },
-      { text: `대상 ${target || '/'}`, type: '' },
-    ]);
-    setProgress(55);
-    setStatus(`미리보기 완료: 추가 ${add}개, 수정 ${modify}개, 삭제 ${del}개`);
-    log(`미리보기 완료 - 추가 ${add}, 수정 ${modify}, 삭제 ${del}`);
-    updateButtons();
+    for (const f of preparedFiles) { const finalPath = joinPath(target, f.relativePath); if (remoteFiles.has(finalPath)) { f.status = '수정'; modify++; } else { f.status = '추가'; add++; } }
+    previewDone = true; completed = false; renderFileList(); setPills([{ text: `추가 ${add}`, type: 'ok' }, { text: `수정 ${modify}`, type: 'warn' }]);
+    setProgress(62); setStatus(`변경 확인 완료: 추가 ${add}개, 수정 ${modify}개`); toast('변경 확인 완료');
   }
 
-  async function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    const chunkSize = 0x8000;
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-    }
-    return btoa(binary);
-  }
-
-  async function createBlobForFile(file) {
-    const buffer = await file.entry.async('arraybuffer');
-    const base64 = await arrayBufferToBase64(buffer);
-    const blob = await gh(repoPath('/git/blobs'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: base64, encoding: 'base64' })
-    });
-    return blob.sha;
-  }
+  async function arrayBufferToBase64(buffer) { const bytes = new Uint8Array(buffer); const chunkSize = 0x8000; let binary = ''; for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize)); return btoa(binary); }
+  async function createBlobForFile(file) { const buffer = await file.entry.async('arraybuffer'); const base64 = await arrayBufferToBase64(buffer); const blob = await gh(repoPath('/git/blobs'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: base64, encoding: 'base64' }) }); return blob.sha; }
+  function buildPagesUrl() { const owner = els.owner.value.trim(); const repo = els.repo.value.trim(); const target = cleanTargetPath(els.targetPath.value); let base = repo.toLowerCase() === `${owner.toLowerCase()}.github.io` ? `https://${owner}.github.io/` : `https://${owner}.github.io/${repo}/`; if (target) base += `${target}/`; return base.replace(/([^:]\/)\/+/g, '$1'); }
 
   async function uploadToGitHub() {
-    if (els.mode.value === 'replace' && !els.confirmReplace.checked) {
-      throw new Error('전체 교체 모드에서는 삭제 확인 체크가 필요합니다.');
-    }
-    if (!previewDone) {
-      log('미리보기가 없어 자동으로 미리보기를 먼저 실행합니다.');
-      await previewChanges();
-    }
-
-    setProgress(58);
-    setStatus('GitHub 업로드 준비 중입니다.');
+    if (!previewDone) throw new Error('먼저 변경 확인을 실행하세요.');
+    if (els.saveToken.checked) saveLocalSettings();
+    setBusy(true, 'GitHub 업로드 준비 중'); setProgress(64);
     const target = cleanTargetPath(els.targetPath.value);
     const base = remoteTree || await fetchRemoteTree();
     const treeItems = [];
-
-    log(`Blob 생성 시작: ${preparedFiles.length}개 파일`);
     for (let i = 0; i < preparedFiles.length; i++) {
       const f = preparedFiles[i];
       const sha = await createBlobForFile(f);
-      treeItems.push({
-        path: joinPath(target, f.relativePath),
-        mode: '100644',
-        type: 'blob',
-        sha
-      });
-      const pct = 58 + Math.round(((i + 1) / preparedFiles.length) * 25);
-      setProgress(pct);
-      setStatus(`파일 업로드 준비 중: ${i + 1}/${preparedFiles.length} - ${f.relativePath}`);
-      if ((i + 1) % 10 === 0 || i === preparedFiles.length - 1) log(`Blob 생성 ${i + 1}/${preparedFiles.length}`);
+      treeItems.push({ path: joinPath(target, f.relativePath), mode: '100644', type: 'blob', sha });
+      const pct = 64 + Math.round(((i + 1) / preparedFiles.length) * 22);
+      setProgress(pct); setStatus(`파일 준비 중: ${i + 1}/${preparedFiles.length}`);
     }
-
-    if (els.mode.value === 'replace') {
-      const newPaths = new Set(preparedFiles.map(f => joinPath(target, f.relativePath)));
-      const prefix = target ? target + '/' : '';
-      const deleteItems = base.tree.filter(item => {
-        if (item.type !== 'blob') return false;
-        if (target && !(item.path === target || item.path.startsWith(prefix))) return false;
-        return !newPaths.has(item.path);
-      }).map(item => ({ path: item.path, mode: '100644', type: 'blob', sha: null }));
-      treeItems.push(...deleteItems);
-      log(`삭제 반영 예정: ${deleteItems.length}개`);
-    }
-
-    setProgress(87);
-    setStatus('Git Tree 생성 중입니다.');
-    log('Git Tree 생성');
-    const newTree = await gh(repoPath('/git/trees'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base_tree: base.baseTreeSha, tree: treeItems })
-    });
-
-    setProgress(92);
-    setStatus('커밋 생성 중입니다.');
-    const message = els.commitMessage.value.trim() || 'Update project from ZIP uploader';
-    log(`Commit 생성: ${message}`);
-    const newCommit = await gh(repoPath('/git/commits'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, tree: newTree.sha, parents: [base.headSha] })
-    });
-
-    setProgress(96);
-    setStatus('브랜치 반영 중입니다.');
-    const branch = encodeURIComponent(els.branch.value.trim());
-    log(`브랜치 업데이트: ${els.branch.value.trim()} -> ${newCommit.sha}`);
-    await gh(repoPath(`/git/refs/heads/${branch}`), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sha: newCommit.sha, force: false })
-    });
-
-    setProgress(100);
-    const pagesUrl = `https://${els.owner.value.trim()}.github.io/${els.repo.value.trim()}/`;
-    setStatus(`완료되었습니다. GitHub Pages 사용 시 잠시 후 반영됩니다: ${pagesUrl}`);
-    log('완료');
-    log(`예상 GitHub Pages 주소: ${pagesUrl}`);
+    setProgress(88); setStatus('Git Tree 생성 중');
+    const newTree = await gh(repoPath('/git/trees'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base_tree: base.baseTreeSha, tree: treeItems }) });
+    setProgress(93); setStatus('업로드 기록 생성 중');
+    const newCommit = await gh(repoPath('/git/commits'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: DEFAULT_UPLOAD_MESSAGE, tree: newTree.sha, parents: [base.headSha] }) });
+    setProgress(97); setStatus('브랜치 반영 중');
+    await gh(repoPath(`/git/refs/heads/${encodeURIComponent(els.branch.value.trim())}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sha: newCommit.sha, force: false }) });
+    completed = true; previewDone = false; setProgress(100);
+    const url = buildPagesUrl(); setStatus(`업로드 완료: ${url}`); toast('업로드 완료'); updateUiState();
   }
 
-  els.zipFile.addEventListener('change', async () => {
+  async function handleZipChange() {
     try {
-      const file = els.zipFile.files[0];
-      if (!file) return;
-      els.log.textContent = '대기 중...';
-      setStatus('ZIP 분석 중입니다.');
-      setProgress(0);
-      await readZipFile(file);
-    } catch (err) {
-      setStatus(`오류: ${err.message}`);
-      log(`오류: ${err.message}`);
-      setProgress(0);
-    }
-  });
+      const file = els.zipFile.files[0]; if (!file) return;
+      setBusy(true, 'ZIP 분석 중'); setProgress(0); await readZipFile(file);
+      if (isAuthReady() && isZipReady()) await previewChanges();
+      else setStatus('설정 입력 후 변경 확인 가능');
+    } catch (err) { setStatus(`오류: ${err.message}`); setProgress(0); toast(err.message); }
+    finally { setBusy(false); }
+  }
+  async function handlePreview() { try { await previewChanges(); } catch (err) { setStatus(`오류: ${err.message}`); setProgress(35); toast(err.message); } finally { setBusy(false); } }
+  async function handleUpload() { try { await uploadToGitHub(); } catch (err) { setStatus(`오류: ${err.message}`); setProgress(0); toast(err.message); } finally { setBusy(false); } }
 
-  els.rootSelect.addEventListener('change', prepareFilesFromSelectedRoot);
-  els.mode.addEventListener('change', () => {
-    previewDone = false;
-    preparedFiles.forEach(f => f.status = '대기');
-    renderFileList();
-    updateButtons();
-    setStatus('반영 방식이 변경되었습니다. 변경 미리보기를 다시 실행하세요.');
-  });
-
-  ['input', 'change'].forEach(evt => {
-    [els.token, els.owner, els.repo, els.branch, els.targetPath].forEach(el => el.addEventListener(evt, updateButtons));
-  });
-
-  els.analyzeBtn.addEventListener('click', async () => {
-    try {
-      const file = els.zipFile.files[0];
-      if (!file) return;
-      await readZipFile(file);
-    } catch (err) {
-      setStatus(`오류: ${err.message}`);
-      log(`오류: ${err.message}`);
-    }
-  });
-
-  els.previewBtn.addEventListener('click', async () => {
-    try {
-      await previewChanges();
-    } catch (err) {
-      setStatus(`오류: ${err.message}`);
-      log(`오류: ${err.message}`);
-    }
-  });
-
-  els.uploadBtn.addEventListener('click', async () => {
-    try {
-      els.uploadBtn.disabled = true;
-      if (els.saveToken.checked) saveLocalSettings();
-      await uploadToGitHub();
-    } catch (err) {
-      setStatus(`오류: ${err.message}`);
-      log(`오류: ${err.message}`);
-      setProgress(0);
-    } finally {
-      updateButtons();
-    }
-  });
-
+  els.zipFile.addEventListener('change', handleZipChange);
+  ['input', 'change'].forEach(evt => [els.token, els.owner, els.repo, els.branch, els.targetPath].forEach(el => el.addEventListener(evt, () => { previewDone = false; completed = false; preparedFiles.forEach(f => f.status = '대기'); renderFileList(); updateUiState(); })));
+  els.analyzeBtn.addEventListener('click', handleZipChange);
+  els.previewBtn.addEventListener('click', handlePreview);
+  els.uploadBtn.addEventListener('click', handleUpload);
   els.saveLocalBtn.addEventListener('click', saveLocalSettings);
   els.clearLocalBtn.addEventListener('click', clearLocalSettings);
-
   els.resetBtn.addEventListener('click', () => {
-    zip = null; rawEntries = []; rootCandidates = []; preparedFiles = []; remoteTree = null; previewDone = false;
-    els.zipFile.value = '';
-    els.rootSelect.innerHTML = '<option>ZIP을 먼저 선택하세요</option>';
-    els.rootSelect.disabled = true;
-    els.confirmReplace.checked = false;
-    els.fileTbody.innerHTML = '<tr><td colspan="3">아직 분석된 파일이 없습니다.</td></tr>';
-    els.fileCountText.textContent = '파일 0개';
-    els.log.textContent = '대기 중...';
-    setPills([{ text: '대기 중' }]);
-    setStatus('ZIP 파일을 선택하면 분석을 시작합니다.');
-    setProgress(0);
-    updateButtons();
+    zip = null; rawEntries = []; autoRoot = ''; preparedFiles = []; remoteTree = null; previewDone = false; completed = false;
+    els.zipFile.value = ''; els.fileList.innerHTML = '<div class="empty">파일 없음</div>'; els.fileCountText.textContent = '0개';
+    setPills([{ text: '파일 없음' }]); setStatus('파일 선택 전'); setProgress(0); updateUiState();
   });
 
-  loadLocalSettings();
-  updateButtons();
+  function setView(name) {
+    document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.toggle('on', btn.dataset.view === name));
+    document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+  }
+  document.querySelectorAll('.menu-btn').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
+  setView('upload');
+  loadLocalSettings(); updateUiState();
 })();
 </script>
 </body>
