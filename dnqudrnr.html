@@ -7,35 +7,30 @@
   <title>ZIP 업로더</title>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
-    :root{--bg:#eef3f6;--card:#fff;--ink:#142234;--muted:#7b8796;--line:#d9e3ec;--brand:#0e9488;--brand2:#08766d;--red:#d94444;--blue:#1d73be;--amber:#b46900;--green:#168a4a;--r:12px;--shadow:0 6px 16px rgba(16,32,44,.05)}
+    :root{--bg:#fff;--card:#fff;--ink:#142234;--muted:#7b8796;--line:#d9e3ec;--brand:#0e9488;--brand2:#08766d;--red:#d94444;--blue:#1d73be;--amber:#b46900;--green:#168a4a;--r:12px;--shadow:0 6px 16px rgba(16,32,44,.05)}
     *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-text-size-adjust:100%}
-    .app{height:100dvh;max-width:1220px;margin:0 auto;padding:8px;display:grid;grid-template-rows:46px minmax(0,1fr);gap:8px;overflow:hidden}
-    .top{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 210px minmax(0,1fr);gap:8px;align-items:center;padding:6px 8px;position:relative;overflow:hidden}
+    .app{height:100dvh;max-width:760px;margin:0 auto;padding:8px;display:grid;grid-template-rows:46px minmax(0,1fr);gap:8px;overflow:hidden}
+    .top{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;padding:6px 8px;overflow:hidden}
     .title h1{margin:0;font-size:17px;color:var(--brand2);letter-spacing:-.04em;white-space:nowrap}.mini{justify-self:end;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-    .menu{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:32px}.menu-btn{border:0;border-radius:10px;background:#e9f1f2;color:#43625f;font:inherit;font-size:13px;font-weight:900}.menu-btn.on{background:var(--brand);color:#fff}
-    .progress{position:absolute;left:8px;right:8px;bottom:3px;height:3px;background:#e7eef4;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:var(--brand);transition:.2s}
     .views{min-height:0;overflow:hidden}.view{height:100%;min-height:0;display:none;overflow:hidden}.view.active{display:block}
-    .upload-grid{height:100%;display:grid;grid-template-columns:280px minmax(340px,1fr) 280px;gap:8px;min-height:0}
-    .panel{min-height:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}.panel-head{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px 0}.panel h2{margin:0;font-size:16px;letter-spacing:-.04em}.panel-body{min-height:0;padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}.scroll{overflow:auto}
-    label{display:block;font-size:11px;font-weight:900;margin:0 0 3px;color:#27374a}input{width:100%;min-height:34px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,148,136,.12)}input[type=file]{border-style:dashed;background:#fbfdff}.grid-3{display:grid;grid-template-columns:1fr 1fr 86px;gap:6px}.small{font-size:11px;color:var(--muted);line-height:1.35}.checkline{display:flex;gap:6px;align-items:center;margin:0;font-size:12px;font-weight:900;line-height:1.2}.checkline input{width:17px;height:17px;min-height:0;accent-color:var(--brand)}
-    .btn-row,.action-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.btn{min-height:34px;border:0;border-radius:10px;padding:0 8px;font:inherit;font-size:13px;font-weight:900;cursor:pointer}.btn.primary{background:var(--brand);color:#fff}.btn.blue{background:var(--blue);color:#fff}.btn.secondary{background:#e9f0f5;color:#233548}.btn.danger{background:var(--red);color:#fff}.btn:disabled{opacity:.42;cursor:not-allowed}
+    .upload-grid{width:100%;height:100%;display:grid;grid-template-columns:1fr;grid-template-rows:auto auto auto;gap:8px;min-height:0;align-content:start}
+    .panel{min-height:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}.panel-head{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px 0}.panel h2{margin:0;font-size:16px;letter-spacing:-.04em}.panel-body{min-height:0;padding:8px 10px 10px;display:flex;flex-direction:column;gap:7px}
+    label{display:block;font-size:11px;font-weight:900;margin:0 0 3px;color:#27374a}input{width:100%;min-height:34px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,148,136,.12)}
+    .file-input-hidden{position:absolute;width:1px;height:1px;min-height:1px;padding:0;border:0;opacity:0;pointer-events:none}.file-pick-btn{width:100%;min-height:34px;border:1px dashed var(--line);border-radius:10px;background:#fbfdff;color:#233548;display:flex;align-items:center;justify-content:center;margin:0;font:inherit;font-size:13px;font-weight:900;cursor:pointer}.file-pick-btn:active{border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,148,136,.12)}
+    .settings-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.settings-body{gap:6px;overflow:hidden}.settings-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center}.settings-actions .btn-row{grid-template-columns:1fr 1fr}.settings-actions #localSaveText{grid-column:1/-1}.small{font-size:11px;color:var(--muted);line-height:1.35}.checkline{display:flex;gap:6px;align-items:center;margin:0;font-size:12px;font-weight:900;line-height:1.2}.checkline input{width:17px;height:17px;min-height:0;accent-color:var(--brand)}
+    .btn-row,.action-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.upload-actions{grid-template-columns:1fr}.btn{min-height:34px;border:0;border-radius:10px;padding:0 8px;font:inherit;font-size:13px;font-weight:900;cursor:pointer}.btn.primary{background:var(--brand);color:#fff}.btn.secondary{background:#e9f0f5;color:#233548}.btn.danger{background:var(--red);color:#fff}.btn:disabled{opacity:.42;cursor:not-allowed}
     .badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 7px;background:#eef3f8;color:#40536a;font-size:11px;font-weight:900;white-space:nowrap}.badge.ok{background:#eaf8ef;color:var(--green)}.badge.warn{background:#fff4df;color:var(--amber)}.badge.danger{background:#fff0f0;color:var(--red)}.badge.blue{background:#eaf4ff;color:var(--blue)}.badges{display:flex;gap:4px;flex-wrap:wrap}
-    .preview-card .panel-body{height:100%}.file-list{height:100%;min-height:0;overflow:auto;display:grid;align-content:start;gap:4px;margin:0;padding-right:1px}.file-row{display:grid;grid-template-columns:52px minmax(0,1fr) 62px;gap:6px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:6px;background:#fff}.file-row code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file-row .size{font-size:10.5px;color:var(--muted);white-space:nowrap;text-align:right}.status-pill{border-radius:999px;padding:4px 5px;background:#edf2f7;color:#526274;font-size:11px;font-weight:900;text-align:center}.status-pill.add{background:#eaf8ef;color:var(--green)}.status-pill.mod{background:#fff4df;color:var(--amber)}.empty{height:100%;min-height:120px;display:grid;place-items:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:12px;text-align:center}
-    .settings-wrap{height:100%;display:grid;place-items:center;overflow:hidden}.settings-card{width:min(760px,100%);max-height:100%}.settings-card .panel-body{gap:8px}.hidden{display:none!important}.toast{position:fixed;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%) translateY(12px);background:#172433;color:#fff;border-radius:12px;padding:10px 12px;min-width:min(320px,calc(100% - 32px));opacity:0;pointer-events:none;transition:.2s;z-index:99;font-weight:800;font-size:13px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    @media(max-width:960px){.app{padding:6px;grid-template-rows:45px minmax(0,1fr);gap:6px}.top{grid-template-columns:auto 150px minmax(0,1fr);border-radius:12px}.title h1{font-size:15px}.menu{height:30px}.menu-btn{font-size:12px}.mini{font-size:10.5px}.upload-grid{grid-template-columns:240px minmax(280px,1fr) 240px;gap:6px}.panel-head{padding:7px 8px 0}.panel h2{font-size:14px}.panel-body{padding:6px 8px 8px;gap:5px}input{min-height:31px;font-size:12px;padding:5px 7px}.btn{min-height:31px;font-size:12px}.grid-3{grid-template-columns:1fr 1fr 70px}.file-row{grid-template-columns:48px minmax(0,1fr);gap:4px}.file-row .size{grid-column:2;text-align:left}.small{font-size:10px}.checkline{font-size:11px}.settings-card{height:100%}}
-    @media(max-width:700px){body{overflow:auto}.app{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:45px auto}.views,.view{overflow:visible}.top{grid-template-columns:1fr 135px}.mini{display:none}.upload-grid{height:auto;display:flex;flex-direction:column}.panel{min-height:auto}.preview-card{min-height:320px}.preview-card .panel-body{height:320px}.grid-3{grid-template-columns:1fr}.grid-3 .field{grid-column:auto}}
+    .upload-card{width:100%;justify-self:stretch}.upload-card .panel-body{height:auto}.count-text{font-size:12px;font-weight:900;color:#40536a;line-height:1.35}.count-text.ok{color:var(--green)}.count-text.warn{color:var(--amber)}.count-text.blue{color:var(--blue)}.count-text.danger{color:var(--red)}
+    .hidden{display:none!important}.toast{position:fixed;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%) translateY(12px);background:#172433;color:#fff;border-radius:12px;padding:10px 12px;min-width:min(320px,calc(100% - 32px));opacity:0;pointer-events:none;transition:.2s;z-index:99;font-weight:800;font-size:13px}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @media(max-width:960px){.app{padding:6px;grid-template-rows:45px minmax(0,1fr);gap:6px}.top{grid-template-columns:auto minmax(0,1fr);border-radius:12px}.title h1{font-size:15px}.mini{font-size:10.5px}.upload-grid{gap:6px}.panel-head{padding:7px 8px 0}.panel h2{font-size:14px}.panel-body{padding:6px 8px 8px;gap:5px}input{min-height:31px;font-size:12px;padding:5px 7px}.btn{min-height:31px;font-size:12px}.file-row{grid-template-columns:48px minmax(0,1fr);gap:4px}.file-row .size{grid-column:2;text-align:left}.small{font-size:10px}.checkline{font-size:11px}}
+    @media(max-width:700px){body{overflow:hidden}.app{height:100dvh;min-height:0;overflow:hidden;grid-template-rows:45px minmax(0,1fr)}.views,.view{overflow:hidden}.top{grid-template-columns:1fr}.mini{display:none}.upload-grid{grid-template-rows:auto auto auto}.settings-row{grid-template-columns:1fr 1fr}.settings-actions{grid-template-columns:1fr}.settings-actions #localSaveText{grid-column:auto}}
   </style>
 </head>
 <body>
   <main class="app">
     <header class="top">
       <div class="title"><h1>ZIP 업로더</h1></div>
-      <nav class="menu" aria-label="화면 전환">
-        <button class="menu-btn on" type="button" data-view="upload">업로드</button>
-        <button class="menu-btn" type="button" data-view="settings">설정</button>
-      </nav>
       <span class="mini" id="status">파일 선택 전</span>
-      <div class="progress"><div class="bar" id="bar"></div></div>
     </header>
 
     <div class="views">
@@ -44,43 +39,42 @@
           <section class="panel select-card">
             <div class="panel-head"><h2>파일 선택</h2><span class="badge" id="zipBadge">대기</span></div>
             <div class="panel-body">
-              <div class="field"><label for="zipFile">ZIP 파일</label><input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed" /></div>
-              <button class="btn secondary" id="analyzeBtn" type="button" disabled>다시 읽기</button>
-              <div class="small">ZIP 파일명은 무시하고 내부 파일만 덮어쓰기 기준으로 처리합니다.</div>
-            </div>
-          </section>
-
-          <section class="panel preview-card">
-            <div class="panel-head"><h2>변경 확인</h2><span class="badge" id="previewBadge">미확인</span></div>
-            <div class="panel-body">
-              <div class="action-row"><button class="btn blue" id="previewBtn" type="button" disabled>변경 확인</button><span class="badge" id="fileCountText">0개</span></div>
-              <div class="badges" id="summaryPills"><span class="badge">파일 없음</span></div>
-              <div class="file-list" id="fileList"><div class="empty">파일 없음</div></div>
+              <div class="field file-picker"><input id="zipFile" class="file-input-hidden" type="file" accept=".zip,application/zip,application/x-zip-compressed" /><button class="file-pick-btn" id="pickFileBtn" type="button">압축파일 선택</button></div>
+              <div class="small">선택한 압축파일 이름은 무시하고 내부 파일만 덮어쓰기 기준으로 처리합니다.</div>
             </div>
           </section>
 
           <section class="panel upload-card">
-            <div class="panel-head"><h2>깃허브 업로드</h2><span class="badge" id="uploadBadge">준비 전</span></div>
+            <div class="panel-head">
+              <h2>깃허브 업로드</h2>
+              <div class="badges"><span class="badge" id="previewBadge">변경 미확인</span><span class="badge" id="uploadBadge">업로드 준비전</span></div>
+            </div>
             <div class="panel-body">
-              <button class="btn primary" id="uploadBtn" type="button" disabled>업로드</button>
-              <button class="btn secondary" id="resetBtn" type="button">초기화</button>
-              <div class="small">같은 경로의 파일은 덮어쓰고, 없는 파일은 추가합니다. ZIP에 없는 기존 파일은 삭제하지 않습니다.</div>
+              <div class="action-row upload-actions">
+                <button class="btn primary" id="uploadBtn" type="button" disabled>업로드</button>
+                <div class="count-text hidden" id="fileCountText"></div>
+              </div>
+              <div class="small">같은 경로의 파일은 덮어쓰고, 없는 파일은 추가합니다. 압축파일에 없는 기존 파일은 삭제하지 않습니다.</div>
             </div>
           </section>
-        </div>
-      </section>
 
-      <section class="view settings" id="view-settings">
-        <div class="settings-wrap">
-          <section class="panel settings-card">
+          <section class="panel settings-card upload-settings">
             <div class="panel-head"><h2>설정</h2><span class="badge" id="tokenBadge">대기</span></div>
-            <div class="panel-body scroll">
+            <div class="panel-body settings-body">
               <div class="field"><label for="token">토큰</label><input id="token" type="password" autocomplete="off" placeholder="github_pat_..." /></div>
-              <div class="grid-3"><div class="field"><label for="owner">Owner</label><input id="owner" type="text" placeholder="woo8484" /></div><div class="field"><label for="repo">Repo</label><input id="repo" type="text" placeholder="wooow" /></div><div class="field"><label for="branch">Branch</label><input id="branch" type="text" value="main" /></div></div>
-              <div class="field"><label for="targetPath">위치</label><input id="targetPath" type="text" value="/" placeholder="/ 또는 docs" /></div>
-              <label class="checkline"><input id="saveToken" type="checkbox" /><span>이 아이폰에 저장</span></label>
-              <div class="btn-row"><button class="btn secondary" id="saveLocalBtn" type="button">저장</button><button class="btn danger" id="clearLocalBtn" type="button">삭제</button></div>
-              <div class="small" id="localSaveText">저장값 없음</div>
+              <div class="settings-row">
+                <div class="field"><label for="owner">Owner</label><input id="owner" type="text" placeholder="woo8484" /></div>
+                <div class="field"><label for="repo">Repo</label><input id="repo" type="text" placeholder="wooow" /></div>
+              </div>
+              <div class="settings-row">
+                <div class="field"><label for="branch">Branch</label><input id="branch" type="text" value="main" /></div>
+                <div class="field"><label for="targetPath">위치</label><input id="targetPath" type="text" value="/" placeholder="/ 또는 docs" /></div>
+              </div>
+              <div class="settings-actions">
+                <label class="checkline"><input id="saveToken" type="checkbox" /><span>이 아이폰에 저장</span></label>
+                <div class="btn-row"><button class="btn secondary" id="saveLocalBtn" type="button">저장</button><button class="btn danger" id="clearLocalBtn" type="button">삭제</button></div>
+                <div class="small" id="localSaveText">저장값 없음</div>
+              </div>
             </div>
           </section>
         </div>
@@ -98,11 +92,25 @@
   const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v2';
   const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v2';
   const els = {
-    token: document.getElementById('token'), saveToken: document.getElementById('saveToken'), saveLocalBtn: document.getElementById('saveLocalBtn'), clearLocalBtn: document.getElementById('clearLocalBtn'), localSaveText: document.getElementById('localSaveText'),
-    owner: document.getElementById('owner'), repo: document.getElementById('repo'), branch: document.getElementById('branch'), targetPath: document.getElementById('targetPath'),
-    zipFile: document.getElementById('zipFile'), analyzeBtn: document.getElementById('analyzeBtn'), previewBtn: document.getElementById('previewBtn'), uploadBtn: document.getElementById('uploadBtn'), resetBtn: document.getElementById('resetBtn'),
-    fileList: document.getElementById('fileList'), fileCountText: document.getElementById('fileCountText'), summaryPills: document.getElementById('summaryPills'), status: document.getElementById('status'), bar: document.getElementById('bar'),
-    tokenBadge: document.getElementById('tokenBadge'), zipBadge: document.getElementById('zipBadge'), previewBadge: document.getElementById('previewBadge'), uploadBadge: document.getElementById('uploadBadge'), toast: document.getElementById('toast')
+    token: document.getElementById('token'),
+    saveToken: document.getElementById('saveToken'),
+    saveLocalBtn: document.getElementById('saveLocalBtn'),
+    clearLocalBtn: document.getElementById('clearLocalBtn'),
+    localSaveText: document.getElementById('localSaveText'),
+    owner: document.getElementById('owner'),
+    repo: document.getElementById('repo'),
+    branch: document.getElementById('branch'),
+    targetPath: document.getElementById('targetPath'),
+    zipFile: document.getElementById('zipFile'),
+    pickFileBtn: document.getElementById('pickFileBtn'),
+    uploadBtn: document.getElementById('uploadBtn'),
+    fileCountText: document.getElementById('fileCountText'),
+    status: document.getElementById('status'),
+    tokenBadge: document.getElementById('tokenBadge'),
+    zipBadge: document.getElementById('zipBadge'),
+    previewBadge: document.getElementById('previewBadge'),
+    uploadBadge: document.getElementById('uploadBadge'),
+    toast: document.getElementById('toast')
   };
 
   let zip = null;
@@ -113,13 +121,15 @@
   let previewDone = false;
   let completed = false;
   let busy = false;
+  let previousZipCount = null;
+  let uploadedCount = 0;
+  let autoPreviewTimer = null;
 
   const junkPatterns = [/^__MACOSX\//, /(^|\/)\.DS_Store$/, /(^|\/)Thumbs\.db$/i, /(^|\/)desktop\.ini$/i, /(^|\/)\.git(\/|$)/, /(^|\/)node_modules(\/|$)/, /(^|\/)\.idea(\/|$)/, /(^|\/)\.vscode(\/|$)/, /(^|\/)\.wrangler(\/|$)/];
 
   function toast(msg) { els.toast.textContent = msg; els.toast.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => els.toast.classList.remove('show'), 2300); }
   function log(msg) { try { console.log('[ZIP 업로더]', msg); } catch (_) {} }
   function setStatus(msg) { els.status.textContent = msg || ''; }
-  function setProgress(v) { els.bar.style.width = `${Math.max(0, Math.min(100, v))}%`; }
   function safeText(text) { return String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function normalizePath(path) { return String(path || '').replace(/\\+/g, '/').replace(/^\.\//, '').replace(/^\/+/, '').replace(/\/+/g, '/').trim(); }
   function cleanTargetPath(path) { const p = normalizePath(path); return p === '' ? '' : p.replace(/\/+$/, ''); }
@@ -128,31 +138,56 @@
   function formatBytes(bytes) { if (!bytes && bytes !== 0) return '-'; if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1024 / 1024).toFixed(2)} MB`; }
   function isAuthReady() { return !!(els.token.value.trim() && els.owner.value.trim() && els.repo.value.trim() && els.branch.value.trim()); }
   function isZipReady() { return !!(zip && rawEntries.length && preparedFiles.length); }
-  function setPills(items) { els.summaryPills.innerHTML = items.map(it => `<span class="badge ${it.type || ''}">${safeText(it.text)}</span>`).join(''); }
-  function badgeClass(status) { if (status === '추가') return 'add'; if (status === '수정') return 'mod'; return ''; }
+  function setCountText(text, type) {
+    els.fileCountText.textContent = text;
+    els.fileCountText.className = `count-text ${type || ''}`;
+  }
+
+  function renderCounter() {
+    const total = preparedFiles.length;
+    if (!total) {
+      setCountText('', '');
+      els.fileCountText.classList.add('hidden');
+      return;
+    }
+    els.fileCountText.classList.remove('hidden');
+    if (completed) {
+      const type = uploadedCount === total ? 'ok' : 'danger';
+      setCountText(`압축파일은 ${total}개의 파일이 있으며 총 ${uploadedCount}개의 파일이 업로드 완료되었습니다.`, type);
+      return;
+    }
+    if (uploadedCount > 0) {
+      setCountText(`총 ${total}개 중 ${uploadedCount}개의 파일을 업로드 중입니다.`, 'blue');
+      return;
+    }
+    if (previousZipCount !== null) {
+      setCountText(`기존 압축파일은 ${previousZipCount}개의 파일이 있습니다. 변경 압축파일 확인결과 ${total}개의 파일이 있습니다.`, 'ok');
+      return;
+    }
+    setCountText(`변경 압축파일 확인결과 ${total}개의 파일이 있습니다.`, 'ok');
+  }
 
   function updateUiState() {
     const auth = isAuthReady();
     const zipReady = isZipReady();
-    els.analyzeBtn.disabled = busy || !els.zipFile.files[0];
-    els.previewBtn.disabled = busy || !(auth && zipReady);
-    els.uploadBtn.disabled = busy || !(auth && zipReady && previewDone && preparedFiles.length > 0);
+    els.uploadBtn.disabled = busy || !(auth && zipReady);
 
     els.tokenBadge.textContent = auth ? '준비 완료' : '설정 필요';
     els.tokenBadge.className = `badge ${auth ? 'ok' : 'warn'}`;
     els.zipBadge.textContent = zipReady ? `${preparedFiles.length}개` : '대기';
     els.zipBadge.className = `badge ${zipReady ? 'ok' : ''}`;
-    els.previewBadge.textContent = previewDone ? '확인 완료' : '미확인';
+    els.previewBadge.textContent = previewDone ? '변경 확인' : '변경 미확인';
     els.previewBadge.className = `badge ${previewDone ? 'ok' : 'warn'}`;
-    els.uploadBadge.textContent = completed ? '완료' : (previewDone ? '업로드 대기' : '준비 전');
-    els.uploadBadge.className = `badge ${completed ? 'ok' : (previewDone ? 'blue' : 'warn')}`;
+    els.uploadBadge.textContent = completed ? '업로드 완료' : (uploadedCount > 0 ? '업로드 중' : (auth && zipReady ? '업로드 준비완료' : '업로드 준비전'));
+    els.uploadBadge.className = `badge ${completed ? 'ok' : (uploadedCount > 0 || (auth && zipReady) ? 'blue' : 'warn')}`;
+    renderCounter();
 
     if (busy) return;
     if (!auth) setStatus('설정 필요');
     else if (!zipReady) setStatus('파일 선택 전');
     else if (completed) setStatus('업로드 완료');
-    else if (!previewDone) setStatus('변경 확인 전');
-    else setStatus('업로드 대기');
+    else if (!previewDone) setStatus('업로드 가능');
+    else setStatus('업로드 준비완료');
   }
 
   function setBusy(value, msg) { busy = value; if (msg) setStatus(msg); updateUiState(); }
@@ -196,7 +231,9 @@
 
   async function readZipFile(file) {
     if (!window.JSZip) throw new Error('JSZip을 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
-    completed = false; previewDone = false; remoteTree = null; setProgress(5); log(`ZIP 읽기 시작: ${file.name} (${formatBytes(file.size)})`);
+    previousZipCount = preparedFiles.length ? preparedFiles.length : null;
+    completed = false; previewDone = false; remoteTree = null; uploadedCount = 0;
+    log(`ZIP 읽기 시작: ${file.name} (${formatBytes(file.size)})`);
     zip = await JSZip.loadAsync(file);
     rawEntries = [];
     zip.forEach((relativePath, entry) => {
@@ -207,7 +244,8 @@
     if (!rawEntries.length) throw new Error('ZIP 안에서 업로드 가능한 파일을 찾지 못했습니다.');
     autoRoot = detectProjectRoot();
     prepareFilesFromDetectedRoot();
-    setProgress(35); setStatus(`${preparedFiles.length}개 파일 분석 완료`); toast('ZIP 분석 완료');
+    setStatus(`${preparedFiles.length}개 파일 분석 완료`);
+    toast('ZIP 분석 완료');
   }
 
   function detectProjectRoot() {
@@ -235,19 +273,14 @@
 
   function prepareFilesFromDetectedRoot() {
     const map = new Map();
-    for (const f of rawEntries) { const rel = stripDetectedRoot(f.path, autoRoot); if (!rel || isJunk(rel)) continue; map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' }); }
+    for (const f of rawEntries) {
+      const rel = stripDetectedRoot(f.path, autoRoot);
+      if (!rel || isJunk(rel)) continue;
+      map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' });
+    }
     preparedFiles = Array.from(map.values()).sort((a,b) => a.relativePath.localeCompare(b.relativePath));
-    previewDone = false; completed = false; remoteTree = null; renderFileList(); setPills([{ text: `파일 ${preparedFiles.length}개`, type: 'ok' }, { text: '변경 확인 전', type: 'warn' }]);
+    previewDone = false; completed = false; remoteTree = null; uploadedCount = 0;
     updateUiState();
-  }
-
-  function renderFileList() {
-    els.fileCountText.textContent = `${preparedFiles.length}개`;
-    els.fileCountText.className = `badge ${preparedFiles.length ? 'ok' : ''}`;
-    if (!preparedFiles.length) { els.fileList.innerHTML = '<div class="empty">파일 없음</div>'; return; }
-    const rows = preparedFiles.slice(0, 900).map(f => `<div class="file-row"><span class="status-pill ${badgeClass(f.status)}">${safeText(f.status)}</span><code title="${safeText(f.relativePath)}">${safeText(f.relativePath)}</code><span class="size">${formatBytes(f.size || 0)}</span></div>`).join('');
-    const extra = preparedFiles.length > 900 ? '<div class="empty">표시 제한으로 900개까지만 보입니다. 실제 업로드는 전체 파일 기준입니다.</div>' : '';
-    els.fileList.innerHTML = rows + extra;
   }
 
   async function gh(path, options = {}) {
@@ -276,78 +309,116 @@
     return { headSha, baseTreeSha, tree: tree.tree || [] };
   }
 
-  async function previewChanges() {
-    if (!preparedFiles.length) throw new Error('먼저 ZIP 파일을 선택하세요.');
-    setBusy(true, 'GitHub 파일 비교 중'); setProgress(42);
+  async function previewChanges(options = {}) {
+    if (!preparedFiles.length) throw new Error('먼저 압축파일을 선택하세요.');
+    if (!isAuthReady()) throw new Error('설정을 먼저 입력하세요.');
+    setBusy(true, 'GitHub 파일 비교 중');
     remoteTree = await fetchRemoteTree();
     const target = cleanTargetPath(els.targetPath.value);
     const remoteFiles = new Set(remoteTree.tree.filter(item => item.type === 'blob').map(item => item.path));
     let add = 0, modify = 0;
-    for (const f of preparedFiles) { const finalPath = joinPath(target, f.relativePath); if (remoteFiles.has(finalPath)) { f.status = '수정'; modify++; } else { f.status = '추가'; add++; } }
-    previewDone = true; completed = false; renderFileList(); setPills([{ text: `추가 ${add}`, type: 'ok' }, { text: `수정 ${modify}`, type: 'warn' }]);
-    setProgress(62); setStatus(`변경 확인 완료: 추가 ${add}개, 수정 ${modify}개`); toast('변경 확인 완료');
+    for (const f of preparedFiles) {
+      const finalPath = joinPath(target, f.relativePath);
+      if (remoteFiles.has(finalPath)) { f.status = '수정'; modify++; }
+      else { f.status = '추가'; add++; }
+    }
+    previewDone = true; completed = false; uploadedCount = 0;
+    updateUiState();
+    setStatus(`변경 확인 완료: 추가 ${add}개, 수정 ${modify}개`);
+    if (!options.quiet) toast('변경 확인 완료');
   }
 
-  async function arrayBufferToBase64(buffer) { const bytes = new Uint8Array(buffer); const chunkSize = 0x8000; let binary = ''; for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize)); return btoa(binary); }
-  async function createBlobForFile(file) { const buffer = await file.entry.async('arraybuffer'); const base64 = await arrayBufferToBase64(buffer); const blob = await gh(repoPath('/git/blobs'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: base64, encoding: 'base64' }) }); return blob.sha; }
-  function buildPagesUrl() { const owner = els.owner.value.trim(); const repo = els.repo.value.trim(); const target = cleanTargetPath(els.targetPath.value); let base = repo.toLowerCase() === `${owner.toLowerCase()}.github.io` ? `https://${owner}.github.io/` : `https://${owner}.github.io/${repo}/`; if (target) base += `${target}/`; return base.replace(/([^:]\/)\/+/g, '$1'); }
+  async function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer); const chunkSize = 0x8000; let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    return btoa(binary);
+  }
+  async function createBlobForFile(file) {
+    const buffer = await file.entry.async('arraybuffer');
+    const base64 = await arrayBufferToBase64(buffer);
+    const blob = await gh(repoPath('/git/blobs'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: base64, encoding: 'base64' }) });
+    return blob.sha;
+  }
+  function buildPagesUrl() {
+    const owner = els.owner.value.trim(); const repo = els.repo.value.trim(); const target = cleanTargetPath(els.targetPath.value);
+    let base = repo.toLowerCase() === `${owner.toLowerCase()}.github.io` ? `https://${owner}.github.io/` : `https://${owner}.github.io/${repo}/`;
+    if (target) base += `${target}/`;
+    return base.replace(/([^:]\/)\/+/g, '$1');
+  }
 
   async function uploadToGitHub() {
-    if (!previewDone) throw new Error('먼저 변경 확인을 실행하세요.');
+    if (!isZipReady()) throw new Error('먼저 압축파일을 선택하세요.');
+    if (!isAuthReady()) throw new Error('설정을 먼저 입력하세요.');
+    if (!previewDone) await previewChanges({ quiet: true });
     if (els.saveToken.checked) saveLocalSettings();
-    setBusy(true, 'GitHub 업로드 준비 중'); setProgress(64);
+
+    setBusy(true, 'GitHub 업로드 준비 중');
     const target = cleanTargetPath(els.targetPath.value);
     const base = remoteTree || await fetchRemoteTree();
+    const total = preparedFiles.length;
     const treeItems = [];
-    for (let i = 0; i < preparedFiles.length; i++) {
+    uploadedCount = 0;
+    updateUiState();
+
+    for (let i = 0; i < total; i++) {
       const f = preparedFiles[i];
       const sha = await createBlobForFile(f);
       treeItems.push({ path: joinPath(target, f.relativePath), mode: '100644', type: 'blob', sha });
-      const pct = 64 + Math.round(((i + 1) / preparedFiles.length) * 22);
-      setProgress(pct); setStatus(`파일 준비 중: ${i + 1}/${preparedFiles.length}`);
+      uploadedCount = i + 1;
+      renderCounter();
+      setStatus(`파일 준비 중: ${uploadedCount}/${total}`);
     }
-    setProgress(88); setStatus('Git Tree 생성 중');
+
+    if (uploadedCount !== total || treeItems.length !== total) {
+      throw new Error(`업로드 수량 불일치: 압축파일 ${total}개 / 업로드 ${uploadedCount}개`);
+    }
+
+    setStatus('Git Tree 생성 중');
     const newTree = await gh(repoPath('/git/trees'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base_tree: base.baseTreeSha, tree: treeItems }) });
-    setProgress(93); setStatus('업로드 기록 생성 중');
+    setStatus('업로드 기록 생성 중');
     const newCommit = await gh(repoPath('/git/commits'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: DEFAULT_UPLOAD_MESSAGE, tree: newTree.sha, parents: [base.headSha] }) });
-    setProgress(97); setStatus('브랜치 반영 중');
+    setStatus('브랜치 반영 중');
     await gh(repoPath(`/git/refs/heads/${encodeURIComponent(els.branch.value.trim())}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sha: newCommit.sha, force: false }) });
-    completed = true; previewDone = false; setProgress(100);
-    const url = buildPagesUrl(); setStatus(`업로드 완료: ${url}`); toast('업로드 완료'); updateUiState();
+
+    completed = true;
+    previewDone = true;
+    updateUiState();
+    const url = buildPagesUrl();
+    setStatus(`업로드 완료: ${url}`);
+    toast('업로드 완료');
   }
 
   async function handleZipChange() {
     try {
       const file = els.zipFile.files[0]; if (!file) return;
-      setBusy(true, 'ZIP 분석 중'); setProgress(0); await readZipFile(file);
-      if (isAuthReady() && isZipReady()) await previewChanges();
-      else setStatus('설정 입력 후 변경 확인 가능');
-    } catch (err) { setStatus(`오류: ${err.message}`); setProgress(0); toast(err.message); }
+      setBusy(true, 'ZIP 분석 중');
+      await readZipFile(file);
+      if (isAuthReady() && isZipReady()) setStatus('업로드 가능');
+      else setStatus('설정 입력 후 업로드 가능');
+    } catch (err) { setStatus(`오류: ${err.message}`); toast(err.message); }
     finally { setBusy(false); }
   }
-  async function handlePreview() { try { await previewChanges(); } catch (err) { setStatus(`오류: ${err.message}`); setProgress(35); toast(err.message); } finally { setBusy(false); } }
-  async function handleUpload() { try { await uploadToGitHub(); } catch (err) { setStatus(`오류: ${err.message}`); setProgress(0); toast(err.message); } finally { setBusy(false); } }
 
+  async function handleUpload() {
+    try { await uploadToGitHub(); }
+    catch (err) { completed = false; setStatus(`오류: ${err.message}`); toast(err.message); updateUiState(); }
+    finally { setBusy(false); }
+  }
+
+  els.pickFileBtn.addEventListener('click', () => { els.zipFile.value = ''; els.zipFile.click(); });
+  els.zipFile.addEventListener('click', () => { els.zipFile.value = ''; });
   els.zipFile.addEventListener('change', handleZipChange);
-  ['input', 'change'].forEach(evt => [els.token, els.owner, els.repo, els.branch, els.targetPath].forEach(el => el.addEventListener(evt, () => { previewDone = false; completed = false; preparedFiles.forEach(f => f.status = '대기'); renderFileList(); updateUiState(); })));
-  els.analyzeBtn.addEventListener('click', handleZipChange);
-  els.previewBtn.addEventListener('click', handlePreview);
+  ['input', 'change'].forEach(evt => [els.token, els.owner, els.repo, els.branch, els.targetPath].forEach(el => el.addEventListener(evt, () => {
+    previewDone = false; completed = false; uploadedCount = 0; remoteTree = null;
+    preparedFiles.forEach(f => f.status = '대기');
+    updateUiState();
+  })));
   els.uploadBtn.addEventListener('click', handleUpload);
   els.saveLocalBtn.addEventListener('click', saveLocalSettings);
   els.clearLocalBtn.addEventListener('click', clearLocalSettings);
-  els.resetBtn.addEventListener('click', () => {
-    zip = null; rawEntries = []; autoRoot = ''; preparedFiles = []; remoteTree = null; previewDone = false; completed = false;
-    els.zipFile.value = ''; els.fileList.innerHTML = '<div class="empty">파일 없음</div>'; els.fileCountText.textContent = '0개';
-    setPills([{ text: '파일 없음' }]); setStatus('파일 선택 전'); setProgress(0); updateUiState();
-  });
 
-  function setView(name) {
-    document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.toggle('on', btn.dataset.view === name));
-    document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
-  }
-  document.querySelectorAll('.menu-btn').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
-  setView('upload');
-  loadLocalSettings(); updateUiState();
+  loadLocalSettings();
+  updateUiState();
 })();
 </script>
 </body>
