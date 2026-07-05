@@ -302,7 +302,7 @@
   }
   function updateButtons() {
     const hasZip = !!zip && rawEntries.length > 0;
-    const hasRoot = els.rootSelect.value !== '' && !els.rootSelect.disabled;
+    const hasRoot = !els.rootSelect.disabled; // root '/' can have an empty value, so only check enabled state
     const hasAuth = els.token.value.trim() && els.owner.value.trim() && els.repo.value.trim() && els.branch.value.trim();
     els.analyzeBtn.disabled = !els.zipFile.files[0];
     els.previewBtn.disabled = !(hasZip && hasRoot && hasAuth);
@@ -749,4 +749,3 @@
 </script>
 </body>
 </html>
-<!-- redeploy -->
