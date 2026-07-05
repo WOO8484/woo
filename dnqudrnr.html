@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0e9488" />
-  <title>ZIP 업로더</title>
+  <title>ZIP 업로더 - 폴더 유지 업로드</title>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     :root{--bg:#fff;--card:#fff;--ink:#142234;--muted:#7b8796;--line:#d9e3ec;--brand:#0e9488;--brand2:#08766d;--red:#d94444;--blue:#1d73be;--amber:#b46900;--green:#168a4a;--r:12px;--shadow:0 6px 16px rgba(16,32,44,.05)}
@@ -40,7 +40,7 @@
             <div class="panel-head"><h2>파일 선택</h2><span class="badge" id="zipBadge">대기</span></div>
             <div class="panel-body">
               <div class="field file-picker"><input id="zipFile" class="file-input-hidden" type="file" accept=".zip,application/zip,application/x-zip-compressed" /><button class="file-pick-btn" id="pickFileBtn" type="button">압축파일 선택</button></div>
-              <div class="small">선택한 압축파일 이름은 무시하고 내부 파일만 덮어쓰기 기준으로 처리합니다.</div>
+              <div class="small">압축파일 내부의 폴더/파일 경로를 그대로 유지해서 덮어쓰기 기준으로 처리합니다.</div>
             </div>
           </section>
 
@@ -54,7 +54,7 @@
                 <button class="btn primary" id="uploadBtn" type="button" disabled>업로드</button>
                 <div class="count-text hidden" id="fileCountText"></div>
               </div>
-              <div class="small">같은 경로의 파일은 덮어쓰고, 없는 파일은 추가합니다. 압축파일에 없는 기존 파일은 삭제하지 않습니다.</div>
+              <div class="small">압축파일 내부 경로 그대로 업로드합니다. 예: assets/js/wp/main/app-bootstrap.js → 같은 경로로 덮어쓰기. 압축파일에 없는 기존 파일은 삭제하지 않습니다.</div>
             </div>
           </section>
 
@@ -86,11 +86,12 @@
 <script>
 (() => {
   'use strict';
+  // v3: ZIP 내부 폴더/파일 경로를 자동 변경하지 않고 그대로 GitHub Tree에 반영합니다.
 
   const API = 'https://api.github.com';
   const DEFAULT_UPLOAD_MESSAGE = 'Update project from ZIP uploader';
-  const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v2';
-  const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v2';
+  const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v3';
+  const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v3';
   const els = {
     token: document.getElementById('token'),
     saveToken: document.getElementById('saveToken'),
@@ -115,7 +116,6 @@
 
   let zip = null;
   let rawEntries = [];
-  let autoRoot = '';
   let preparedFiles = [];
   let remoteTree = null;
   let previewDone = false;
@@ -194,8 +194,8 @@
 
   function loadLocalSettings() {
     try {
-      const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY) || localStorage.getItem('githubZipUploader.token.v1') || '';
-      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY) || localStorage.getItem('githubZipUploader.settings.v1') || '{}');
+      const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY) || localStorage.getItem('githubZipUploader.token.v2') || localStorage.getItem('githubZipUploader.token.v1') || '';
+      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY) || localStorage.getItem('githubZipUploader.settings.v2') || localStorage.getItem('githubZipUploader.settings.v1') || '{}');
       if (savedToken) { els.token.value = savedToken; els.saveToken.checked = true; els.localSaveText.textContent = '저장된 토큰을 불러왔습니다. 이 아이폰에서만 사용하세요.'; }
       else els.localSaveText.textContent = '저장된 토큰 없음';
       if (savedSettings.owner) els.owner.value = savedSettings.owner;
@@ -225,6 +225,7 @@
 
   function clearLocalSettings() {
     localStorage.removeItem(STORAGE_TOKEN_KEY); localStorage.removeItem(STORAGE_SETTINGS_KEY);
+    localStorage.removeItem('githubZipUploader.token.v2'); localStorage.removeItem('githubZipUploader.settings.v2');
     localStorage.removeItem('githubZipUploader.token.v1'); localStorage.removeItem('githubZipUploader.settings.v1');
     els.saveToken.checked = false; els.token.value = ''; els.localSaveText.textContent = '저장된 토큰과 기본값을 삭제했습니다.'; toast('삭제 완료'); updateUiState();
   }
@@ -242,43 +243,26 @@
       rawEntries.push({ path, entry, size: entry._data && entry._data.uncompressedSize ? entry._data.uncompressedSize : 0 });
     });
     if (!rawEntries.length) throw new Error('ZIP 안에서 업로드 가능한 파일을 찾지 못했습니다.');
-    autoRoot = detectProjectRoot();
-    prepareFilesFromDetectedRoot();
-    setStatus(`${preparedFiles.length}개 파일 분석 완료`);
+    prepareFilesKeepingZipPaths();
+    setStatus(`${preparedFiles.length}개 파일 분석 완료 · 폴더 경로 유지`);
     toast('ZIP 분석 완료');
   }
 
-  function detectProjectRoot() {
-    const indexPaths = rawEntries.map(f => f.path).filter(p => /(^|\/)index\.html$/i.test(p));
-    let candidates;
-    if (indexPaths.length) candidates = indexPaths.map(p => p.replace(/(^|\/)index\.html$/i, '').replace(/\/$/, ''));
-    else {
-      const firstParts = rawEntries.map(f => f.path.split('/')[0]);
-      const counts = firstParts.reduce((acc, cur) => (acc[cur] = (acc[cur] || 0) + 1, acc), {});
-      const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0] || '';
-      const allUnderTop = rawEntries.every(f => f.path === top || f.path.startsWith(top + '/'));
-      candidates = allUnderTop ? [top] : [''];
-    }
-    candidates = Array.from(new Set(candidates)).sort((a, b) => scoreProjectRoot(b) - scoreProjectRoot(a));
-    return candidates[0] || '';
+  function isUnsafeZipPath(path) {
+    const parts = normalizePath(path).split('/').filter(Boolean);
+    return parts.some(part => part === '.' || part === '..');
   }
 
-  function scoreProjectRoot(candidate) {
-    const rels = rawEntries.map(f => stripDetectedRoot(f.path, candidate)).filter(Boolean);
-    let score = 0; const names = new Set(rels.map(p => p.toLowerCase()));
-    if (names.has('index.html')) score += 100; if (names.has('app.js')) score += 25; if (names.has('style.css')) score += 25; if (names.has('config.js')) score += 12; if (names.has('manifest.json')) score += 8; if (rels.some(p => p.startsWith('assets/'))) score += 8; score -= candidate.split('/').filter(Boolean).length; return score;
-  }
-
-  function stripDetectedRoot(path, candidate) { const p = normalizePath(path); const r = cleanTargetPath(candidate); if (!r) return p; if (p === r) return ''; if (p.startsWith(r + '/')) return p.slice(r.length + 1); return ''; }
-
-  function prepareFilesFromDetectedRoot() {
+  function prepareFilesKeepingZipPaths() {
     const map = new Map();
     for (const f of rawEntries) {
-      const rel = stripDetectedRoot(f.path, autoRoot);
+      const rel = normalizePath(f.path);
       if (!rel || isJunk(rel)) continue;
+      if (isUnsafeZipPath(rel)) throw new Error(`안전하지 않은 ZIP 경로가 있습니다: ${rel}`);
       map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' });
     }
     preparedFiles = Array.from(map.values()).sort((a,b) => a.relativePath.localeCompare(b.relativePath));
+    if (!preparedFiles.length) throw new Error('ZIP 안에서 업로드 가능한 파일을 찾지 못했습니다.');
     previewDone = false; completed = false; remoteTree = null; uploadedCount = 0;
     updateUiState();
   }
