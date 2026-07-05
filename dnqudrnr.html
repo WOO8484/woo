@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GitHub ZIP 자동 반영 도구 - Single File</title>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel2: #f9fbfd;
+      --ink: #14212f;
+      --muted: #657386;
+      --line: #dce5ef;
+      --brand: #0e9488;
+      --brand2: #0b766d;
+      --soft: #e8f6f4;
+      --danger: #d64545;
+      --dangerSoft: #fff0f0;
+      --warn: #b86b00;
+      --warnSoft: #fff7e8;
+      --ok: #168a4a;
+      --okSoft: #ebf8f0;
+      --shadow: 0 12px 32px rgba(20, 33, 47, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+    body { min-height: 100vh; }
+    .wrap { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 24px 0 48px; }
+    .hero { background: linear-gradient(135deg, #0e9488 0%, #147ea0 100%); color: #fff; border-radius: 26px; padding: 26px; box-shadow: var(--shadow); overflow: hidden; position: relative; }
+    .hero:after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 999px; background: rgba(255,255,255,.13); right: -70px; top: -90px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 3.6vw, 38px); letter-spacing: -0.04em; }
+    .hero p { margin: 0; color: rgba(255,255,255,.86); line-height: 1.6; max-width: 760px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+    .card.full { grid-column: 1 / -1; }
+    .card h2 { margin: 0 0 12px; font-size: 19px; letter-spacing: -0.03em; }
+    .note { background: var(--soft); color: #075b54; border: 1px solid #c9ece8; border-radius: 14px; padding: 12px 14px; line-height: 1.55; font-size: 14px; }
+    .note.warn { background: var(--warnSoft); border-color: #f0d6a7; color: #6c4300; }
+    .note.danger { background: var(--dangerSoft); border-color: #f0b7b7; color: #7b2020; }
+    label { display: block; font-weight: 700; font-size: 13px; margin: 13px 0 7px; color: #253648; }
+    input, select, textarea, button { font: inherit; }
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 12px 13px; outline: none; color: var(--ink);
+    }
+    input[type="file"] { width: 100%; padding: 12px; background: var(--panel2); border: 1px dashed #b8c6d5; border-radius: 12px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(14,148,136,.12); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    button { border: 0; border-radius: 13px; padding: 12px 16px; cursor: pointer; font-weight: 800; letter-spacing: -0.02em; }
+    .btn { background: var(--brand); color: white; }
+    .btn:hover { background: var(--brand2); }
+    .btn.secondary { background: #eaf0f5; color: #26394d; }
+    .btn.danger { background: var(--danger); color: white; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .pillbox { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; background: #eef3f8; color: #3e4e60; font-size: 13px; font-weight: 700; }
+    .pill.ok { background: var(--okSoft); color: var(--ok); }
+    .pill.warn { background: var(--warnSoft); color: var(--warn); }
+    .pill.danger { background: var(--dangerSoft); color: var(--danger); }
+    .progress { height: 11px; border-radius: 999px; background: #e5edf5; overflow: hidden; margin-top: 12px; }
+    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--brand), #37a3dd); transition: width .2s ease; }
+    .status { margin-top: 10px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .fileList { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #edf2f6; vertical-align: top; }
+    th { position: sticky; top: 0; background: #f4f8fb; text-align: left; color: #405266; z-index: 1; }
+    td.path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
+    .log { background: #0e1722; color: #cfe0ef; border-radius: 15px; padding: 14px; max-height: 300px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+    .small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .split { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .checkline { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; color: #394b5f; font-size: 14px; line-height: 1.45; }
+    .checkline input { margin-top: 2px; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 820px) {
+      .grid, .row, .row3 { grid-template-columns: 1fr; }
+      .wrap { width: min(100% - 20px, 1180px); padding-top: 12px; }
+      .hero { padding: 20px; border-radius: 22px; }
+      .card { padding: 15px; }
+      button { width: 100%; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>GitHub ZIP 자동 반영 도구</h1>
+      <p>ZIP 파일명을 무시하고 내부의 실제 프로젝트 루트를 찾아 GitHub 저장소에 자동 커밋합니다. 단일 HTML 버전이라 GitHub 토큰은 사용자가 직접 입력해야 하며, 기본적으로 토큰은 저장하지 않습니다. 본인 아이폰 전용으로 사용할 때만 “이 아이폰에 저장” 옵션을 켜면 다음 접속부터 자동 입력됩니다.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1. GitHub 연결</h2>
+        <div class="note warn">단일파일 버전은 GitHub 로그인 버튼 방식이 아닙니다. 안전한 로그인형은 GitHub App + Cloudflare Worker가 필요합니다. 이 파일은 토큰 입력형입니다.</div>
+
+        <label for="token">GitHub Fine-grained Token 또는 Classic PAT</label>
+        <input id="token" type="password" autocomplete="off" placeholder="ghp_ 또는 github_pat_ 로 시작하는 토큰" />
+        <div class="small">필요 권한: 대상 저장소 Contents Read and write. 기본값은 저장 안 함입니다. 본인 아이폰 전용이면 아래 저장 옵션을 켜서 매번 입력을 줄일 수 있습니다.</div>
+
+        <label class="checkline">
+          <input id="saveToken" type="checkbox" />
+          <span>이 아이폰에 토큰 저장하기. 공용 PC/다른 사람 기기에서는 절대 사용하지 마세요.</span>
+        </label>
+        <div class="actions">
+          <button class="btn secondary" id="saveLocalBtn" type="button">토큰/설정 저장</button>
+          <button class="btn danger" id="clearLocalBtn" type="button">저장된 토큰 삭제</button>
+        </div>
+        <div class="small" id="localSaveText">저장된 토큰 없음</div>
+
+        <div class="row3">
+          <div>
+            <label for="owner">Owner</label>
+            <input id="owner" type="text" placeholder="예: woo8484" />
+          </div>
+          <div>
+            <label for="repo">Repository</label>
+            <input id="repo" type="text" placeholder="예: TEST" />
+          </div>
+          <div>
+            <label for="branch">Branch</label>
+            <input id="branch" type="text" value="main" />
+          </div>
+        </div>
+
+        <label for="targetPath">GitHub 반영 위치</label>
+        <input id="targetPath" type="text" value="/" placeholder="/ 또는 docs 또는 public/app" />
+        <div class="small">루트에 반영하려면 / 로 두세요. 특정 폴더에 넣으려면 예: bpw 또는 docs</div>
+      </section>
+
+      <section class="card">
+        <h2>2. ZIP 선택</h2>
+        <label for="zipFile">업로드할 ZIP</label>
+        <input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
+
+        <label for="rootSelect">자동 감지된 프로젝트 루트</label>
+        <select id="rootSelect" disabled>
+          <option>ZIP을 먼저 선택하세요</option>
+        </select>
+        <div class="small">index.html이 있는 위치를 우선 프로젝트 루트로 판단합니다. 상위 폴더명은 자동 제거됩니다.</div>
+
+        <div class="pillbox" id="summaryPills">
+          <span class="pill">대기 중</span>
+        </div>
+
+        <div class="actions">
+          <button class="btn secondary" id="analyzeBtn" disabled>ZIP 다시 분석</button>
+          <button class="btn secondary" id="previewBtn" disabled>GitHub 변경 미리보기</button>
+        </div>
+      </section>
+
+      <section class="card full">
+        <h2>3. 반영 방식</h2>
+        <div class="row">
+          <div class="note">
+            <b>기존 파일 유지 + ZIP 파일만 덮어쓰기</b><br />
+            ZIP 안에 있는 파일만 추가/수정합니다. ZIP에 없는 기존 파일은 그대로 남습니다.
+          </div>
+          <div class="note danger">
+            <b>선택 위치 전체 교체</b><br />
+            선택한 GitHub 위치 안의 기존 파일 중 ZIP에 없는 파일은 삭제됩니다. BPW 버전 교체용으로 편합니다.
+          </div>
+        </div>
+
+        <label for="mode">업로드 모드</label>
+        <select id="mode">
+          <option value="merge">기존 파일 유지 + 같은 경로만 덮어쓰기</option>
+          <option value="replace">선택 위치 전체 교체</option>
+        </select>
+
+        <label for="commitMessage">커밋 메시지</label>
+        <input id="commitMessage" type="text" value="Update project from ZIP uploader" />
+
+        <label class="checkline">
+          <input id="confirmReplace" type="checkbox" />
+          <span>전체 교체 모드 사용 시, 선택 위치 안의 예전 잔재 파일이 삭제될 수 있음을 확인합니다.</span>
+        </label>
+
+        <div class="actions">
+          <button class="btn" id="uploadBtn" disabled>GitHub에 자동 반영</button>
+          <button class="btn secondary" id="resetBtn">초기화</button>
+        </div>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div class="status" id="status">ZIP 파일을 선택하면 분석을 시작합니다.</div>
+      </section>
+
+      <section class="card full">
+        <div class="split">
+          <h2>파일 미리보기</h2>
+          <div class="small" id="fileCountText">파일 0개</div>
+        </div>
+        <div class="fileList" id="fileList">
+          <table>
+            <thead><tr><th style="width:90px;">상태</th><th>경로</th><th style="width:120px;">크기</th></tr></thead>
+            <tbody id="fileTbody"><tr><td colspan="3">아직 분석된 파일이 없습니다.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card full">
+        <h2>실행 로그</h2>
+        <div class="log" id="log">대기 중...</div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  const API = 'https://api.github.com';
+  const STORAGE_TOKEN_KEY = 'githubZipUploader.token.v1';
+  const STORAGE_SETTINGS_KEY = 'githubZipUploader.settings.v1';
+  const els = {
+    token: document.getElementById('token'),
+    saveToken: document.getElementById('saveToken'),
+    saveLocalBtn: document.getElementById('saveLocalBtn'),
+    clearLocalBtn: document.getElementById('clearLocalBtn'),
+    localSaveText: document.getElementById('localSaveText'),
+    owner: document.getElementById('owner'),
+    repo: document.getElementById('repo'),
+    branch: document.getElementById('branch'),
+    targetPath: document.getElementById('targetPath'),
+    zipFile: document.getElementById('zipFile'),
+    rootSelect: document.getElementById('rootSelect'),
+    analyzeBtn: document.getElementById('analyzeBtn'),
+    previewBtn: document.getElementById('previewBtn'),
+    uploadBtn: document.getElementById('uploadBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    mode: document.getElementById('mode'),
+    confirmReplace: document.getElementById('confirmReplace'),
+    commitMessage: document.getElementById('commitMessage'),
+    fileTbody: document.getElementById('fileTbody'),
+    fileCountText: document.getElementById('fileCountText'),
+    summaryPills: document.getElementById('summaryPills'),
+    status: document.getElementById('status'),
+    log: document.getElementById('log'),
+    bar: document.getElementById('bar'),
+  };
+
+  let zip = null;
+  let rawEntries = [];
+  let rootCandidates = [];
+  let preparedFiles = [];
+  let remoteTree = null;
+  let previewDone = false;
+
+  const junkPatterns = [
+    /^__MACOSX\//,
+    /(^|\/)\.DS_Store$/,
+    /(^|\/)Thumbs\.db$/i,
+    /(^|\/)desktop\.ini$/i,
+    /(^|\/)\.git(\/|$)/,
+    /(^|\/)node_modules(\/|$)/,
+    /(^|\/)\.idea(\/|$)/,
+    /(^|\/)\.vscode(\/|$)/,
+    /(^|\/)\.wrangler(\/|$)/,
+    /(^|\/)dist\.zip$/i,
+  ];
+
+  function log(msg) {
+    const now = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    if (els.log.textContent === '대기 중...') els.log.textContent = '';
+    els.log.textContent += `[${now}] ${msg}\n`;
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  function setStatus(msg) { els.status.textContent = msg; }
+  function setProgress(value) { els.bar.style.width = `${Math.max(0, Math.min(100, value))}%`; }
+  function normalizePath(path) {
+    return String(path || '')
+      .replace(/\\+/g, '/')
+      .replace(/^\.\//, '')
+      .replace(/^\/+/, '')
+      .replace(/\/+/g, '/')
+      .trim();
+  }
+  function cleanTargetPath(path) {
+    const p = normalizePath(path);
+    return p === '' ? '' : p.replace(/\/+$/, '');
+  }
+  function joinPath(a, b) {
+    const aa = cleanTargetPath(a);
+    const bb = normalizePath(b);
+    if (!aa) return bb;
+    if (!bb) return aa;
+    return `${aa}/${bb}`;
+  }
+  function isJunk(path) { return junkPatterns.some(re => re.test(path)); }
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }
+  function safeText(text) {
+    return String(text).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  }
+  function updateButtons() {
+    const hasZip = !!zip && rawEntries.length > 0;
+    const hasRoot = els.rootSelect.value !== '' && !els.rootSelect.disabled;
+    const hasAuth = els.token.value.trim() && els.owner.value.trim() && els.repo.value.trim() && els.branch.value.trim();
+    els.analyzeBtn.disabled = !els.zipFile.files[0];
+    els.previewBtn.disabled = !(hasZip && hasRoot && hasAuth);
+    els.uploadBtn.disabled = !(hasZip && hasRoot && hasAuth && preparedFiles.length > 0);
+  }
+  function setPills(items) {
+    els.summaryPills.innerHTML = items.map(it => `<span class="pill ${it.type || ''}">${safeText(it.text)}</span>`).join('');
+  }
+
+  function setLocalSaveText(text) {
+    if (els.localSaveText) els.localSaveText.textContent = text;
+  }
+
+  function loadLocalSettings() {
+    try {
+      const savedToken = localStorage.getItem(STORAGE_TOKEN_KEY) || '';
+      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY) || '{}');
+      if (savedToken) {
+        els.token.value = savedToken;
+        els.saveToken.checked = true;
+      }
+      if (savedSettings.owner) els.owner.value = savedSettings.owner;
+      if (savedSettings.repo) els.repo.value = savedSettings.repo;
+      if (savedSettings.branch) els.branch.value = savedSettings.branch;
+      if (savedSettings.targetPath) els.targetPath.value = savedSettings.targetPath;
+      setLocalSaveText(savedToken ? '저장된 토큰을 불러왔습니다. 이 아이폰에서만 사용하세요.' : '저장된 토큰 없음');
+    } catch (err) {
+      setLocalSaveText('저장값을 불러오지 못했습니다. Safari 저장소 설정을 확인하세요.');
+    }
+  }
+
+  function saveLocalSettings() {
+    try {
+      const settings = {
+        owner: els.owner.value.trim(),
+        repo: els.repo.value.trim(),
+        branch: els.branch.value.trim(),
+        targetPath: els.targetPath.value.trim()
+      };
+      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+      if (els.saveToken.checked) {
+        const token = els.token.value.trim();
+        if (!token) throw new Error('저장할 토큰을 먼저 입력하세요.');
+        localStorage.setItem(STORAGE_TOKEN_KEY, token);
+        setLocalSaveText('토큰과 기본 설정을 이 아이폰에 저장했습니다.');
+        log('토큰/설정 로컬 저장 완료');
+      } else {
+        localStorage.removeItem(STORAGE_TOKEN_KEY);
+        setLocalSaveText('기본 설정만 저장했습니다. 토큰은 저장하지 않았습니다.');
+        log('기본 설정 로컬 저장 완료, 토큰 저장 안 함');
+      }
+    } catch (err) {
+      setLocalSaveText(`저장 실패: ${err.message}`);
+      log(`저장 실패: ${err.message}`);
+    }
+  }
+
+  function clearLocalSettings() {
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem(STORAGE_SETTINGS_KEY);
+    els.saveToken.checked = false;
+    setLocalSaveText('저장된 토큰과 기본 설정을 삭제했습니다.');
+    log('로컬 저장값 삭제 완료');
+  }
+
+  async function readZipFile(file) {
+    if (!window.JSZip) throw new Error('JSZip 라이브러리를 불러오지 못했습니다. 인터넷 연결 또는 CDN 차단 여부를 확인하세요.');
+    setProgress(5);
+    log(`ZIP 읽기 시작: ${file.name} (${formatBytes(file.size)})`);
+    zip = await JSZip.loadAsync(file);
+    rawEntries = [];
+
+    zip.forEach((relativePath, entry) => {
+      const path = normalizePath(relativePath);
+      if (!path || entry.dir || isJunk(path)) return;
+      rawEntries.push({ path, entry, size: entry._data && entry._data.uncompressedSize ? entry._data.uncompressedSize : 0 });
+    });
+
+    if (!rawEntries.length) throw new Error('ZIP 안에서 업로드 가능한 파일을 찾지 못했습니다.');
+    detectRoots();
+    setProgress(25);
+    log(`ZIP 내부 파일 ${rawEntries.length}개 감지`);
+    renderRootSelect();
+    prepareFilesFromSelectedRoot();
+    updateButtons();
+  }
+
+  function detectRoots() {
+    const indexPaths = rawEntries
+      .map(f => f.path)
+      .filter(p => /(^|\/)index\.html$/i.test(p));
+
+    if (indexPaths.length) {
+      rootCandidates = indexPaths.map(p => p.replace(/(^|\/)index\.html$/i, '').replace(/\/$/, ''));
+    } else {
+      const firstParts = rawEntries.map(f => f.path.split('/')[0]);
+      const counts = firstParts.reduce((acc, cur) => (acc[cur] = (acc[cur] || 0) + 1, acc), {});
+      const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0] || '';
+      const allUnderTop = rawEntries.every(f => f.path === top || f.path.startsWith(top + '/'));
+      rootCandidates = allUnderTop ? [top] : [''];
+    }
+
+    rootCandidates = Array.from(new Set(rootCandidates));
+    rootCandidates.sort((a, b) => scoreRoot(b) - scoreRoot(a));
+  }
+
+  function scoreRoot(root) {
+    const rels = rawEntries.map(f => stripRoot(f.path, root)).filter(Boolean);
+    let score = 0;
+    const names = new Set(rels.map(p => p.toLowerCase()));
+    if (names.has('index.html')) score += 100;
+    if (names.has('app.js')) score += 25;
+    if (names.has('style.css')) score += 25;
+    if (names.has('config.js')) score += 12;
+    if (names.has('manifest.json')) score += 8;
+    if (rels.some(p => p.startsWith('assets/'))) score += 8;
+    score -= root.split('/').filter(Boolean).length;
+    return score;
+  }
+
+  function renderRootSelect() {
+    els.rootSelect.innerHTML = '';
+    rootCandidates.forEach((root, idx) => {
+      const opt = document.createElement('option');
+      opt.value = root;
+      opt.textContent = root ? `${root}/` : '/';
+      if (idx === 0) opt.selected = true;
+      els.rootSelect.appendChild(opt);
+    });
+    els.rootSelect.disabled = false;
+  }
+
+  function stripRoot(path, root) {
+    const p = normalizePath(path);
+    const r = cleanTargetPath(root);
+    if (!r) return p;
+    if (p === r) return '';
+    if (p.startsWith(r + '/')) return p.slice(r.length + 1);
+    return '';
+  }
+
+  function prepareFilesFromSelectedRoot() {
+    const root = els.rootSelect.value;
+    const map = new Map();
+    for (const f of rawEntries) {
+      const rel = stripRoot(f.path, root);
+      if (!rel || isJunk(rel)) continue;
+      map.set(rel, { relativePath: rel, zipPath: f.path, entry: f.entry, size: f.size, status: '대기' });
+    }
+    preparedFiles = Array.from(map.values()).sort((a,b) => a.relativePath.localeCompare(b.relativePath));
+    previewDone = false;
+    remoteTree = null;
+    renderFileList();
+    setPills([
+      { text: `파일 ${preparedFiles.length}개`, type: 'ok' },
+      { text: `루트 ${root ? root + '/' : '/'}`, type: 'warn' },
+      { text: `ZIP명 무시`, type: '' },
+    ]);
+    setStatus(`프로젝트 루트가 ${root ? root + '/' : '/'} 로 선택되었습니다. GitHub 변경 미리보기를 실행할 수 있습니다.`);
+    setProgress(35);
+    updateButtons();
+  }
+
+  function renderFileList() {
+    els.fileCountText.textContent = `파일 ${preparedFiles.length}개`;
+    if (!preparedFiles.length) {
+      els.fileTbody.innerHTML = '<tr><td colspan="3">분석된 파일이 없습니다.</td></tr>';
+      return;
+    }
+    const rows = preparedFiles.slice(0, 700).map(f => {
+      const cls = f.status === '추가' ? 'ok' : f.status === '수정' ? 'warn' : f.status === '삭제예정' ? 'danger' : '';
+      return `<tr><td><span class="pill ${cls}">${safeText(f.status)}</span></td><td class="path">${safeText(f.relativePath)}</td><td>${formatBytes(f.size || 0)}</td></tr>`;
+    }).join('');
+    const extra = preparedFiles.length > 700 ? `<tr><td colspan="3">표시 제한으로 700개까지만 표시합니다. 실제 업로드는 전체 파일 기준입니다.</td></tr>` : '';
+    els.fileTbody.innerHTML = rows + extra;
+  }
+
+  async function gh(path, options = {}) {
+    const token = els.token.value.trim();
+    const res = await fetch(`${API}${path}`, {
+      ...options,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Authorization': `Bearer ${token}`,
+        ...(options.headers || {})
+      }
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+    if (!res.ok) {
+      const message = data && data.message ? data.message : res.statusText;
+      throw new Error(`GitHub API 오류 ${res.status}: ${message}`);
+    }
+    return data;
+  }
+
+  function repoPath(extra) {
+    const owner = encodeURIComponent(els.owner.value.trim());
+    const repo = encodeURIComponent(els.repo.value.trim());
+    return `/repos/${owner}/${repo}${extra}`;
+  }
+
+  async function fetchRemoteTree() {
+    const branch = encodeURIComponent(els.branch.value.trim());
+    log(`브랜치 조회: ${els.branch.value.trim()}`);
+    const ref = await gh(repoPath(`/git/ref/heads/${branch}`));
+    const headSha = ref.object.sha;
+    const commit = await gh(repoPath(`/git/commits/${headSha}`));
+    const baseTreeSha = commit.tree.sha;
+    const tree = await gh(repoPath(`/git/trees/${baseTreeSha}?recursive=1`));
+    return { headSha, baseTreeSha, tree: tree.tree || [] };
+  }
+
+  async function previewChanges() {
+    if (!preparedFiles.length) throw new Error('먼저 ZIP을 분석하세요.');
+    setProgress(40);
+    setStatus('GitHub 저장소 현재 파일 목록을 가져오는 중입니다.');
+    remoteTree = await fetchRemoteTree();
+
+    const target = cleanTargetPath(els.targetPath.value);
+    const remoteFiles = new Set(
+      remoteTree.tree
+        .filter(item => item.type === 'blob')
+        .map(item => item.path)
+    );
+
+    let add = 0, modify = 0;
+    for (const f of preparedFiles) {
+      const finalPath = joinPath(target, f.relativePath);
+      if (remoteFiles.has(finalPath)) { f.status = '수정'; modify++; }
+      else { f.status = '추가'; add++; }
+    }
+
+    let del = 0;
+    if (els.mode.value === 'replace') {
+      const newPaths = new Set(preparedFiles.map(f => joinPath(target, f.relativePath)));
+      const prefix = target ? target + '/' : '';
+      del = remoteTree.tree.filter(item => {
+        if (item.type !== 'blob') return false;
+        if (target && !(item.path === target || item.path.startsWith(prefix))) return false;
+        return !newPaths.has(item.path);
+      }).length;
+    }
+
+    previewDone = true;
+    renderFileList();
+    setPills([
+      { text: `추가 ${add}`, type: 'ok' },
+      { text: `수정 ${modify}`, type: 'warn' },
+      { text: `삭제 ${del}`, type: del ? 'danger' : '' },
+      { text: `대상 ${target || '/'}`, type: '' },
+    ]);
+    setProgress(55);
+    setStatus(`미리보기 완료: 추가 ${add}개, 수정 ${modify}개, 삭제 ${del}개`);
+    log(`미리보기 완료 - 추가 ${add}, 수정 ${modify}, 삭제 ${del}`);
+    updateButtons();
+  }
+
+  async function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  async function createBlobForFile(file) {
+    const buffer = await file.entry.async('arraybuffer');
+    const base64 = await arrayBufferToBase64(buffer);
+    const blob = await gh(repoPath('/git/blobs'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: base64, encoding: 'base64' })
+    });
+    return blob.sha;
+  }
+
+  async function uploadToGitHub() {
+    if (els.mode.value === 'replace' && !els.confirmReplace.checked) {
+      throw new Error('전체 교체 모드에서는 삭제 확인 체크가 필요합니다.');
+    }
+    if (!previewDone) {
+      log('미리보기가 없어 자동으로 미리보기를 먼저 실행합니다.');
+      await previewChanges();
+    }
+
+    setProgress(58);
+    setStatus('GitHub 업로드 준비 중입니다.');
+    const target = cleanTargetPath(els.targetPath.value);
+    const base = remoteTree || await fetchRemoteTree();
+    const treeItems = [];
+
+    log(`Blob 생성 시작: ${preparedFiles.length}개 파일`);
+    for (let i = 0; i < preparedFiles.length; i++) {
+      const f = preparedFiles[i];
+      const sha = await createBlobForFile(f);
+      treeItems.push({
+        path: joinPath(target, f.relativePath),
+        mode: '100644',
+        type: 'blob',
+        sha
+      });
+      const pct = 58 + Math.round(((i + 1) / preparedFiles.length) * 25);
+      setProgress(pct);
+      setStatus(`파일 업로드 준비 중: ${i + 1}/${preparedFiles.length} - ${f.relativePath}`);
+      if ((i + 1) % 10 === 0 || i === preparedFiles.length - 1) log(`Blob 생성 ${i + 1}/${preparedFiles.length}`);
+    }
+
+    if (els.mode.value === 'replace') {
+      const newPaths = new Set(preparedFiles.map(f => joinPath(target, f.relativePath)));
+      const prefix = target ? target + '/' : '';
+      const deleteItems = base.tree.filter(item => {
+        if (item.type !== 'blob') return false;
+        if (target && !(item.path === target || item.path.startsWith(prefix))) return false;
+        return !newPaths.has(item.path);
+      }).map(item => ({ path: item.path, mode: '100644', type: 'blob', sha: null }));
+      treeItems.push(...deleteItems);
+      log(`삭제 반영 예정: ${deleteItems.length}개`);
+    }
+
+    setProgress(87);
+    setStatus('Git Tree 생성 중입니다.');
+    log('Git Tree 생성');
+    const newTree = await gh(repoPath('/git/trees'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base_tree: base.baseTreeSha, tree: treeItems })
+    });
+
+    setProgress(92);
+    setStatus('커밋 생성 중입니다.');
+    const message = els.commitMessage.value.trim() || 'Update project from ZIP uploader';
+    log(`Commit 생성: ${message}`);
+    const newCommit = await gh(repoPath('/git/commits'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, tree: newTree.sha, parents: [base.headSha] })
+    });
+
+    setProgress(96);
+    setStatus('브랜치 반영 중입니다.');
+    const branch = encodeURIComponent(els.branch.value.trim());
+    log(`브랜치 업데이트: ${els.branch.value.trim()} -> ${newCommit.sha}`);
+    await gh(repoPath(`/git/refs/heads/${branch}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sha: newCommit.sha, force: false })
+    });
+
+    setProgress(100);
+    const pagesUrl = `https://${els.owner.value.trim()}.github.io/${els.repo.value.trim()}/`;
+    setStatus(`완료되었습니다. GitHub Pages 사용 시 잠시 후 반영됩니다: ${pagesUrl}`);
+    log('완료');
+    log(`예상 GitHub Pages 주소: ${pagesUrl}`);
+  }
+
+  els.zipFile.addEventListener('change', async () => {
+    try {
+      const file = els.zipFile.files[0];
+      if (!file) return;
+      els.log.textContent = '대기 중...';
+      setStatus('ZIP 분석 중입니다.');
+      setProgress(0);
+      await readZipFile(file);
+    } catch (err) {
+      setStatus(`오류: ${err.message}`);
+      log(`오류: ${err.message}`);
+      setProgress(0);
+    }
+  });
+
+  els.rootSelect.addEventListener('change', prepareFilesFromSelectedRoot);
+  els.mode.addEventListener('change', () => {
+    previewDone = false;
+    preparedFiles.forEach(f => f.status = '대기');
+    renderFileList();
+    updateButtons();
+    setStatus('반영 방식이 변경되었습니다. 변경 미리보기를 다시 실행하세요.');
+  });
+
+  ['input', 'change'].forEach(evt => {
+    [els.token, els.owner, els.repo, els.branch, els.targetPath].forEach(el => el.addEventListener(evt, updateButtons));
+  });
+
+  els.analyzeBtn.addEventListener('click', async () => {
+    try {
+      const file = els.zipFile.files[0];
+      if (!file) return;
+      await readZipFile(file);
+    } catch (err) {
+      setStatus(`오류: ${err.message}`);
+      log(`오류: ${err.message}`);
+    }
+  });
+
+  els.previewBtn.addEventListener('click', async () => {
+    try {
+      await previewChanges();
+    } catch (err) {
+      setStatus(`오류: ${err.message}`);
+      log(`오류: ${err.message}`);
+    }
+  });
+
+  els.uploadBtn.addEventListener('click', async () => {
+    try {
+      els.uploadBtn.disabled = true;
+      if (els.saveToken.checked) saveLocalSettings();
+      await uploadToGitHub();
+    } catch (err) {
+      setStatus(`오류: ${err.message}`);
+      log(`오류: ${err.message}`);
+      setProgress(0);
+    } finally {
+      updateButtons();
+    }
+  });
+
+  els.saveLocalBtn.addEventListener('click', saveLocalSettings);
+  els.clearLocalBtn.addEventListener('click', clearLocalSettings);
+
+  els.resetBtn.addEventListener('click', () => {
+    zip = null; rawEntries = []; rootCandidates = []; preparedFiles = []; remoteTree = null; previewDone = false;
+    els.zipFile.value = '';
+    els.rootSelect.innerHTML = '<option>ZIP을 먼저 선택하세요</option>';
+    els.rootSelect.disabled = true;
+    els.confirmReplace.checked = false;
+    els.fileTbody.innerHTML = '<tr><td colspan="3">아직 분석된 파일이 없습니다.</td></tr>';
+    els.fileCountText.textContent = '파일 0개';
+    els.log.textContent = '대기 중...';
+    setPills([{ text: '대기 중' }]);
+    setStatus('ZIP 파일을 선택하면 분석을 시작합니다.');
+    setProgress(0);
+    updateButtons();
+  });
+
+  loadLocalSettings();
+  updateButtons();
+})();
+</script>
+</body>
+</html>
